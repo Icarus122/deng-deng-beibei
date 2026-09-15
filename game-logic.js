@@ -1,5 +1,6 @@
 import { overlaps } from './entities.js';
 import { JOURNEY } from './level-data.js';
+import { createPursuer, updatePursuer } from './pursuer-ai.js';
 
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
@@ -98,6 +99,7 @@ export function createGame(levelId) {
     distance: initialDistance,
     maxDistance: level.maxDistance,
     pursuerX: player.x + initialDistance,
+    pursuer: createPursuer(player.x + initialDistance),
     checkpointX: 70,
     energyTimerMs: 0,
     collectedEnergyIds: [],
@@ -125,6 +127,7 @@ export function updateGame(state, input, elapsedMs) {
   const platforms = getRenderPlatforms(state.levelId, nextElapsedMs);
   const player = clonePlayer(state.player);
   let distance = state.distance;
+  let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.pursuerX);
   let energyTimerMs = Math.max(0, state.energyTimerMs - stepMs);
   let hitCooldownMs = Math.max(0, state.hitCooldownMs - stepMs);
   let event = 'none';
@@ -151,6 +154,7 @@ export function updateGame(state, input, elapsedMs) {
     if (!collectedEnergy.has(energy.id) && overlaps(playerBox, energy)) {
       energyTimerMs = 1800;
       distance = Math.max(0, distance - 38);
+      pursuer.x -= 38;
       event = 'energy';
       collectedEnergy.add(energy.id);
     }
@@ -159,6 +163,7 @@ export function updateGame(state, input, elapsedMs) {
 
   if (hitCooldownMs === 0 && level.obstacles.some((obstacle) => overlaps(playerBox, obstacle))) {
     distance += 34;
+    pursuer.x += 34;
     hitCooldownMs = 650;
     event = 'hit';
   }
@@ -178,11 +183,12 @@ export function updateGame(state, input, elapsedMs) {
     player.grounded = true;
     player.jumpsUsed = 0;
     distance += 48;
+    pursuer.x = Math.max(pursuer.x, player.x + distance);
     event = 'fell';
   }
 
-  const playerProgress = direction > 0 ? runSpeed : -75;
-  distance += (level.pursuerSpeed - playerProgress) * seconds;
+  pursuer = updatePursuer(pursuer, player, stepMs);
+  distance = pursuer.x - player.x;
   const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
   distance = Math.max(minimumLead, distance);
 
@@ -200,7 +206,8 @@ export function updateGame(state, input, elapsedMs) {
     phase,
     player,
     distance,
-    pursuerX: player.x + distance,
+    pursuerX: pursuer.x,
+    pursuer,
     checkpointX,
     energyTimerMs,
     collectedEnergyIds,

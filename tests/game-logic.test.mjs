@@ -96,7 +96,7 @@ test('falling returns Beibei to her checkpoint and widens the gap', () => {
 
 test('falling behind loses immediately but catching is reserved for the journey finish', () => {
   let lost = createGame(1);
-  lost = { ...lost, distance: lost.maxDistance - 1 };
+  lost = { ...lost, distance: lost.maxDistance - 1, pursuer: { ...lost.pursuer, x: lost.player.x + lost.maxDistance - 1 } };
   lost = updateGame(lost, { left: true, right: false, jumpPressed: false }, 50);
   assert.equal(lost.phase, 'lost');
 

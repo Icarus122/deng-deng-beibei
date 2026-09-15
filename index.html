@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7c76b" />
+    <title>等等贝贝吧</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section id="home-screen" class="screen home-screen" aria-labelledby="game-title">
+        <p class="eyebrow">PIXEL CHASE GAME</p>
+        <h1 id="game-title">等等贝贝吧</h1>
+        <p class="intro">操控董贝贝穿过校园和天桥，别让孟培杰跑远啦！</p>
+        <div class="portrait-row" aria-hidden="true">
+          <img src="assets/beibei-pixel.png" alt="" />
+          <span>VS</span>
+          <img src="assets/meng-peijie-pixel.png" alt="" />
+        </div>
+        <button id="start-button" class="primary-button">开始追赶</button>
+        <p class="controls">移动：A / D 或 ← / →　跳跃：空格 / W / ↑ / 点屏幕</p>
+      </section>
+
+      <section id="game-screen" class="screen game-screen" hidden aria-label="游戏进行中">
+        <header class="hud">
+          <p id="level-name">第一关 · 校园小路</p>
+          <div class="distance-wrap" aria-label="追赶距离">
+            <span>距离</span><div class="distance-track"><i id="distance-fill"></i></div>
+          </div>
+        </header>
+        <canvas id="game-canvas" width="480" height="270" aria-label="董贝贝追赶孟培杰的像素游戏"></canvas>
+        <p id="game-status" class="sr-only" aria-live="polite"></p>
+        <p class="touch-tip">点击画面跳跃 · 吃到闪光爱心可冲刺</p>
+      </section>
+    </main>
+
+    <dialog id="lose-dialog" class="result-dialog">
+      <div class="dialog-pixels">｡°(°´ᯅ`°)°｡</div>
+      <p class="dialog-kicker">追赶失败</p>
+      <h2>贝贝跟丢了</h2>
+      <p>孟培杰跑得太快啦……</p>
+      <div class="dialog-actions">
+        <button id="give-up-button" class="ghost-button">放弃</button>
+        <button id="retry-button" class="primary-button">再来一遍</button>
+        <button class="home-button">返回主页面</button>
+      </div>
+    </dialog>
+
+    <dialog id="win-dialog" class="result-dialog">
+      <div class="dialog-pixels">✦ ˖ ✦</div>
+      <p class="dialog-kicker">追赶成功</p>
+      <h2 id="win-copy">贝贝追上了</h2>
+      <p id="win-detail">没心眼，不等我</p>
+      <div class="dialog-actions">
+        <button id="next-level-button" class="primary-button">下一关</button>
+        <button id="replay-button" class="primary-button" hidden>重来一次</button>
+        <button class="home-button">返回主页面</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="game.js"></script>
+  </body>
+</html>

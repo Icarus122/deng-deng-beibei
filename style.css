@@ -1,0 +1,81 @@
+:root {
+  color-scheme: light;
+  font-family: "Microsoft YaHei", system-ui, sans-serif;
+  background: #2c2540;
+  color: #2c2540;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at top, #5c4b7b, #2c2540 62%);
+}
+
+button {
+  min-height: 48px;
+  border: 3px solid #2c2540;
+  border-radius: 0;
+  padding: 10px 18px;
+  box-shadow: 4px 4px 0 #2c2540;
+  background: #fff9e9;
+  color: #2c2540;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button:hover, button:focus-visible { transform: translate(-1px, -1px); box-shadow: 6px 6px 0 #2c2540; }
+button:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2c2540; }
+
+.game-shell {
+  width: min(96vw, 900px);
+  overflow: hidden;
+  border: 5px solid #2c2540;
+  box-shadow: 10px 10px 0 #171422;
+  background: #fff9e9;
+}
+
+.screen { min-height: 520px; padding: clamp(24px, 5vw, 56px); }
+.home-screen { display: grid; place-items: center; align-content: center; gap: 16px; text-align: center; background: linear-gradient(145deg, #f9d77a, #f7a6a6); }
+.eyebrow, .dialog-kicker { margin: 0; color: #a04669; font-weight: 900; letter-spacing: .14em; }
+h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 4px 4px 0 #fff9e9; }
+.intro { max-width: 28rem; margin: 0; font-size: 1.05rem; line-height: 1.7; }
+.portrait-row { display: flex; align-items: center; gap: 16px; font-weight: 900; color: #a04669; }
+.portrait-row img { width: 82px; height: 82px; image-rendering: pixelated; }
+.controls, .touch-tip { margin: 8px 0 0; font-size: .85rem; color: #524765; }
+.primary-button { background: #ff797f; }
+.ghost-button { background: #c9c2d7; }
+
+.game-screen { min-height: 0; padding: 14px; background: #eee7d8; }
+.hud { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 2px 4px 12px; font-weight: 900; }
+.hud p { margin: 0; }
+.distance-wrap { display: flex; align-items: center; gap: 7px; font-size: .8rem; }
+.distance-track { width: min(30vw, 170px); height: 14px; overflow: hidden; border: 3px solid #2c2540; background: #fff9e9; }
+.distance-track i { display: block; width: 50%; height: 100%; background: #ff797f; transition: width .12s linear; }
+
+canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; background: #a7d9ee; image-rendering: pixelated; touch-action: none; }
+.touch-tip { text-align: center; }
+
+.result-dialog { width: min(90vw, 390px); border: 5px solid #2c2540; padding: 30px; text-align: center; color: #2c2540; background: #fff9e9; box-shadow: 10px 10px 0 #171422; }
+.result-dialog::backdrop { background: rgb(44 37 64 / .72); }
+.result-dialog h2 { margin: 5px 0; font-size: 2rem; }
+.result-dialog p { line-height: 1.6; }
+.dialog-pixels { color: #ff797f; font-size: 1.5rem; font-weight: 900; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 22px; }
+.dialog-actions button { flex: 1 1 120px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .game-shell { width: 100vw; border-left: 0; border-right: 0; box-shadow: none; }
+  .screen { min-height: 100svh; }
+  .game-screen { padding: 10px; }
+  .hud { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .distance-track { width: 44vw; }
+  .controls { line-height: 1.7; }
+}

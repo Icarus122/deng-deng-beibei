@@ -1,4 +1,4 @@
-import { LEVELS, createGame, getPursuerRenderState, getRenderPlatforms, updateGame } from './game-logic.js';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
 import { drawCharacter } from './character-renderer.js';
 import { drawScene, getPalette } from './scene-renderer.js';
@@ -70,6 +70,25 @@ function drawPlatform(platform) {
 }
 
 function drawObstacle(obstacle, elapsedMs) {
+  if (obstacle.type === 'surprise') {
+    ctx.fillStyle = '#754f8f';
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = '#ffd85e';
+    ctx.fillRect(obstacle.x + 4, obstacle.y + 4, obstacle.width - 8, obstacle.height - 8);
+    ctx.fillStyle = '#754f8f';
+    ctx.font = '20px monospace';
+    ctx.fillText('?', obstacle.x + 8, obstacle.y + 23);
+    return;
+  }
+  if (obstacle.type === 'spring') {
+    ctx.fillStyle = '#d95767';
+    ctx.fillRect(obstacle.x, obstacle.y + 12, obstacle.width, 12);
+    ctx.fillStyle = '#fff0b2';
+    ctx.fillRect(obstacle.x + 4, obstacle.y + 5, obstacle.width - 8, 7);
+    ctx.fillStyle = '#2c2540';
+    for (let x = obstacle.x + 5; x < obstacle.x + obstacle.width - 4; x += 8) ctx.fillRect(x, obstacle.y + 12, 4, 8);
+    return;
+  }
   if (obstacle.type === 'basketball') {
     ctx.fillStyle = '#ef8c45';
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
@@ -127,73 +146,21 @@ function drawEnergy(energy, elapsedMs) {
   ctx.fillRect(energy.x + 5, energy.y, energy.width - 10, energy.height);
 }
 
+function drawCoin(coin, elapsedMs) {
+  const shine = Math.round(Math.sin((elapsedMs + coin.x) / 120) * 2);
+  ctx.fillStyle = '#a86a28';
+  ctx.fillRect(coin.x + 3, coin.y, coin.width - 6, coin.height);
+  ctx.fillStyle = '#ffd85e';
+  ctx.fillRect(coin.x + 5 + shine, coin.y + 3, coin.width - 10 - shine * 2, coin.height - 6);
+  ctx.fillStyle = '#fff4ce';
+  ctx.fillRect(coin.x + 7, coin.y + 6, 4, 8);
+}
+
 function drawCheckpoint(checkpoint) {
   ctx.fillStyle = '#fff9e9';
   ctx.fillRect(checkpoint.x, 426, 6, 84);
   ctx.fillStyle = '#ff797f';
   ctx.fillRect(checkpoint.x + 6, 430, 32, 22);
-}
-
-function drawRunnerLegs(style, stride, jumping) {
-  const swing = jumping ? 0 : Math.round(stride * 1.8);
-  const legColor = style === 'beibei' ? '#283d72' : '#3d4a5e';
-  const shoeColor = style === 'beibei' ? '#3b3154' : '#29303f';
-  const drawLeg = (hipX, shinX) => {
-    ctx.fillStyle = legColor;
-    ctx.fillRect(hipX, -23, 10, 14);
-    ctx.fillRect(shinX, -10, 10, 14);
-    ctx.fillStyle = shoeColor;
-    ctx.fillRect(shinX - 3, 3, 15, 5);
-  };
-
-  if (jumping) {
-    drawLeg(-8, 1);
-    drawLeg(4, -9);
-    return;
-  }
-  drawLeg(-8 + swing, -8 + swing * 2);
-  drawLeg(4 - swing, 4 - swing * 2);
-}
-
-function drawRunner(x, y, portrait, { crying = false, fallen = false, tapping = false, jumping = false, facing = 1, style = 'beibei' } = {}) {
-  const stride = Math.sin(state.elapsedMs / 78) * 4;
-  const bob = jumping ? -4 : Math.abs(stride) * 0.55;
-  ctx.save();
-  if (fallen) {
-    ctx.translate(x + 34, y + 20);
-    ctx.scale(facing, 1);
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(portrait, -42, -35, 84, 70);
-  } else if (crying) {
-    ctx.translate(x + 20, y + 32);
-    ctx.scale(facing * 0.82, 0.72);
-    ctx.drawImage(portrait, -42, -74, 84, 84);
-    ctx.fillStyle = '#74d7ee';
-    ctx.fillRect(5, -35, 5, 17);
-    ctx.fillRect(20, -31, 5, 13);
-  } else {
-    ctx.translate(x + 28, y + 30 + bob);
-    ctx.scale(facing, 1);
-    if (jumping) ctx.rotate(-0.1);
-    if (portrait.naturalWidth) {
-      ctx.drawImage(portrait, 0, 0, portrait.naturalWidth, portrait.naturalHeight * 0.64, -38, -82, 76, 60);
-      drawRunnerLegs(style, stride, jumping);
-    } else {
-      ctx.drawImage(portrait, -38, -82, 76, 88);
-    }
-    if (tapping) {
-      ctx.fillStyle = '#fff3a5';
-      ctx.fillRect(35, -28, 18, 6);
-      ctx.fillRect(41, -34, 6, 18);
-    }
-  }
-  ctx.restore();
-  if (!crying && !fallen && !jumping && Math.abs(stride) > 3) {
-    const trailDirection = facing > 0 ? -1 : 1;
-    ctx.fillStyle = '#fff0c7';
-    ctx.fillRect(x + trailDirection * 8, y + 28, 10, 4);
-    ctx.fillRect(x + trailDirection * 20, y + 33, 7, 3);
-  }
 }
 
 function drawDistanceBubble() {
@@ -215,20 +182,30 @@ function render() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
-  ctx.scale(0.5, 0.5);
+  ctx.scale(0.75, 0.75);
   drawBackground(cameraX);
   ctx.save();
   ctx.translate(-cameraX, 0);
   platforms.forEach(drawPlatform);
   level.checkpoints.forEach(drawCheckpoint);
   level.energy.filter((energy) => !state.collectedEnergyIds.includes(energy.id)).forEach((energy) => drawEnergy(energy, state.elapsedMs));
-  level.obstacles.forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
+  level.coins.filter((coin) => !state.collectedCoinIds.includes(coin.id)).forEach((coin) => drawCoin(coin, state.elapsedMs));
+  level.obstacles.filter((obstacle) => !state.collectedObstacleIds.includes(obstacle.id)).forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
 
   const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
   drawCharacter(ctx, beibei, beibeiPortrait, state.elapsedMs);
   drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36);
   if (state.basketball?.active) drawBasketball(state.basketball);
+
+  if (state.phase === 'playing' && state.player.x > level.finishX * 0.08) {
+    const taunt = getPursuerTaunt(state.player.x / level.finishX);
+    ctx.fillStyle = '#fff9e9';
+    ctx.fillRect(state.pursuer.x - 130, 360, 260, 34);
+    ctx.fillStyle = '#2c2540';
+    ctx.font = '16px "Microsoft YaHei", sans-serif';
+    ctx.fillText(taunt, state.pursuer.x - 120, 384);
+  }
 
   if (state.phase === 'caught') {
     ctx.fillStyle = '#fff9e9';
@@ -245,7 +222,7 @@ function render() {
   distanceFill.style.width = `${remaining}%`;
   const district = currentDistrict();
   const progress = Math.min(100, Math.round((state.player.x / level.finishX) * 100));
-  levelName.textContent = `${district?.name ?? level.name} · 路程 ${progress}%`;
+  levelName.textContent = `${district?.name ?? level.name} · 路程 ${progress}% · 硬币 ${state.coins}`;
 }
 
 function updateLiveText() {
@@ -254,6 +231,9 @@ function updateLiveText() {
     hit: '撞到书包了，孟培杰拉开了距离。',
     fell: '掉下去了，回到检查点，距离拉开。',
     energy: '拿到贝贝能量，正在冲刺！',
+    coin: '收集到硬币，距离缩短！',
+    surprise: '惊喜方块！硬币和冲刺都拿到了。',
+    spring: '弹簧台！跳得更高了。',
     checkpoint: '到达检查点。',
   };
   if (messages[state.event]) gameStatus.textContent = messages[state.event];

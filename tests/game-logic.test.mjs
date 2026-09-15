@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { advanceCamera } from '../camera.js';
 import { overlaps } from '../entities.js';
-import { LEVELS, createGame, getPursuerRenderState, updateGame } from '../game-logic.js';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, updateGame } from '../game-logic.js';
 import { JOURNEY } from '../level-data.js';
 
 test('journey has five visually and mechanically distinct regions', () => {
@@ -18,10 +18,11 @@ test('shared hitboxes overlap only when their rectangles intersect', () => {
   assert.equal(overlaps({ x: 0, y: 0, width: 10, height: 10 }, { x: 10, y: 0, width: 10, height: 10 }), false);
 });
 
-test('the continuous journey spans five named regions with enough distance for a long play session', () => {
+test('the continuous journey keeps five regions but fits a compact play session', () => {
   const journey = LEVELS[1];
 
-  assert.ok(journey.worldEnd >= 40000);
+  assert.ok(journey.worldEnd >= 20000);
+  assert.ok(journey.worldEnd <= 26000);
   assert.equal(journey.districts.length, 5);
   assert.deepEqual(journey.districts.map((district) => district.name), ['校园入口', '篮球场', '银杏林路', '湖畔施工区', '黄昏天桥']);
   assert.ok(journey.checkpoints.length >= 6);
@@ -63,7 +64,7 @@ test('camera eases toward a runner who has passed the initial viewport', () => {
 
 test('touching a basketball launches it forward automatically', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 10000 } };
+  state = { ...state, player: { ...state.player, x: 6500 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16, { random: () => 0.9 });
 
   assert.equal(state.basketball.active, true);
@@ -72,7 +73,7 @@ test('touching a basketball launches it forward automatically', () => {
 
 test('banana peel records a mistake and temporarily slips Beibei', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 19400 } };
+  state = { ...state, player: { ...state.player, x: 11100 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'slip');
@@ -82,12 +83,41 @@ test('banana peel records a mistake and temporarily slips Beibei', () => {
 
 test('before 70 percent, Meng immediately opens a safe gap instead of allowing a catch', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 32000 }, pursuer: { ...state.pursuer, x: 32040 } };
+  state = { ...state, player: { ...state.player, x: 15000 }, pursuer: { ...state.pursuer, x: 15040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'playing');
   assert.equal(state.pursuer.mode, 'evade');
   assert.ok(state.pursuer.x - state.player.x >= 150);
+});
+
+test('collecting a coin closes the gap and records Beibei coin progress', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 1200 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.event, 'coin');
+  assert.equal(state.coins, 1);
+  assert.ok(state.distance < state.initialDistance);
+});
+
+test('jumping into a surprise block grants a coin and a short sprint', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 2700, y: 378, velocityY: -260, grounded: false } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.event, 'surprise');
+  assert.equal(state.coins, 1);
+  assert.ok(state.energyTimerMs > 0);
+});
+
+test('landing on a spring launches Beibei into a high jump', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 4600 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.event, 'spring');
+  assert.ok(state.player.velocityY < -500);
 });
 
 test('Meng render state stays on the ground when Beibei is in the air', () => {
@@ -97,17 +127,42 @@ test('Meng render state stays on the ground when Beibei is in the air', () => {
   assert.equal(renderPursuer.grounded, true);
 });
 
+test('Meng has playful taunts that change across the chase', () => {
+  assert.equal(getPursuerTaunt(0.12), '孟培杰：等等？你也太慢啦！');
+  assert.equal(getPursuerTaunt(0.55), '孟培杰：前面有惊喜方块，敢不敢顶？');
+  assert.equal(getPursuerTaunt(0.9), '孟培杰：快追上了？那就来呀！');
+});
+
 test('catch rolls can win after 70 percent when injected random succeeds', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 34000 }, pursuer: { ...state.pursuer, x: 34100 } };
+  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18100 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
 });
 
+test('the first close approach after 70 percent has a 35 percent chance to catch Meng', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18050 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.34 });
+
+  assert.equal(state.phase, 'caught');
+});
+
+test('a missed close approach raises the next catch chance', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18050 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
+  state = { ...state, catchRollCooldownMs: 0, pursuer: { ...state.pursuer, x: state.player.x + 50 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.5 });
+
+  assert.equal(state.catchAttempts, 1);
+  assert.equal(state.phase, 'caught');
+});
+
 test('after 70 percent, a failed catch roll immediately makes Meng escape', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 34000 }, pursuer: { ...state.pursuer, x: 34040 } };
+  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
   assert.equal(state.phase, 'playing');
@@ -118,7 +173,7 @@ test('after 70 percent, a failed catch roll immediately makes Meng escape', () =
 
 test('collecting Beibei energy starts a sprint and closes the gap', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 5400 } };
+  state = { ...state, player: { ...state.player, x: 4100 } };
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'energy');
@@ -128,7 +183,7 @@ test('collecting Beibei energy starts a sprint and closes the gap', () => {
 
 test('a collected Beibei energy stays collected on later frames', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 5400 } };
+  state = { ...state, player: { ...state.player, x: 4100 } };
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
 
@@ -163,7 +218,7 @@ test('falling behind loses immediately but catching is reserved for the journey 
   assert.equal(early.phase, 'playing');
 
   let finish = createGame(1);
-  finish = { ...finish, distance: 1, player: { ...finish.player, x: LEVELS[1].finishX } };
+  finish = { ...finish, distance: finish.maxDistance, player: { ...finish.player, x: LEVELS[1].finishX }, pursuer: { ...finish.pursuer, x: LEVELS[1].finishX + finish.maxDistance } };
   finish = updateGame(finish, { left: false, right: true, jumpPressed: false }, 50);
   assert.equal(finish.phase, 'caught');
 });

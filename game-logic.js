@@ -109,6 +109,9 @@ export function createGame(levelId) {
     mistakes: 0,
     basketball: null,
     catchRollCooldownMs: 0,
+    catchAttempts: 0,
+    coins: 0,
+    collectedCoinIds: [],
     elapsedMs: 0,
     hitCooldownMs: 0,
     event: 'none',
@@ -121,6 +124,12 @@ export function resetLevel(levelId) {
 
 export function getPursuerRenderState(pursuer) {
   return { ...pursuer, y: GROUND_Y - PLAYER_HEIGHT, grounded: true };
+}
+
+export function getPursuerTaunt(progress) {
+  if (progress < 0.3) return '孟培杰：等等？你也太慢啦！';
+  if (progress < 0.7) return '孟培杰：前面有惊喜方块，敢不敢顶？';
+  return '孟培杰：快追上了？那就来呀！';
 }
 
 export function getRenderPlatforms(levelId, elapsedMs) {
@@ -141,7 +150,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let mistakes = state.mistakes ?? 0;
   let basketball = state.basketball ? { ...state.basketball } : null;
   let catchRollCooldownMs = Math.max(0, (state.catchRollCooldownMs ?? 0) - stepMs);
+  let catchAttempts = state.catchAttempts ?? 0;
+  let coins = state.coins ?? 0;
   const collectedObstacle = new Set(state.collectedObstacleIds ?? []);
+  const collectedCoins = new Set(state.collectedCoinIds ?? []);
   player.slipTimerMs = Math.max(0, (player.slipTimerMs ?? 0) - stepMs);
   let energyTimerMs = Math.max(0, state.energyTimerMs - stepMs);
   let hitCooldownMs = Math.max(0, state.hitCooldownMs - stepMs);
@@ -176,8 +188,32 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
   const collectedEnergyIds = [...collectedEnergy];
 
+  for (const coin of level.coins ?? []) {
+    if (!collectedCoins.has(coin.id) && overlaps(playerBox, coin)) {
+      collectedCoins.add(coin.id);
+      coins += 1;
+      distance = Math.max(0, distance - 14);
+      pursuer.x -= 14;
+      event = 'coin';
+    }
+  }
+
   for (const obstacle of level.obstacles) {
     if (collectedObstacle.has(obstacle.id) || !overlaps(playerBox, obstacle)) continue;
+    if (obstacle.type === 'surprise' && player.velocityY < 0) {
+      collectedObstacle.add(obstacle.id);
+      coins += 1;
+      energyTimerMs = 1200;
+      distance = Math.max(0, distance - 28);
+      pursuer.x -= 28;
+      event = 'surprise';
+    } else if (obstacle.type === 'spring') {
+      collectedObstacle.add(obstacle.id);
+      player.velocityY = -620;
+      player.grounded = false;
+      player.jumpsUsed = 0;
+      event = 'spring';
+    }
     if (obstacle.type === 'basketball') {
       basketball = { x: obstacle.x, y: obstacle.y, width: obstacle.width, height: obstacle.height, velocityX: 520, active: true };
       collectedObstacle.add(obstacle.id);
@@ -244,24 +280,25 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
   distance = Math.max(minimumLead, distance);
 
+  const reachedFinish = Boolean(level.finishX && player.x >= level.finishX);
   let phase = 'playing';
-  if (distance >= level.maxDistance) {
+  if (reachedFinish) {
+    phase = 'caught';
+    event = 'caught';
+  } else if (distance >= level.maxDistance) {
     phase = 'lost';
     event = 'lost';
   } else {
-    const reachedFinish = distance <= 1 && (!level.finishX || player.x >= level.finishX);
-    const catchReady = !reachedFinish && progress >= 0.7 && distance <= CATCH_CONTACT_GAP && catchRollCooldownMs === 0;
-    const catchChance = 0.18 + (mistakes === 0 ? 0.16 : 0) + (pursuer.mode === 'slowed' ? 0.18 : 0) + (pursuer.mode === 'downed' ? 0.45 : 0);
-    if (reachedFinish) {
-      phase = 'caught';
-      event = 'caught';
-    } else if (catchReady) {
+    const catchReady = progress >= 0.7 && distance <= CATCH_CONTACT_GAP && catchRollCooldownMs === 0;
+    const catchChance = Math.min(0.95, (progress >= 0.85 ? 0.7 : 0.35) + catchAttempts * 0.2 + (pursuer.mode === 'slowed' ? 0.18 : 0) + (pursuer.mode === 'downed' ? 0.45 : 0));
+    if (catchReady) {
       event = 'catchRoll';
       if (random() < catchChance) {
         phase = 'caught';
         event = 'caught';
       } else {
         catchRollCooldownMs = 1100;
+        catchAttempts += 1;
         pursuer = {
           ...pursuer,
           x: player.x + SAFE_CHASE_GAP,
@@ -290,6 +327,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     mistakes,
     basketball,
     catchRollCooldownMs,
+    catchAttempts,
+    coins,
+    collectedCoinIds: [...collectedCoins],
     elapsedMs: nextElapsedMs,
     hitCooldownMs,
     event,

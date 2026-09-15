@@ -5,6 +5,8 @@ import { createPursuer, updatePursuer } from './pursuer-ai.js';
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
+const SAFE_CHASE_GAP = 150;
+const CATCH_CONTACT_GAP = 120;
 const GRAVITY = 1400;
 const JUMP_SPEED = 500;
 const FALL_Y = 640;
@@ -117,6 +119,10 @@ export function resetLevel(levelId) {
   return createGame(levelId);
 }
 
+export function getPursuerRenderState(pursuer) {
+  return { ...pursuer, y: GROUND_Y - PLAYER_HEIGHT, grounded: true };
+}
+
 export function getRenderPlatforms(levelId, elapsedMs) {
   return LEVELS[levelId].platforms.map((platform) => movingPlatform(platform, elapsedMs));
 }
@@ -223,6 +229,18 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     }
   }
   distance = pursuer.x - player.x;
+  const progress = level.finishX ? player.x / level.finishX : 1;
+  if (progress < 0.7 && distance < SAFE_CHASE_GAP) {
+    pursuer = {
+      ...pursuer,
+      x: player.x + SAFE_CHASE_GAP,
+      velocity: 205,
+      mode: 'evade',
+      modeTimerMs: 900,
+      evadeCooldownMs: 2000,
+    };
+    distance = SAFE_CHASE_GAP;
+  }
   const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
   distance = Math.max(minimumLead, distance);
 
@@ -232,7 +250,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     event = 'lost';
   } else {
     const reachedFinish = distance <= 1 && (!level.finishX || player.x >= level.finishX);
-    const catchReady = !reachedFinish && player.x / level.finishX >= 0.7 && distance <= 120 && catchRollCooldownMs === 0;
+    const catchReady = !reachedFinish && progress >= 0.7 && distance <= CATCH_CONTACT_GAP && catchRollCooldownMs === 0;
     const catchChance = 0.18 + (mistakes === 0 ? 0.16 : 0) + (pursuer.mode === 'slowed' ? 0.18 : 0) + (pursuer.mode === 'downed' ? 0.45 : 0);
     if (reachedFinish) {
       phase = 'caught';
@@ -244,6 +262,16 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
         event = 'caught';
       } else {
         catchRollCooldownMs = 1100;
+        pursuer = {
+          ...pursuer,
+          x: player.x + SAFE_CHASE_GAP,
+          velocity: 205,
+          mode: 'evade',
+          modeTimerMs: 900,
+          evadeCooldownMs: 2000,
+        };
+        distance = SAFE_CHASE_GAP;
+        event = 'escaped';
       }
     }
   }

@@ -1,4 +1,4 @@
-import { LEVELS, createGame, getRenderPlatforms, updateGame } from './game-logic.js';
+import { LEVELS, createGame, getPursuerRenderState, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
 import { drawCharacter } from './character-renderer.js';
 import { drawScene, getPalette } from './scene-renderer.js';
@@ -21,10 +21,12 @@ const gameStatus = document.querySelector('#game-status');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 
-const beibeiPortrait = new Image();
-const mengPortrait = new Image();
-beibeiPortrait.src = 'assets/beibei-runner.png';
-mengPortrait.src = 'assets/meng-runner.png';
+const beibeiPortrait = { still: new Image(), runCycle: new Image() };
+const mengPortrait = { still: new Image(), runCycle: new Image() };
+beibeiPortrait.still.src = 'assets/beibei-runner.png';
+beibeiPortrait.runCycle.src = 'assets/beibei-run-cycle-clean.png';
+mengPortrait.still.src = 'assets/meng-runner.png';
+mengPortrait.runCycle.src = 'assets/meng-run-cycle.png';
 
 const input = { left: false, right: false, jumpPressed: false };
 let currentLevel = 1;
@@ -223,9 +225,9 @@ function render() {
   level.obstacles.forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
 
   const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
-  const meng = { ...state.pursuer, y: state.player.y, grounded: true, mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
-  drawCharacter(ctx, beibei, beibeiPortrait, state.elapsedMs, { style: 'beibei' });
-  drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36, { style: 'meng' });
+  const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
+  drawCharacter(ctx, beibei, beibeiPortrait, state.elapsedMs);
+  drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36);
   if (state.basketball?.active) drawBasketball(state.basketball);
 
   if (state.phase === 'caught') {

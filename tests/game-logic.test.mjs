@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { advanceCamera } from '../camera.js';
 import { overlaps } from '../entities.js';
-import { LEVELS, createGame, updateGame } from '../game-logic.js';
+import { LEVELS, createGame, getPursuerRenderState, updateGame } from '../game-logic.js';
 import { JOURNEY } from '../level-data.js';
 
 test('journey has five visually and mechanically distinct regions', () => {
@@ -80,12 +80,21 @@ test('banana peel records a mistake and temporarily slips Beibei', () => {
   assert.ok(state.player.slipTimerMs > 0);
 });
 
-test('catch rolls cannot succeed before 70 percent progress', () => {
+test('before 70 percent, Meng immediately opens a safe gap instead of allowing a catch', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 32000 }, pursuer: { ...state.pursuer, x: 32100 } };
+  state = { ...state, player: { ...state.player, x: 32000 }, pursuer: { ...state.pursuer, x: 32040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'playing');
+  assert.equal(state.pursuer.mode, 'evade');
+  assert.ok(state.pursuer.x - state.player.x >= 150);
+});
+
+test('Meng render state stays on the ground when Beibei is in the air', () => {
+  const renderPursuer = getPursuerRenderState({ x: 400, facing: 1, mode: 'cruise' });
+
+  assert.equal(renderPursuer.y, 478);
+  assert.equal(renderPursuer.grounded, true);
 });
 
 test('catch rolls can win after 70 percent when injected random succeeds', () => {
@@ -94,6 +103,17 @@ test('catch rolls can win after 70 percent when injected random succeeds', () =>
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
+});
+
+test('after 70 percent, a failed catch roll immediately makes Meng escape', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 34000 }, pursuer: { ...state.pursuer, x: 34040 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
+
+  assert.equal(state.phase, 'playing');
+  assert.equal(state.event, 'escaped');
+  assert.equal(state.pursuer.mode, 'evade');
+  assert.ok(state.pursuer.x - state.player.x >= 150);
 });
 
 test('collecting Beibei energy starts a sprint and closes the gap', () => {

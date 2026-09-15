@@ -33,7 +33,7 @@ button:hover, button:focus-visible { transform: translate(-1px, -1px); box-shado
 button:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2c2540; }
 
 .game-shell {
-  width: min(96vw, 900px);
+  width: min(96vw, 1180px);
   overflow: hidden;
   border: 5px solid #2c2540;
   box-shadow: 10px 10px 0 #171422;
@@ -51,7 +51,7 @@ h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 
 .primary-button { background: #ff797f; }
 .ghost-button { background: #c9c2d7; }
 
-.game-screen { min-height: 0; padding: 14px; background: #eee7d8; }
+.game-screen { min-height: 0; padding: clamp(10px, 2vw, 22px); background: #eee7d8; }
 .hud { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 2px 4px 12px; font-weight: 900; }
 .hud p { margin: 0; }
 .distance-wrap { display: flex; align-items: center; gap: 7px; font-size: .8rem; }

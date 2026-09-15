@@ -5,37 +5,55 @@ const GRAVITY = 1400;
 const JUMP_SPEED = 500;
 const FALL_Y = 640;
 
+function createContinuousJourney() {
+  const platforms = [];
+  const obstacles = [];
+  const energy = [];
+  const checkpoints = [];
+  const segmentLength = 1000;
+
+  for (let segment = 0; segment < 42; segment += 1) {
+    const start = segment * segmentLength;
+    const gapWidth = segment === 0 || segment === 25 ? 0 : 145 + (segment % 3) * 20;
+    const groundWidth = segment === 41 ? 1000 : segmentLength - gapWidth;
+    platforms.push({ x: start, y: GROUND_Y, width: groundWidth, height: 30 });
+    platforms.push({ x: start + 265, y: 414 - (segment % 2) * 24, width: 118, height: 18 });
+    platforms.push({ x: start + 565, y: 442, width: 105, height: 18 });
+
+    if (segment % 2 === 1) {
+      platforms.push({
+        x: start + 765,
+        y: 390,
+        width: 96,
+        height: 18,
+        motion: { axis: segment % 4 === 1 ? 'x' : 'y', range: 46, period: 1500 + segment * 35 },
+      });
+    }
+    if (segment > 0) obstacles.push({ id: `bag-${segment}`, x: start + 135, y: 478, width: 28, height: 32, type: 'bookbag' });
+    energy.push({ id: `energy-${segment + 1}`, x: start + 260, y: 468, width: 22, height: 22 });
+    if (segment % 2 === 1 && segment < 41) checkpoints.push({ x: start + 740, respawnX: start + 700 });
+  }
+
+  return {
+    name: '等到天桥尽头',
+    worldEnd: 42000,
+    finishX: 41280,
+    maxDistance: 520,
+    pursuerSpeed: 136,
+    districts: [
+      { name: '校园入口', start: 0, end: 14000, palette: 'morning' },
+      { name: '林荫操场', start: 14000, end: 28000, palette: 'afternoon' },
+      { name: '黄昏天桥', start: 28000, end: 42000, palette: 'sunset' },
+    ],
+    platforms,
+    obstacles,
+    energy,
+    checkpoints,
+  };
+}
+
 export const LEVELS = {
-  1: {
-    name: '校园小路',
-    worldEnd: 1900,
-    maxDistance: 360,
-    pursuerSpeed: 150,
-    platforms: [
-      { x: 0, y: GROUND_Y, width: 570, height: 30 },
-      { x: 690, y: GROUND_Y, width: 450, height: 30 },
-      { x: 1260, y: GROUND_Y, width: 640, height: 30 },
-      { x: 410, y: 420, width: 110, height: 18 },
-      { x: 605, y: 440, width: 90, height: 18 },
-      { x: 920, y: 405, width: 120, height: 18 },
-      { x: 1120, y: 445, width: 100, height: 18 },
-      { x: 1450, y: 410, width: 120, height: 18 },
-    ],
-    obstacles: [
-      { id: 'bag-1', x: 510, y: 478, width: 28, height: 32, type: 'bookbag' },
-      { id: 'bag-2', x: 960, y: 478, width: 28, height: 32, type: 'bookbag' },
-      { id: 'bag-3', x: 1600, y: 478, width: 28, height: 32, type: 'bookbag' },
-    ],
-    energy: [
-      { id: 'energy-1', x: 260, y: 468, width: 22, height: 22 },
-      { id: 'energy-2', x: 810, y: 468, width: 22, height: 22 },
-      { id: 'energy-3', x: 1370, y: 468, width: 22, height: 22 },
-    ],
-    checkpoints: [
-      { x: 760, respawnX: 730 },
-      { x: 1320, respawnX: 1290 },
-    ],
-  },
+  1: createContinuousJourney(),
   2: {
     name: '黄昏天桥',
     worldEnd: 2150,
@@ -109,7 +127,7 @@ function clamp(value, minimum, maximum) {
 export function createGame(levelId) {
   const level = LEVELS[levelId];
   if (!level) throw new Error(`Unknown level ${levelId}`);
-  const initialDistance = 180;
+  const initialDistance = level.finishX ? 260 : 180;
   const player = {
     x: 70,
     y: GROUND_Y - PLAYER_HEIGHT,
@@ -165,7 +183,7 @@ export function updateGame(state, input, elapsedMs) {
   }
 
   const direction = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-  const runSpeed = energyTimerMs > 0 ? 290 : 180;
+  const runSpeed = energyTimerMs > 0 ? 240 : 150;
   player.x = clamp(player.x + direction * runSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   const previousBottom = player.y + player.height;
   player.velocityY += GRAVITY * seconds;
@@ -210,13 +228,14 @@ export function updateGame(state, input, elapsedMs) {
 
   const playerProgress = direction > 0 ? runSpeed : direction < 0 ? -75 : 0;
   distance += (level.pursuerSpeed - playerProgress) * seconds;
-  distance = Math.max(0, distance);
+  const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
+  distance = Math.max(minimumLead, distance);
 
   let phase = 'playing';
   if (distance >= level.maxDistance) {
     phase = 'lost';
     event = 'lost';
-  } else if (distance <= 0) {
+  } else if (distance <= 1 && (!level.finishX || player.x >= level.finishX)) {
     phase = 'caught';
     event = 'caught';
   }

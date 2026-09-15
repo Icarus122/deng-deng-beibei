@@ -15,9 +15,44 @@ function getStillPortrait(portrait) {
   return portrait?.still ?? portrait;
 }
 
+function drawFallbackRunner(ctx, portrait, x, y, width, height) {
+  const unit = width / 12;
+  const beibei = portrait?.runnerId === 'beibei';
+  const hair = beibei ? '#7a4b42' : '#252238';
+  const outfit = beibei ? '#ef8f9b' : '#5c89b5';
+  const collar = beibei ? '#f7d66f' : '#e8eef8';
+  const skin = '#f2bf9f';
+  const baseX = x + unit * 3;
+  const baseY = y + unit * 2;
+
+  ctx.fillStyle = hair;
+  ctx.fillRect(baseX, baseY, unit * 6, unit * 4);
+  ctx.fillStyle = skin;
+  ctx.fillRect(baseX + unit, baseY + unit * 2, unit * 4, unit * 3);
+  ctx.fillStyle = '#2c2540';
+  ctx.fillRect(baseX + unit * 2, baseY + unit * 3, unit, unit);
+  ctx.fillRect(baseX + unit * 4, baseY + unit * 3, unit, unit);
+  if (!beibei) {
+    ctx.fillStyle = '#dce4ef';
+    ctx.fillRect(baseX + unit, baseY + unit * 3, unit * 4, unit / 2);
+  }
+  ctx.fillStyle = outfit;
+  ctx.fillRect(baseX + unit, baseY + unit * 5, unit * 4, unit * 3);
+  ctx.fillStyle = collar;
+  ctx.fillRect(baseX + unit * 2, baseY + unit * 5, unit * 2, unit);
+  ctx.fillStyle = '#2c2540';
+  ctx.fillRect(baseX + unit, baseY + unit * 8, unit, unit * 2);
+  ctx.fillRect(baseX + unit * 4, baseY + unit * 8, unit, unit * 2);
+}
+
 function drawStillPortrait(ctx, portrait, x, y, width = 96, height = 120) {
-  if (!portrait?.naturalWidth) return;
-  ctx.drawImage(portrait, x, y, width, height);
+  const stillPortrait = getStillPortrait(portrait);
+  if (stillPortrait?.naturalWidth) {
+    ctx.drawImage(stillPortrait, x, y, width, height);
+    return true;
+  }
+  drawFallbackRunner(ctx, portrait, x, y, width, height);
+  return false;
 }
 
 function drawRunCycle(ctx, runCycle, elapsedMs) {
@@ -33,7 +68,6 @@ export function drawCharacter(ctx, character, portrait, elapsedMs) {
   const facing = character.facing ?? 1;
   const runPose = getRunnerPose(elapsedMs, facing);
   const bob = pose === 'run' ? runPose.bob : 0;
-  const stillPortrait = getStillPortrait(portrait);
   const runCycle = portrait?.runCycle;
   ctx.save();
   ctx.translate(character.x + 28, character.y + 30 + bob);
@@ -41,17 +75,17 @@ export function drawCharacter(ctx, character, portrait, elapsedMs) {
 
   if (pose === 'downed') {
     ctx.rotate(Math.PI / 2);
-    drawStillPortrait(ctx, stillPortrait, -52, -38, 104, 76);
+    drawStillPortrait(ctx, portrait, -52, -38, 104, 76);
   } else if (pose === 'cry') {
     ctx.scale(0.82, 0.72);
-    drawStillPortrait(ctx, stillPortrait, -48, -112, 96, 120);
+    drawStillPortrait(ctx, portrait, -48, -112, 96, 120);
     ctx.fillStyle = '#74d7ee';
     ctx.fillRect(5, -35, 5, 17);
     ctx.fillRect(20, -31, 5, 13);
   } else {
     if (pose === 'jump') ctx.rotate(-0.1);
     if (pose === 'run') ctx.rotate(runPose.torsoTilt);
-    if (pose !== 'run' || !drawRunCycle(ctx, runCycle, elapsedMs)) drawStillPortrait(ctx, stillPortrait, -48, -112, 96, 120);
+    if (pose !== 'run' || !drawRunCycle(ctx, runCycle, elapsedMs)) drawStillPortrait(ctx, portrait, -48, -112, 96, 120);
     if (pose === 'tap') {
       ctx.fillStyle = '#fff3a5';
       ctx.fillRect(35, -28, 18, 6);

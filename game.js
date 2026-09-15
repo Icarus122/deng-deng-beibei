@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js';
+import { drawCharacter } from './character-renderer.js?v=20260915r3';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -23,8 +23,8 @@ const gameStatus = document.querySelector('#game-status');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 
-const beibeiPortrait = { still: new Image(), runCycle: new Image() };
-const mengPortrait = { still: new Image(), runCycle: new Image() };
+const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image() };
+const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
 beibeiPortrait.still.src = 'assets/beibei-runner.png';
 beibeiPortrait.runCycle.src = 'assets/beibei-run-cycle-clean.png';
 mengPortrait.still.src = 'assets/meng-runner.png';

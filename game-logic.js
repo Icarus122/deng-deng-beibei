@@ -1,3 +1,6 @@
+import { overlaps } from './entities.js';
+import { JOURNEY } from './level-data.js';
+
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
@@ -5,55 +8,8 @@ const GRAVITY = 1400;
 const JUMP_SPEED = 500;
 const FALL_Y = 640;
 
-function createContinuousJourney() {
-  const platforms = [];
-  const obstacles = [];
-  const energy = [];
-  const checkpoints = [];
-  const segmentLength = 1000;
-
-  for (let segment = 0; segment < 42; segment += 1) {
-    const start = segment * segmentLength;
-    const gapWidth = segment === 0 || segment === 25 ? 0 : 145 + (segment % 3) * 20;
-    const groundWidth = segment === 41 ? 1000 : segmentLength - gapWidth;
-    platforms.push({ x: start, y: GROUND_Y, width: groundWidth, height: 30 });
-    platforms.push({ x: start + 265, y: 414 - (segment % 2) * 24, width: 118, height: 18 });
-    platforms.push({ x: start + 565, y: 442, width: 105, height: 18 });
-
-    if (segment % 2 === 1) {
-      platforms.push({
-        x: start + 765,
-        y: 390,
-        width: 96,
-        height: 18,
-        motion: { axis: segment % 4 === 1 ? 'x' : 'y', range: 46, period: 1500 + segment * 35 },
-      });
-    }
-    if (segment > 0) obstacles.push({ id: `bag-${segment}`, x: start + 135, y: 478, width: 28, height: 32, type: 'bookbag' });
-    energy.push({ id: `energy-${segment + 1}`, x: start + 260, y: 468, width: 22, height: 22 });
-    if (segment % 2 === 1 && segment < 41) checkpoints.push({ x: start + 740, respawnX: start + 700 });
-  }
-
-  return {
-    name: '等到天桥尽头',
-    worldEnd: 42000,
-    finishX: 41280,
-    maxDistance: 520,
-    pursuerSpeed: 136,
-    districts: [
-      { name: '校园入口', start: 0, end: 14000, palette: 'morning' },
-      { name: '林荫操场', start: 14000, end: 28000, palette: 'afternoon' },
-      { name: '黄昏天桥', start: 28000, end: 42000, palette: 'sunset' },
-    ],
-    platforms,
-    obstacles,
-    energy,
-    checkpoints,
-  };
-}
-
 export const LEVELS = {
-  1: createContinuousJourney(),
+  1: JOURNEY,
   2: {
     name: '黄昏天桥',
     worldEnd: 2150,
@@ -92,10 +48,6 @@ export const LEVELS = {
 
 function clonePlayer(player) {
   return { ...player };
-}
-
-function overlaps(a, b) {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 function movingPlatform(platform, elapsedMs) {

@@ -1,4 +1,5 @@
 import { LEVELS, createGame, getRenderPlatforms, updateGame } from './game-logic.js';
+import { advanceCamera } from './camera.js';
 
 const canvas = document.querySelector('#game-canvas');
 const ctx = canvas.getContext('2d');
@@ -28,6 +29,8 @@ let currentLevel = 1;
 let state = null;
 let animationFrame = 0;
 let lastFrame = 0;
+let lastRenderElapsedMs = 0;
+let cameraX = 0;
 let endTimer = 0;
 let resultPose = 'running';
 
@@ -64,14 +67,15 @@ function drawBackground(cameraX) {
   gradient.addColorStop(0, palette.skyTop);
   gradient.addColorStop(1, palette.skyBottom);
   ctx.fillStyle = gradient;
-  ctx.fillRect(cameraX, 0, 1300, 540);
+  ctx.fillRect(0, 0, 1300, 540);
 
   ctx.fillStyle = palette.accent;
-  ctx.fillRect(cameraX + 990, 70, 48, 48);
+  ctx.fillRect(990, 70, 48, 48);
   ctx.fillStyle = `${palette.accent}88`;
-  ctx.fillRect(cameraX + 976, 58, 76, 76);
+  ctx.fillRect(976, 58, 76, 76);
 
-  for (let x = Math.floor(cameraX / 320) * 320 - 320; x < cameraX + 1320; x += 320) {
+  const farOffset = (cameraX * 0.16) % 320;
+  for (let x = -320 - farOffset; x < 1320; x += 320) {
     drawPixelCloud(x + 45, 68 + ((Math.floor(x / 320) & 1) * 35), '#fff9e9aa');
     ctx.fillStyle = palette.ridge;
     ctx.fillRect(x, 296, 320, 72);
@@ -81,7 +85,8 @@ function drawBackground(cameraX) {
   }
 
   const district = currentDistrict();
-  for (let x = Math.floor(cameraX / 170) * 170 - 170; x < cameraX + 1320; x += 170) {
+  const treeOffset = (cameraX * 0.56) % 170;
+  for (let x = -170 - treeOffset; x < 1320; x += 170) {
     ctx.fillStyle = palette.trunk;
     ctx.fillRect(x + 76, 350, 22, 160);
     ctx.fillStyle = palette.tree;
@@ -90,15 +95,15 @@ function drawBackground(cameraX) {
   }
   if (district?.palette === 'afternoon') {
     ctx.fillStyle = '#d6e5d5';
-    ctx.fillRect(cameraX + 710, 300, 160, 116);
+    ctx.fillRect(710, 300, 160, 116);
     ctx.fillStyle = '#6d88a0';
-    for (let x = cameraX + 728; x < cameraX + 860; x += 34) ctx.fillRect(x, 326, 18, 22);
+    for (let x = 728; x < 860; x += 34) ctx.fillRect(x, 326, 18, 22);
   }
   if (district?.palette === 'sunset') {
     ctx.fillStyle = '#4b4763';
-    ctx.fillRect(cameraX, 306, 1300, 20);
+    ctx.fillRect(0, 306, 1300, 20);
     ctx.fillStyle = '#ffce77';
-    for (let x = cameraX + 40; x < cameraX + 1300; x += 155) {
+    for (let x = 40 - ((cameraX * 0.3) % 155); x < 1300; x += 155) {
       ctx.fillRect(x, 283, 16, 23);
       ctx.fillStyle = '#4b4763';
       ctx.fillRect(x + 6, 245, 5, 38);
@@ -149,25 +154,53 @@ function drawCheckpoint(checkpoint) {
   ctx.fillRect(checkpoint.x + 6, 430, 32, 22);
 }
 
-function drawRunner(x, y, portrait, { crying = false, fallen = false, tapping = false, jumping = false } = {}) {
+function drawRunnerLegs(style, stride, jumping) {
+  const swing = jumping ? 0 : Math.round(stride * 1.8);
+  const legColor = style === 'beibei' ? '#283d72' : '#3d4a5e';
+  const shoeColor = style === 'beibei' ? '#3b3154' : '#29303f';
+  const drawLeg = (hipX, shinX) => {
+    ctx.fillStyle = legColor;
+    ctx.fillRect(hipX, -23, 10, 14);
+    ctx.fillRect(shinX, -10, 10, 14);
+    ctx.fillStyle = shoeColor;
+    ctx.fillRect(shinX - 3, 3, 15, 5);
+  };
+
+  if (jumping) {
+    drawLeg(-8, 1);
+    drawLeg(4, -9);
+    return;
+  }
+  drawLeg(-8 + swing, -8 + swing * 2);
+  drawLeg(4 - swing, 4 - swing * 2);
+}
+
+function drawRunner(x, y, portrait, { crying = false, fallen = false, tapping = false, jumping = false, facing = 1, style = 'beibei' } = {}) {
   const stride = Math.sin(state.elapsedMs / 78) * 4;
   const bob = jumping ? -4 : Math.abs(stride) * 0.55;
   ctx.save();
   if (fallen) {
     ctx.translate(x + 34, y + 20);
+    ctx.scale(facing, 1);
     ctx.rotate(Math.PI / 2);
     ctx.drawImage(portrait, -42, -35, 84, 70);
   } else if (crying) {
     ctx.translate(x + 20, y + 32);
-    ctx.scale(0.82, 0.72);
+    ctx.scale(facing * 0.82, 0.72);
     ctx.drawImage(portrait, -42, -74, 84, 84);
     ctx.fillStyle = '#74d7ee';
     ctx.fillRect(5, -35, 5, 17);
     ctx.fillRect(20, -31, 5, 13);
   } else {
     ctx.translate(x + 28, y + 30 + bob);
+    ctx.scale(facing, 1);
     if (jumping) ctx.rotate(-0.1);
-    ctx.drawImage(portrait, -38, -82, 76, 88);
+    if (portrait.naturalWidth) {
+      ctx.drawImage(portrait, 0, 0, portrait.naturalWidth, portrait.naturalHeight * 0.64, -38, -82, 76, 60);
+      drawRunnerLegs(style, stride, jumping);
+    } else {
+      ctx.drawImage(portrait, -38, -82, 76, 88);
+    }
     if (tapping) {
       ctx.fillStyle = '#fff3a5';
       ctx.fillRect(35, -28, 18, 6);
@@ -176,24 +209,27 @@ function drawRunner(x, y, portrait, { crying = false, fallen = false, tapping = 
   }
   ctx.restore();
   if (!crying && !fallen && !jumping && Math.abs(stride) > 3) {
+    const trailDirection = facing > 0 ? -1 : 1;
     ctx.fillStyle = '#fff0c7';
-    ctx.fillRect(x - 8, y + 28, 10, 4);
-    ctx.fillRect(x - 20, y + 33, 7, 3);
+    ctx.fillRect(x + trailDirection * 8, y + 28, 10, 4);
+    ctx.fillRect(x + trailDirection * 20, y + 33, 7, 3);
   }
 }
 
-function drawDistanceBubble(cameraX) {
+function drawDistanceBubble() {
   if (state.energyTimerMs <= 0) return;
   ctx.fillStyle = '#ff797f';
-  ctx.fillRect(cameraX + 350, 55, 210, 28);
+  ctx.fillRect(350, 55, 210, 28);
   ctx.fillStyle = '#fff9e9';
   ctx.font = '16px monospace';
-  ctx.fillText('贝贝能量！冲刺中', cameraX + 370, 75);
+  ctx.fillText('贝贝能量！冲刺中', 370, 75);
 }
 
 function render() {
   if (!state) return;
-  const cameraX = Math.max(0, state.player.x - 360);
+  const renderDelta = Math.max(0, state.elapsedMs - lastRenderElapsedMs);
+  cameraX = advanceCamera(cameraX, state.player.x, renderDelta, 1280, LEVELS[currentLevel].worldEnd);
+  lastRenderElapsedMs = state.elapsedMs;
   const level = LEVELS[currentLevel];
   const platforms = getRenderPlatforms(currentLevel, state.elapsedMs);
 
@@ -201,13 +237,15 @@ function render() {
   ctx.save();
   ctx.scale(0.5, 0.5);
   drawBackground(cameraX);
+  ctx.save();
+  ctx.translate(-cameraX, 0);
   platforms.forEach(drawPlatform);
   level.checkpoints.forEach(drawCheckpoint);
   level.energy.filter((energy) => !state.collectedEnergyIds.includes(energy.id)).forEach((energy) => drawEnergy(energy, state.elapsedMs));
   level.obstacles.forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
 
-  const beibeiOptions = { crying: state.phase === 'lost', tapping: state.phase === 'caught' && resultPose === 'tap', jumping: !state.player.grounded };
-  const mengOptions = { fallen: state.phase === 'caught' && resultPose === 'fallen' };
+  const beibeiOptions = { crying: state.phase === 'lost', tapping: state.phase === 'caught' && resultPose === 'tap', jumping: !state.player.grounded, facing: state.player.facing, style: 'beibei' };
+  const mengOptions = { fallen: state.phase === 'caught' && resultPose === 'fallen', facing: 1, style: 'meng' };
   drawRunner(state.player.x, state.player.y, beibeiPortrait, beibeiOptions);
   drawRunner(state.pursuerX, state.player.y, mengPortrait, mengOptions);
 
@@ -218,7 +256,8 @@ function render() {
     ctx.font = '16px monospace';
     ctx.fillText('没心眼，不等我', state.player.x + 43, state.player.y - 35);
   }
-  drawDistanceBubble(cameraX);
+  ctx.restore();
+  drawDistanceBubble();
   ctx.restore();
 
   const remaining = Math.max(0, Math.round(((state.maxDistance - state.distance) / state.maxDistance) * 100));
@@ -298,6 +337,8 @@ function startLevel(levelId) {
   state = createGame(levelId);
   resultPose = 'running';
   lastFrame = 0;
+  lastRenderElapsedMs = 0;
+  cameraX = 0;
   levelName.textContent = '校园入口 · 路程 0%';
   gameStatus.textContent = '连续追逐开始，追上孟培杰！';
   homeScreen.hidden = true;
@@ -310,6 +351,8 @@ function returnHome() {
   stopGame();
   closeDialogs();
   state = null;
+  cameraX = 0;
+  lastRenderElapsedMs = 0;
   homeScreen.hidden = false;
   gameScreen.hidden = true;
   gameStatus.textContent = '';

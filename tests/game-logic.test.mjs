@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { advanceCamera } from '../camera.js';
 import { LEVELS, createGame, updateGame } from '../game-logic.js';
 
 test('the continuous journey spans three named districts with enough distance for a long play session', () => {
@@ -22,6 +23,28 @@ test('allows exactly one air jump after a grounded jump', () => {
 
   state = updateGame(state, { left: false, right: true, jumpPressed: true }, 16);
   assert.equal(state.player.jumpsUsed, 2);
+});
+
+test('the long journey keeps Beibei moving forward without a held keyboard key', () => {
+  const before = createGame(1);
+  const after = updateGame(before, { left: false, right: false, jumpPressed: false }, 50);
+
+  assert.ok(after.player.x > before.player.x);
+});
+
+test('holding left turns Beibei left and moves her back for precise positioning', () => {
+  const before = createGame(1);
+  const after = updateGame(before, { left: true, right: false, jumpPressed: false }, 50);
+
+  assert.ok(after.player.x < before.player.x);
+  assert.equal(after.player.facing, -1);
+});
+
+test('camera eases toward a runner who has passed the initial viewport', () => {
+  const cameraX = advanceCamera(0, 2000, 50, 1280, 42000);
+
+  assert.ok(cameraX > 0);
+  assert.ok(cameraX < 1540);
 });
 
 test('collecting Beibei energy starts a sprint and closes the gap', () => {

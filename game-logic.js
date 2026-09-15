@@ -136,6 +136,7 @@ export function createGame(levelId) {
     velocityY: 0,
     grounded: true,
     jumpsUsed: 0,
+    facing: 1,
   };
   return {
     levelId,
@@ -182,9 +183,11 @@ export function updateGame(state, input, elapsedMs) {
     player.jumpsUsed += 1;
   }
 
-  const direction = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const direction = input.left && !input.right ? -1 : 1;
   const runSpeed = energyTimerMs > 0 ? 240 : 150;
-  player.x = clamp(player.x + direction * runSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
+  const movementSpeed = direction < 0 ? 75 : runSpeed;
+  player.facing = direction;
+  player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   const previousBottom = player.y + player.height;
   player.velocityY += GRAVITY * seconds;
   player.y += player.velocityY * seconds;
@@ -226,7 +229,7 @@ export function updateGame(state, input, elapsedMs) {
     event = 'fell';
   }
 
-  const playerProgress = direction > 0 ? runSpeed : direction < 0 ? -75 : 0;
+  const playerProgress = direction > 0 ? runSpeed : -75;
   distance += (level.pursuerSpeed - playerProgress) * seconds;
   const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
   distance = Math.max(minimumLead, distance);

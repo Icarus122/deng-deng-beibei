@@ -64,14 +64,66 @@ function drawBackground(cameraX) {
   drawScene(ctx, { region: currentDistrict(), cameraX, elapsedMs: state.elapsedMs });
 }
 
-function drawPlatform(platform) {
+function drawPlatform(platform, elapsedMs) {
   const palette = scenePalette();
   ctx.fillStyle = palette.edge;
   ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-  ctx.fillStyle = palette.platform;
+  ctx.fillStyle = platform.collapse ? '#f39a5a' : palette.platform;
   ctx.fillRect(platform.x + 4, platform.y + 4, platform.width - 8, 13);
   ctx.fillStyle = '#fff0b2';
   for (let x = platform.x + 12; x < platform.x + platform.width - 6; x += 36) ctx.fillRect(x, platform.y + 9, 14, 3);
+  if (platform.collapse) {
+    ctx.fillStyle = Math.floor(elapsedMs / 80) % 2 ? '#fff4ce' : '#d95767';
+    ctx.fillRect(platform.x + 7, platform.y + 2, platform.width - 14, 3);
+  }
+  if (platform.motion) {
+    ctx.fillStyle = '#73d3d0';
+    ctx.fillRect(platform.x + 8, platform.y + 17, platform.width - 16, 4);
+    ctx.fillRect(platform.x + 4, platform.y + 3, 5, platform.height - 4);
+    ctx.fillRect(platform.x + platform.width - 9, platform.y + 3, 5, platform.height - 4);
+  }
+}
+
+function drawHazard(hazard, elapsedMs) {
+  if (hazard.type === 'collapse') {
+    ctx.fillStyle = '#fff4ce';
+    ctx.fillRect(hazard.x + hazard.width / 2 - 4, hazard.y - 28, 8, 12);
+    ctx.fillStyle = Math.floor(elapsedMs / 110) % 2 ? '#ff797f' : '#ffd85e';
+    ctx.fillRect(hazard.x + hazard.width / 2 - 10, hazard.y - 18, 20, 14);
+    return;
+  }
+  if (hazard.type === 'constructionBox') {
+    ctx.fillStyle = hazard.warning ? '#ffd85e' : '#bd6b43';
+    ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
+    ctx.fillStyle = '#2c2540';
+    ctx.fillRect(hazard.x + 4, hazard.y + 5, hazard.width - 8, 5);
+    ctx.fillRect(hazard.x + 4, hazard.y + 17, hazard.width - 8, 5);
+    if (hazard.warning) {
+      ctx.fillStyle = '#ff797f';
+      ctx.fillRect(hazard.x + 12, hazard.y - 22, 14, 12);
+    }
+    return;
+  }
+  if (hazard.type === 'blocker') {
+    ctx.fillStyle = '#2c2540';
+    ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
+    ctx.fillStyle = '#fff4ce';
+    for (let y = hazard.y + 7; y < hazard.y + hazard.height - 5; y += 16) ctx.fillRect(hazard.x + 4, y, hazard.width - 8, 6);
+    ctx.fillStyle = '#ff797f';
+    ctx.fillRect(hazard.x - 6, hazard.y + hazard.height - 5, hazard.width + 12, 5);
+    return;
+  }
+  if (hazard.type === 'patrol') {
+    const blink = Math.floor(elapsedMs / 120) % 2;
+    ctx.fillStyle = '#f3ae5b';
+    ctx.fillRect(hazard.x + 5, hazard.y + 10, hazard.width - 10, hazard.height - 10);
+    ctx.fillRect(hazard.x + 9, hazard.y + 4, hazard.width - 18, 8);
+    ctx.fillStyle = blink ? '#ff797f' : '#fff4ce';
+    ctx.fillRect(hazard.x + 11, hazard.y + 18, hazard.width - 22, 5);
+    ctx.fillStyle = '#2c2540';
+    ctx.fillRect(hazard.x + 4, hazard.y + hazard.height - 4, 6, 4);
+    ctx.fillRect(hazard.x + hazard.width - 10, hazard.y + hazard.height - 4, 6, 4);
+  }
 }
 
 function drawObstacle(obstacle, elapsedMs) {
@@ -183,18 +235,19 @@ function render() {
   cameraX = advanceCamera(cameraX, state.player.x, renderDelta, 1280, LEVELS[currentLevel].worldEnd);
   lastRenderElapsedMs = state.elapsedMs;
   const level = LEVELS[currentLevel];
-  const platforms = getRenderPlatforms(currentLevel, state.elapsedMs);
+  const platforms = getRenderPlatforms(currentLevel, state.elapsedMs, state.collapseStarts);
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   drawBackground(cameraX);
   ctx.save();
   ctx.translate(-cameraX, 0);
-  platforms.forEach(drawPlatform);
+  platforms.forEach((platform) => drawPlatform(platform, state.elapsedMs));
   level.checkpoints.forEach(drawCheckpoint);
   level.energy.filter((energy) => !state.collectedEnergyIds.includes(energy.id)).forEach((energy) => drawEnergy(energy, state.elapsedMs));
   level.coins.filter((coin) => !state.collectedCoinIds.includes(coin.id)).forEach((coin) => drawCoin(coin, state.elapsedMs));
   level.obstacles.filter((obstacle) => !state.collectedObstacleIds.includes(obstacle.id)).forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
+  state.hazards?.forEach((hazard) => drawHazard(hazard, state.elapsedMs));
 
   const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
@@ -237,6 +290,10 @@ function updateLiveText() {
     coin: '收集到硬币，距离缩短！',
     surprise: '惊喜方块！硬币和冲刺都拿到了。',
     spring: '弹簧台！跳得更高了。',
+    collapseWarning: '平台在塌陷，快跳！',
+    constructionHit: '施工箱砸中了，孟培杰拉开距离。',
+    blockerHit: '移动挡板把贝贝推开了。',
+    patrolHit: '巡逻障碍拦住了贝贝。',
     checkpoint: '到达检查点。',
   };
   if (messages[state.event]) gameStatus.textContent = messages[state.event];

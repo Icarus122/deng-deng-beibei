@@ -36,6 +36,30 @@ test('journey supplies dense elevated routes and varied hazards', () => {
   assert.ok(JOURNEY.obstacles.length >= 18);
 });
 
+test('journey includes every announced interactive hazard type across all districts', () => {
+  const types = new Set(JOURNEY.hazards.map((hazard) => hazard.type));
+
+  for (const type of ['collapse', 'constructionBox', 'blocker', 'patrol']) assert.ok(types.has(type));
+  assert.ok(new Set(JOURNEY.hazards.map((hazard) => hazard.district)).size >= 5);
+});
+
+test('intro route stays walkable until the first new hazard appears', () => {
+  const firstHazardX = Math.min(...JOURNEY.hazards.map((hazard) => hazard.x));
+  const openingGround = JOURNEY.platforms.find((platform) => platform.y === 510 && platform.x === 0);
+
+  assert.ok(openingGround.x + openingGround.width >= firstHazardX);
+});
+
+test('auto-run reaches the first elevated hazard without falling', () => {
+  let state = createGame(1);
+  for (let step = 0; step < 180; step += 1) {
+    state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
+  }
+
+  assert.ok(state.player.x >= 1400);
+  assert.notEqual(state.event, 'fell');
+});
+
 test('allows exactly one air jump after a grounded jump', () => {
   let state = createGame(1);
   state = updateGame(state, { left: false, right: true, jumpPressed: true }, 16);

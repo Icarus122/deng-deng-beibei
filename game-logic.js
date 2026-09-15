@@ -1,4 +1,5 @@
 import { overlaps } from './entities.js';
+import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
 import { JOURNEY } from './level-data.js';
 import { createPursuer, updatePursuer } from './pursuer-ai.js';
 
@@ -114,6 +115,10 @@ export function createGame(levelId) {
     collectedCoinIds: [],
     elapsedMs: 0,
     hitCooldownMs: 0,
+    hazardHitCooldownMs: 0,
+    hazardSlowTimerMs: 0,
+    collapseStarts: {},
+    hazards: getDynamicHazards(level, 0, {}),
     event: 'none',
   };
 }
@@ -132,8 +137,10 @@ export function getPursuerTaunt(progress) {
   return '孟培杰：快追上了？那就来呀！';
 }
 
-export function getRenderPlatforms(levelId, elapsedMs) {
-  return LEVELS[levelId].platforms.map((platform) => movingPlatform(platform, elapsedMs));
+export function getRenderPlatforms(levelId, elapsedMs, collapseStarts = {}) {
+  return LEVELS[levelId].platforms
+    .filter((platform) => !platform.collapse || !isCollapseGone(platform.id, elapsedMs, collapseStarts))
+    .map((platform) => movingPlatform(platform, elapsedMs));
 }
 
 export function updateGame(state, input, elapsedMs, { random = Math.random } = {}) {
@@ -143,7 +150,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const stepMs = clamp(elapsedMs, 0, 50);
   const seconds = stepMs / 1000;
   const nextElapsedMs = state.elapsedMs + stepMs;
-  const platforms = getRenderPlatforms(state.levelId, nextElapsedMs);
+  const collapseStarts = { ...(state.collapseStarts ?? {}) };
+  const platforms = getRenderPlatforms(state.levelId, nextElapsedMs, collapseStarts);
+  let hazards = getDynamicHazards(level, nextElapsedMs, collapseStarts);
   const player = clonePlayer(state.player);
   let distance = state.distance;
   let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.pursuerX);
@@ -157,6 +166,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   player.slipTimerMs = Math.max(0, (player.slipTimerMs ?? 0) - stepMs);
   let energyTimerMs = Math.max(0, state.energyTimerMs - stepMs);
   let hitCooldownMs = Math.max(0, state.hitCooldownMs - stepMs);
+  let hazardHitCooldownMs = Math.max(0, (state.hazardHitCooldownMs ?? 0) - stepMs);
+  let hazardSlowTimerMs = Math.max(0, (state.hazardSlowTimerMs ?? 0) - stepMs);
   let event = 'none';
 
   if (input.jumpPressed && player.slipTimerMs === 0 && (player.grounded || player.jumpsUsed < 2)) {
@@ -167,13 +178,26 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
 
   const direction = input.left && !input.right ? -1 : 1;
   const runSpeed = energyTimerMs > 0 ? 240 : 150;
-  const movementSpeed = player.slipTimerMs > 0 ? 52 : direction < 0 ? 75 : runSpeed;
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : direction < 0 ? 75 : runSpeed;
   player.facing = direction;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   const previousBottom = player.y + player.height;
   player.velocityY += GRAVITY * seconds;
   player.y += player.velocityY * seconds;
   Object.assign(player, placeOnSurface(player, platforms, previousBottom));
+
+  if (hazardHitCooldownMs === 0) {
+    const hazardResult = resolveHazardContact({ player, distance, collapseStarts, hazardSlowTimerMs }, hazards, nextElapsedMs);
+    Object.assign(collapseStarts, hazardResult.collapseStarts);
+    if (hazardResult.event !== 'none') {
+      distance += hazardResult.distanceDelta;
+      pursuer.x += hazardResult.distanceDelta;
+      hazardSlowTimerMs = hazardResult.hazardSlowTimerMs;
+      event = hazardResult.event;
+      if (hazardResult.distanceDelta > 0) hazardHitCooldownMs = 650;
+    }
+  }
+  hazards = getDynamicHazards(level, nextElapsedMs, collapseStarts);
 
   const playerBox = player;
   const collectedEnergy = new Set(state.collectedEnergyIds);
@@ -332,6 +356,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     collectedCoinIds: [...collectedCoins],
     elapsedMs: nextElapsedMs,
     hitCooldownMs,
+    hazardHitCooldownMs,
+    hazardSlowTimerMs,
+    collapseStarts,
+    hazards,
     event,
   };
 }

@@ -41,7 +41,16 @@ button:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #2c2540; }
 }
 
 .screen { min-height: 520px; padding: clamp(24px, 5vw, 56px); }
-.home-screen { display: grid; place-items: center; align-content: center; gap: 16px; text-align: center; background: linear-gradient(145deg, #f9d77a, #f7a6a6); }
+.home-screen {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  text-align: center;
+  background:
+    linear-gradient(90deg, rgb(255 247 232 / .93) 0%, rgb(255 247 232 / .74) 48%, rgb(255 247 232 / .2) 100%),
+    url("assets/beibei-key-art.png") center / cover;
+}
 .eyebrow, .dialog-kicker { margin: 0; color: #a04669; font-weight: 900; letter-spacing: .14em; }
 h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 4px 4px 0 #fff9e9; }
 .intro { max-width: 28rem; margin: 0; font-size: 1.05rem; line-height: 1.7; }

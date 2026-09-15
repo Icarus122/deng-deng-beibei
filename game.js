@@ -1,5 +1,6 @@
 import { LEVELS, createGame, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
+import { drawCharacter } from './character-renderer.js';
 import { drawScene, getPalette } from './scene-renderer.js';
 
 const canvas = document.querySelector('#game-canvas');
@@ -67,6 +68,31 @@ function drawPlatform(platform) {
 }
 
 function drawObstacle(obstacle, elapsedMs) {
+  if (obstacle.type === 'basketball') {
+    ctx.fillStyle = '#ef8c45';
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = '#6b3b3a';
+    ctx.fillRect(obstacle.x + 10, obstacle.y, 3, obstacle.height);
+    ctx.fillRect(obstacle.x, obstacle.y + 10, obstacle.width, 3);
+    return;
+  }
+  if (obstacle.type === 'banana') {
+    ctx.fillStyle = '#ffd85e';
+    ctx.fillRect(obstacle.x, obstacle.y + 8, obstacle.width, 8);
+    ctx.fillRect(obstacle.x + 4, obstacle.y + 4, obstacle.width - 8, 8);
+    ctx.fillStyle = '#70514b';
+    ctx.fillRect(obstacle.x - 2, obstacle.y + 13, 5, 4);
+    ctx.fillRect(obstacle.x + obstacle.width - 3, obstacle.y + 6, 5, 4);
+    return;
+  }
+  if (obstacle.type === 'barrier') {
+    ctx.fillStyle = '#f3ae5b';
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = '#fff4ce';
+    ctx.fillRect(obstacle.x + 4, obstacle.y + 8, obstacle.width - 8, 6);
+    ctx.fillRect(obstacle.x + 4, obstacle.y + 24, obstacle.width - 8, 6);
+    return;
+  }
   const wobble = Math.round(Math.sin(elapsedMs / 140) * 3);
   ctx.save();
   ctx.translate(obstacle.x + 14, obstacle.y + 18);
@@ -79,6 +105,14 @@ function drawObstacle(obstacle, elapsedMs) {
   ctx.fillRect(-9, 14, 6, 5);
   ctx.fillRect(3, 14, 6, 5);
   ctx.restore();
+}
+
+function drawBasketball(ball) {
+  ctx.fillStyle = '#ef8c45';
+  ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
+  ctx.fillStyle = '#6b3b3a';
+  ctx.fillRect(ball.x + 10, ball.y, 3, ball.height);
+  ctx.fillRect(ball.x, ball.y + 10, ball.width, 3);
 }
 
 function drawEnergy(energy, elapsedMs) {
@@ -188,10 +222,11 @@ function render() {
   level.energy.filter((energy) => !state.collectedEnergyIds.includes(energy.id)).forEach((energy) => drawEnergy(energy, state.elapsedMs));
   level.obstacles.forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
 
-  const beibeiOptions = { crying: state.phase === 'lost', tapping: state.phase === 'caught' && resultPose === 'tap', jumping: !state.player.grounded, facing: state.player.facing, style: 'beibei' };
-  const mengOptions = { fallen: state.phase === 'caught' && resultPose === 'fallen', facing: 1, style: 'meng' };
-  drawRunner(state.player.x, state.player.y, beibeiPortrait, beibeiOptions);
-  drawRunner(state.pursuerX, state.player.y, mengPortrait, mengOptions);
+  const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
+  const meng = { ...state.pursuer, y: state.player.y, grounded: true, mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
+  drawCharacter(ctx, beibei, beibeiPortrait, state.elapsedMs, { style: 'beibei' });
+  drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36, { style: 'meng' });
+  if (state.basketball?.active) drawBasketball(state.basketball);
 
   if (state.phase === 'caught') {
     ctx.fillStyle = '#fff9e9';

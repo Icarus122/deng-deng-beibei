@@ -121,12 +121,14 @@ test('falling returns Beibei to her checkpoint and widens the gap', () => {
     ...state,
     checkpointX: 420,
     player: { ...state.player, y: 700 },
+    pursuer: { ...state.pursuer, x: 1200 },
   };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'fell');
   assert.equal(state.player.x, 420);
   assert.ok(state.distance > state.initialDistance);
+  assert.equal(state.phase, 'playing');
 });
 
 test('falling behind loses immediately but catching is reserved for the journey finish', () => {

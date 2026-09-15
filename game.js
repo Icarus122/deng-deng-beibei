@@ -1,5 +1,6 @@
 import { LEVELS, createGame, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
+import { drawScene, getPalette } from './scene-renderer.js';
 
 const canvas = document.querySelector('#game-canvas');
 const ctx = canvas.getContext('2d');
@@ -48,68 +49,11 @@ function currentDistrict() {
 }
 
 function scenePalette() {
-  const palette = currentDistrict()?.palette;
-  if (palette === 'afternoon') return { skyTop: '#8ec7d1', skyBottom: '#e9e5a9', ridge: '#7bb19a', far: '#b4d38c', tree: '#5e9b6d', trunk: '#86614d', ground: '#5eac78', edge: '#285f55', platform: '#dcb775', accent: '#fff09e' };
-  if (palette === 'sunset') return { skyTop: '#865a97', skyBottom: '#f4a675', ridge: '#7d688a', far: '#a17c8d', tree: '#5e586f', trunk: '#59465f', ground: '#49767a', edge: '#284d5e', platform: '#b27c6f', accent: '#ffd579' };
-  return { skyTop: '#7fbfdc', skyBottom: '#e9eeb5', ridge: '#87b9b3', far: '#b9d88c', tree: '#6bae75', trunk: '#8f654a', ground: '#5fae78', edge: '#286558', platform: '#d6b271', accent: '#ffe68c' };
-}
-
-function drawPixelCloud(x, y, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y + 18, 86, 20);
-  ctx.fillRect(x + 18, y + 8, 36, 26);
-  ctx.fillRect(x + 48, y, 28, 32);
+  return getPalette(currentDistrict());
 }
 
 function drawBackground(cameraX) {
-  const palette = scenePalette();
-  const gradient = ctx.createLinearGradient(0, 0, 0, 540);
-  gradient.addColorStop(0, palette.skyTop);
-  gradient.addColorStop(1, palette.skyBottom);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 1300, 540);
-
-  ctx.fillStyle = palette.accent;
-  ctx.fillRect(990, 70, 48, 48);
-  ctx.fillStyle = `${palette.accent}88`;
-  ctx.fillRect(976, 58, 76, 76);
-
-  const farOffset = (cameraX * 0.16) % 320;
-  for (let x = -320 - farOffset; x < 1320; x += 320) {
-    drawPixelCloud(x + 45, 68 + ((Math.floor(x / 320) & 1) * 35), '#fff9e9aa');
-    ctx.fillStyle = palette.ridge;
-    ctx.fillRect(x, 296, 320, 72);
-    ctx.fillRect(x + 56, 258, 132, 72);
-    ctx.fillStyle = palette.far;
-    ctx.fillRect(x + 170, 326, 170, 58);
-  }
-
-  const district = currentDistrict();
-  const treeOffset = (cameraX * 0.56) % 170;
-  for (let x = -170 - treeOffset; x < 1320; x += 170) {
-    ctx.fillStyle = palette.trunk;
-    ctx.fillRect(x + 76, 350, 22, 160);
-    ctx.fillStyle = palette.tree;
-    ctx.fillRect(x + 42, 286, 94, 78);
-    ctx.fillRect(x + 60, 252, 58, 60);
-  }
-  if (district?.palette === 'afternoon') {
-    ctx.fillStyle = '#d6e5d5';
-    ctx.fillRect(710, 300, 160, 116);
-    ctx.fillStyle = '#6d88a0';
-    for (let x = 728; x < 860; x += 34) ctx.fillRect(x, 326, 18, 22);
-  }
-  if (district?.palette === 'sunset') {
-    ctx.fillStyle = '#4b4763';
-    ctx.fillRect(0, 306, 1300, 20);
-    ctx.fillStyle = '#ffce77';
-    for (let x = 40 - ((cameraX * 0.3) % 155); x < 1300; x += 155) {
-      ctx.fillRect(x, 283, 16, 23);
-      ctx.fillStyle = '#4b4763';
-      ctx.fillRect(x + 6, 245, 5, 38);
-      ctx.fillStyle = '#ffce77';
-    }
-  }
+  drawScene(ctx, { region: currentDistrict(), cameraX, elapsedMs: state.elapsedMs });
 }
 
 function drawPlatform(platform) {

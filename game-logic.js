@@ -207,7 +207,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     player.grounded = true;
     player.jumpsUsed = 0;
     distance += 48;
-    pursuer.x = Math.max(pursuer.x, player.x + distance);
+    pursuer = { ...pursuer, x: player.x + distance, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0 };
     event = 'fell';
   }
 

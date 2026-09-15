@@ -103,6 +103,10 @@ export function createGame(levelId) {
     checkpointX: 70,
     energyTimerMs: 0,
     collectedEnergyIds: [],
+    collectedObstacleIds: [],
+    mistakes: 0,
+    basketball: null,
+    catchRollCooldownMs: 0,
     elapsedMs: 0,
     hitCooldownMs: 0,
     event: 'none',
@@ -117,7 +121,7 @@ export function getRenderPlatforms(levelId, elapsedMs) {
   return LEVELS[levelId].platforms.map((platform) => movingPlatform(platform, elapsedMs));
 }
 
-export function updateGame(state, input, elapsedMs) {
+export function updateGame(state, input, elapsedMs, { random = Math.random } = {}) {
   if (state.phase !== 'playing') return state;
 
   const level = LEVELS[state.levelId];
@@ -128,11 +132,16 @@ export function updateGame(state, input, elapsedMs) {
   const player = clonePlayer(state.player);
   let distance = state.distance;
   let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.pursuerX);
+  let mistakes = state.mistakes ?? 0;
+  let basketball = state.basketball ? { ...state.basketball } : null;
+  let catchRollCooldownMs = Math.max(0, (state.catchRollCooldownMs ?? 0) - stepMs);
+  const collectedObstacle = new Set(state.collectedObstacleIds ?? []);
+  player.slipTimerMs = Math.max(0, (player.slipTimerMs ?? 0) - stepMs);
   let energyTimerMs = Math.max(0, state.energyTimerMs - stepMs);
   let hitCooldownMs = Math.max(0, state.hitCooldownMs - stepMs);
   let event = 'none';
 
-  if (input.jumpPressed && (player.grounded || player.jumpsUsed < 2)) {
+  if (input.jumpPressed && player.slipTimerMs === 0 && (player.grounded || player.jumpsUsed < 2)) {
     player.velocityY = -JUMP_SPEED;
     player.grounded = false;
     player.jumpsUsed += 1;
@@ -140,7 +149,7 @@ export function updateGame(state, input, elapsedMs) {
 
   const direction = input.left && !input.right ? -1 : 1;
   const runSpeed = energyTimerMs > 0 ? 240 : 150;
-  const movementSpeed = direction < 0 ? 75 : runSpeed;
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : direction < 0 ? 75 : runSpeed;
   player.facing = direction;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   const previousBottom = player.y + player.height;
@@ -161,7 +170,22 @@ export function updateGame(state, input, elapsedMs) {
   }
   const collectedEnergyIds = [...collectedEnergy];
 
-  if (hitCooldownMs === 0 && level.obstacles.some((obstacle) => overlaps(playerBox, obstacle))) {
+  for (const obstacle of level.obstacles) {
+    if (collectedObstacle.has(obstacle.id) || !overlaps(playerBox, obstacle)) continue;
+    if (obstacle.type === 'basketball') {
+      basketball = { x: obstacle.x, y: obstacle.y, width: obstacle.width, height: obstacle.height, velocityX: 520, active: true };
+      collectedObstacle.add(obstacle.id);
+      event = 'basketball';
+    }
+    if (obstacle.type === 'banana') {
+      player.slipTimerMs = 700;
+      mistakes += 1;
+      collectedObstacle.add(obstacle.id);
+      event = 'slip';
+    }
+  }
+
+  if (hitCooldownMs === 0 && level.obstacles.some((obstacle) => ['bookbag', 'barrier'].includes(obstacle.type) && overlaps(playerBox, obstacle))) {
     distance += 34;
     pursuer.x += 34;
     hitCooldownMs = 650;
@@ -172,7 +196,7 @@ export function updateGame(state, input, elapsedMs) {
   for (const checkpoint of level.checkpoints) {
     if (player.x >= checkpoint.x && checkpoint.respawnX > checkpointX) {
       checkpointX = checkpoint.respawnX;
-      event = 'checkpoint';
+      if (event === 'none') event = 'checkpoint';
     }
   }
 
@@ -188,6 +212,16 @@ export function updateGame(state, input, elapsedMs) {
   }
 
   pursuer = updatePursuer(pursuer, player, stepMs);
+  if (basketball?.active) {
+    basketball.x += basketball.velocityX * seconds;
+    const pursuerBox = { x: pursuer.x, y: GROUND_Y - PLAYER_HEIGHT, width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
+    if (overlaps(basketball, pursuerBox)) {
+      const downed = random() < 0.25;
+      pursuer = { ...pursuer, mode: downed ? 'downed' : 'slowed', modeTimerMs: downed ? 900 : 2000 };
+      basketball = null;
+      event = downed ? 'pursuerDowned' : 'pursuerSlowed';
+    }
+  }
   distance = pursuer.x - player.x;
   const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
   distance = Math.max(minimumLead, distance);
@@ -196,9 +230,22 @@ export function updateGame(state, input, elapsedMs) {
   if (distance >= level.maxDistance) {
     phase = 'lost';
     event = 'lost';
-  } else if (distance <= 1 && (!level.finishX || player.x >= level.finishX)) {
-    phase = 'caught';
-    event = 'caught';
+  } else {
+    const reachedFinish = distance <= 1 && (!level.finishX || player.x >= level.finishX);
+    const catchReady = !reachedFinish && player.x / level.finishX >= 0.7 && distance <= 120 && catchRollCooldownMs === 0;
+    const catchChance = 0.18 + (mistakes === 0 ? 0.16 : 0) + (pursuer.mode === 'slowed' ? 0.18 : 0) + (pursuer.mode === 'downed' ? 0.45 : 0);
+    if (reachedFinish) {
+      phase = 'caught';
+      event = 'caught';
+    } else if (catchReady) {
+      event = 'catchRoll';
+      if (random() < catchChance) {
+        phase = 'caught';
+        event = 'caught';
+      } else {
+        catchRollCooldownMs = 1100;
+      }
+    }
   }
 
   return {
@@ -211,6 +258,10 @@ export function updateGame(state, input, elapsedMs) {
     checkpointX,
     energyTimerMs,
     collectedEnergyIds,
+    collectedObstacleIds: [...collectedObstacle],
+    mistakes,
+    basketball,
+    catchRollCooldownMs,
     elapsedMs: nextElapsedMs,
     hitCooldownMs,
     event,

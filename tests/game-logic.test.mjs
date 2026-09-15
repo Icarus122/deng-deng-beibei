@@ -61,6 +61,41 @@ test('camera eases toward a runner who has passed the initial viewport', () => {
   assert.ok(cameraX < 1540);
 });
 
+test('touching a basketball launches it forward automatically', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 10000 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16, { random: () => 0.9 });
+
+  assert.equal(state.basketball.active, true);
+  assert.ok(state.basketball.velocityX > 0);
+});
+
+test('banana peel records a mistake and temporarily slips Beibei', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 19400 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.event, 'slip');
+  assert.equal(state.mistakes, 1);
+  assert.ok(state.player.slipTimerMs > 0);
+});
+
+test('catch rolls cannot succeed before 70 percent progress', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 32000 }, pursuer: { ...state.pursuer, x: 32100 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
+
+  assert.equal(state.phase, 'playing');
+});
+
+test('catch rolls can win after 70 percent when injected random succeeds', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 34000 }, pursuer: { ...state.pursuer, x: 34100 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
+
+  assert.equal(state.phase, 'caught');
+});
+
 test('collecting Beibei energy starts a sprint and closes the gap', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 5400 } };

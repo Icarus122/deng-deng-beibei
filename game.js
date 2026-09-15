@@ -2,6 +2,8 @@ import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPl
 import { advanceCamera } from './camera.js';
 import { drawCharacter } from './character-renderer.js';
 import { drawScene, getPalette } from './scene-renderer.js';
+import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
+import { createTaunt, isTauntActive } from './taunt.js';
 
 const canvas = document.querySelector('#game-canvas');
 const ctx = canvas.getContext('2d');
@@ -37,8 +39,11 @@ let lastRenderElapsedMs = 0;
 let cameraX = 0;
 let endTimer = 0;
 let resultPose = 'running';
+let simulationClock = createSimulationClock();
+let taunt = null;
+let lastTauntDistrictId = null;
 
-ctx.imageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = true;
 
 function closeDialogs() {
   [loseDialog, winDialog].forEach((dialog) => {
@@ -182,7 +187,6 @@ function render() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
-  ctx.scale(0.75, 0.75);
   drawBackground(cameraX);
   ctx.save();
   ctx.translate(-cameraX, 0);
@@ -198,13 +202,12 @@ function render() {
   drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36);
   if (state.basketball?.active) drawBasketball(state.basketball);
 
-  if (state.phase === 'playing' && state.player.x > level.finishX * 0.08) {
-    const taunt = getPursuerTaunt(state.player.x / level.finishX);
+  if (state.phase === 'playing' && isTauntActive(taunt, state.elapsedMs)) {
     ctx.fillStyle = '#fff9e9';
     ctx.fillRect(state.pursuer.x - 130, 360, 260, 34);
     ctx.fillStyle = '#2c2540';
     ctx.font = '16px "Microsoft YaHei", sans-serif';
-    ctx.fillText(taunt, state.pursuer.x - 120, 384);
+    ctx.fillText(taunt.text, state.pursuer.x - 120, 384);
   }
 
   if (state.phase === 'caught') {
@@ -276,13 +279,28 @@ function handleTerminal() {
   }, 440);
 }
 
+function updateTaunt() {
+  const level = LEVELS[currentLevel];
+  const district = currentDistrict();
+  if (state.phase !== 'playing' || state.player.x <= level.finishX * 0.08 || !district) return;
+  if (district.id !== lastTauntDistrictId) {
+    taunt = createTaunt(getPursuerTaunt(state.player.x / level.finishX), state.elapsedMs);
+    lastTauntDistrictId = district.id;
+  }
+}
+
 function frame(timestamp) {
   if (!lastFrame) lastFrame = timestamp;
   const elapsedMs = Math.min(50, timestamp - lastFrame);
   lastFrame = timestamp;
-  state = updateGame(state, input, elapsedMs);
-  input.jumpPressed = false;
-  updateLiveText();
+  const pacing = advanceSimulationClock(simulationClock, elapsedMs);
+  simulationClock = pacing.clock;
+  for (let step = 0; step < pacing.steps && state.phase === 'playing'; step += 1) {
+    state = updateGame(state, input, pacing.stepMs);
+    input.jumpPressed = false;
+    updateTaunt();
+    updateLiveText();
+  }
   render();
   if (state.phase !== 'playing') {
     handleTerminal();
@@ -300,6 +318,9 @@ function startLevel(levelId) {
   lastFrame = 0;
   lastRenderElapsedMs = 0;
   cameraX = 0;
+  simulationClock = createSimulationClock();
+  taunt = null;
+  lastTauntDistrictId = null;
   levelName.textContent = '校园入口 · 路程 0%';
   gameStatus.textContent = '连续追逐开始，追上孟培杰！';
   homeScreen.hidden = true;
@@ -314,6 +335,8 @@ function returnHome() {
   state = null;
   cameraX = 0;
   lastRenderElapsedMs = 0;
+  taunt = null;
+  lastTauntDistrictId = null;
   homeScreen.hidden = false;
   gameScreen.hidden = true;
   gameStatus.textContent = '';

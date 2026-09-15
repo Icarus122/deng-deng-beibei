@@ -58,7 +58,7 @@ h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 
 .distance-track { width: min(30vw, 170px); height: 14px; overflow: hidden; border: 3px solid #2c2540; background: #fff9e9; }
 .distance-track i { display: block; width: 50%; height: 100%; background: #ff797f; transition: width .12s linear; }
 
-canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; background: #a7d9ee; image-rendering: pixelated; touch-action: none; }
+canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; background: #a7d9ee; image-rendering: auto; touch-action: none; }
 .touch-tip { text-align: center; }
 
 .result-dialog { width: min(90vw, 390px); border: 5px solid #2c2540; padding: 30px; text-align: center; color: #2c2540; background: #fff9e9; box-shadow: 10px 10px 0 #171422; }

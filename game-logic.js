@@ -123,7 +123,7 @@ export function resetLevel(levelId) {
 }
 
 export function getPursuerRenderState(pursuer) {
-  return { ...pursuer, y: GROUND_Y - PLAYER_HEIGHT, grounded: true };
+  return { ...pursuer, y: pursuer.y ?? GROUND_Y - PLAYER_HEIGHT, grounded: pursuer.grounded ?? true };
 }
 
 export function getPursuerTaunt(progress) {
@@ -253,10 +253,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     event = 'fell';
   }
 
-  pursuer = updatePursuer(pursuer, player, stepMs);
+  pursuer = updatePursuer(pursuer, player, stepMs, { ...level, platforms });
   if (basketball?.active) {
     basketball.x += basketball.velocityX * seconds;
-    const pursuerBox = { x: pursuer.x, y: GROUND_Y - PLAYER_HEIGHT, width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
+    const pursuerBox = { x: pursuer.x, y: pursuer.y ?? GROUND_Y - PLAYER_HEIGHT, width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
     if (overlaps(basketball, pursuerBox)) {
       const downed = random() < 0.25;
       pursuer = { ...pursuer, mode: downed ? 'downed' : 'slowed', modeTimerMs: downed ? 900 : 2000 };

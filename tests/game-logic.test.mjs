@@ -28,6 +28,14 @@ test('the continuous journey keeps five regions but fits a compact play session'
   assert.ok(journey.checkpoints.length >= 6);
 });
 
+test('journey supplies dense elevated routes and varied hazards', () => {
+  const elevatedPlatforms = JOURNEY.platforms.filter((platform) => platform.y < 470);
+
+  assert.ok(elevatedPlatforms.length >= 24);
+  assert.ok(JOURNEY.shortcutNodes.length >= 8);
+  assert.ok(JOURNEY.obstacles.length >= 18);
+});
+
 test('allows exactly one air jump after a grounded jump', () => {
   let state = createGame(1);
   state = updateGame(state, { left: false, right: true, jumpPressed: true }, 16);

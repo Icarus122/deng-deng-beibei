@@ -23,16 +23,8 @@ function drawStillPortrait(ctx, portrait, x, y, width = 96, height = 120) {
 function drawRunCycle(ctx, runCycle, elapsedMs) {
   if (!runCycle?.naturalWidth) return false;
   const frameWidth = runCycle.naturalWidth / 4;
-  const frameDuration = 95;
-  const framePosition = elapsedMs / frameDuration;
-  const frame = Math.floor(framePosition) % 4;
-  const nextFrame = (frame + 1) % 4;
-  const mix = framePosition - Math.floor(framePosition);
-  ctx.globalAlpha = 1 - mix;
+  const frame = getRunFrameIndex(elapsedMs);
   ctx.drawImage(runCycle, frame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -48, -112, 96, 120);
-  ctx.globalAlpha = mix;
-  ctx.drawImage(runCycle, nextFrame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -48, -112, 96, 120);
-  ctx.globalAlpha = 1;
   return true;
 }
 

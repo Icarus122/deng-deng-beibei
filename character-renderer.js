@@ -23,15 +23,24 @@ function drawStillPortrait(ctx, portrait, x, y, width = 96, height = 120) {
 function drawRunCycle(ctx, runCycle, elapsedMs) {
   if (!runCycle?.naturalWidth) return false;
   const frameWidth = runCycle.naturalWidth / 4;
-  const frame = getRunFrameIndex(elapsedMs);
+  const frameDuration = 95;
+  const framePosition = elapsedMs / frameDuration;
+  const frame = Math.floor(framePosition) % 4;
+  const nextFrame = (frame + 1) % 4;
+  const mix = framePosition - Math.floor(framePosition);
+  ctx.globalAlpha = 1 - mix;
   ctx.drawImage(runCycle, frame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -48, -112, 96, 120);
+  ctx.globalAlpha = mix;
+  ctx.drawImage(runCycle, nextFrame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -48, -112, 96, 120);
+  ctx.globalAlpha = 1;
   return true;
 }
 
 export function drawCharacter(ctx, character, portrait, elapsedMs) {
   const pose = getCharacterPose(character);
   const facing = character.facing ?? 1;
-  const bob = pose === 'run' ? Math.abs(Math.sin(elapsedMs / 95)) * 2 : 0;
+  const runPose = getRunnerPose(elapsedMs, facing);
+  const bob = pose === 'run' ? runPose.bob : 0;
   const stillPortrait = getStillPortrait(portrait);
   const runCycle = portrait?.runCycle;
   ctx.save();
@@ -49,6 +58,7 @@ export function drawCharacter(ctx, character, portrait, elapsedMs) {
     ctx.fillRect(20, -31, 5, 13);
   } else {
     if (pose === 'jump') ctx.rotate(-0.1);
+    if (pose === 'run') ctx.rotate(runPose.torsoTilt);
     if (pose !== 'run' || !drawRunCycle(ctx, runCycle, elapsedMs)) drawStillPortrait(ctx, stillPortrait, -48, -112, 96, 120);
     if (pose === 'tap') {
       ctx.fillStyle = '#fff3a5';
@@ -65,3 +75,4 @@ export function drawCharacter(ctx, character, portrait, elapsedMs) {
     ctx.fillRect(character.x + trailDirection * 20, character.y + 33, 7, 3);
   }
 }
+import { getRunnerPose } from './runner-pose.js';

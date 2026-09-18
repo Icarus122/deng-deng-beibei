@@ -59,7 +59,9 @@ function drawRunCycle(ctx, runCycle, elapsedMs) {
   if (!runCycle?.naturalWidth) return false;
   const frameWidth = runCycle.naturalWidth / 4;
   const frame = getRunFrameIndex(elapsedMs);
-  ctx.drawImage(runCycle, frame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -48, -112, 96, 120);
+  // The HD sheets have more vertical space for the swinging arms and skirt.
+  // Keep the feet on the same world baseline while showing the extra detail.
+  ctx.drawImage(runCycle, frame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -56, -142, 112, 145);
   return true;
 }
 

@@ -98,9 +98,27 @@ function drawBridge(ctx, x, palette) {
   }
 }
 
-export function drawScene(ctx, { region, cameraX, elapsedMs }) {
+function drawHdBackground(ctx, image, cameraX) {
+  if (!image?.naturalWidth) return false;
+  // A wide overscan lets the painting drift with the camera without tiling.
+  const drift = -135 + Math.sin(cameraX / 1200) * 135;
+  ctx.drawImage(image, drift, -166, 1550, 872);
+  ctx.fillStyle = 'rgba(62, 60, 122, .12)';
+  ctx.fillRect(0, 0, 1300, 540);
+  ctx.fillStyle = 'rgba(255, 188, 124, .08)';
+  ctx.fillRect(0, 0, 1300, 540);
+  const shade = ctx.createLinearGradient(0, 310, 0, 540);
+  shade.addColorStop(0, 'rgba(23, 31, 58, 0)');
+  shade.addColorStop(1, 'rgba(16, 23, 48, .32)');
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, 1300, 540);
+  return true;
+}
+
+export function drawScene(ctx, { region, cameraX, elapsedMs, backgrounds }) {
   const palette = getPalette(region);
   const offsets = getParallaxOffsets(cameraX);
+  if (drawHdBackground(ctx, backgrounds?.[region?.id], cameraX)) return;
   const gradient = ctx.createLinearGradient(0, 0, 0, 540);
   gradient.addColorStop(0, palette.skyTop);
   gradient.addColorStop(1, palette.skyBottom);

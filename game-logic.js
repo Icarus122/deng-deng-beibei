@@ -12,43 +12,7 @@ const GRAVITY = 1400;
 const JUMP_SPEED = 500;
 const FALL_Y = 640;
 
-export const LEVELS = {
-  1: JOURNEY,
-  2: {
-    name: '黄昏天桥',
-    worldEnd: 2150,
-    maxDistance: 300,
-    pursuerSpeed: 165,
-    platforms: [
-      { x: 0, y: GROUND_Y, width: 410, height: 30 },
-      { x: 535, y: GROUND_Y, width: 310, height: 30 },
-      { x: 980, y: GROUND_Y, width: 365, height: 30 },
-      { x: 1485, y: GROUND_Y, width: 665, height: 30 },
-      { x: 350, y: 410, width: 100, height: 18 },
-      { x: 470, y: 370, width: 86, height: 18, motion: { axis: 'y', range: 50, period: 1600 } },
-      { x: 780, y: 420, width: 92, height: 18 },
-      { x: 880, y: 380, width: 96, height: 18, motion: { axis: 'x', range: 70, period: 1800 } },
-      { x: 1270, y: 405, width: 105, height: 18 },
-      { x: 1385, y: 360, width: 95, height: 18, motion: { axis: 'y', range: 45, period: 1400 } },
-    ],
-    obstacles: [
-      { id: 'bag-4', x: 350, y: 478, width: 28, height: 32, type: 'bookbag' },
-      { id: 'bag-5', x: 720, y: 478, width: 28, height: 32, type: 'bookbag' },
-      { id: 'bag-6', x: 1190, y: 478, width: 28, height: 32, type: 'bookbag' },
-      { id: 'bag-7', x: 1800, y: 478, width: 28, height: 32, type: 'bookbag' },
-    ],
-    energy: [
-      { id: 'energy-4', x: 250, y: 468, width: 22, height: 22 },
-      { id: 'energy-5', x: 645, y: 468, width: 22, height: 22 },
-      { id: 'energy-6', x: 1090, y: 468, width: 22, height: 22 },
-      { id: 'energy-7', x: 1620, y: 468, width: 22, height: 22 },
-    ],
-    checkpoints: [
-      { x: 980, respawnX: 950 },
-      { x: 1540, respawnX: 1510 },
-    ],
-  },
-};
+export const LEVELS = { 1: JOURNEY };
 
 function clonePlayer(player) {
   return { ...player };
@@ -101,16 +65,14 @@ export function createGame(levelId) {
     initialDistance,
     distance: initialDistance,
     maxDistance: level.maxDistance,
-    pursuerX: player.x + initialDistance,
     pursuer: createPursuer(player.x + initialDistance),
     checkpointX: 70,
     energyTimerMs: 0,
+    energyMeter: 0,
     collectedEnergyIds: [],
     collectedObstacleIds: [],
     mistakes: 0,
     basketball: null,
-    catchRollCooldownMs: 0,
-    catchAttempts: 0,
     coins: 0,
     collectedCoinIds: [],
     elapsedMs: 0,
@@ -154,20 +116,19 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const platforms = getRenderPlatforms(state.levelId, nextElapsedMs, collapseStarts);
   let hazards = getDynamicHazards(level, nextElapsedMs, collapseStarts);
   const player = clonePlayer(state.player);
-  let distance = state.distance;
-  let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.pursuerX);
+  let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.player.x + state.initialDistance);
   let mistakes = state.mistakes ?? 0;
   let basketball = state.basketball ? { ...state.basketball } : null;
-  let catchRollCooldownMs = Math.max(0, (state.catchRollCooldownMs ?? 0) - stepMs);
-  let catchAttempts = state.catchAttempts ?? 0;
   let coins = state.coins ?? 0;
   const collectedObstacle = new Set(state.collectedObstacleIds ?? []);
   const collectedCoins = new Set(state.collectedCoinIds ?? []);
   player.slipTimerMs = Math.max(0, (player.slipTimerMs ?? 0) - stepMs);
   let energyTimerMs = Math.max(0, state.energyTimerMs - stepMs);
+  let energyMeter = clamp(state.energyMeter ?? 0, 0, 100);
   let hitCooldownMs = Math.max(0, state.hitCooldownMs - stepMs);
   let hazardHitCooldownMs = Math.max(0, (state.hazardHitCooldownMs ?? 0) - stepMs);
   let hazardSlowTimerMs = Math.max(0, (state.hazardSlowTimerMs ?? 0) - stepMs);
+  let windTimerMs = Math.max(0, (state.windTimerMs ?? 0) - stepMs);
   let event = 'none';
 
   if (input.jumpPressed && player.slipTimerMs === 0 && (player.grounded || player.jumpsUsed < 2)) {
@@ -177,8 +138,13 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   const direction = input.left && !input.right ? -1 : 1;
-  const runSpeed = energyTimerMs > 0 ? 240 : 150;
-  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : direction < 0 ? 75 : runSpeed;
+  const sprinting = Boolean(input.sprint || input.right) && direction > 0 && energyMeter > 0 && player.slipTimerMs === 0 && hazardSlowTimerMs === 0;
+  if (sprinting) {
+    energyMeter = Math.max(0, energyMeter - seconds * 32);
+    energyTimerMs = 160;
+  }
+  const runSpeed = sprinting ? 240 : 150;
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 112 : direction < 0 ? 75 : runSpeed;
   player.facing = direction;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   const previousBottom = player.y + player.height;
@@ -187,10 +153,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   Object.assign(player, placeOnSurface(player, platforms, previousBottom));
 
   if (hazardHitCooldownMs === 0) {
-    const hazardResult = resolveHazardContact({ player, distance, collapseStarts, hazardSlowTimerMs }, hazards, nextElapsedMs);
+    const hazardResult = resolveHazardContact({ player, collapseStarts, hazardSlowTimerMs }, hazards, nextElapsedMs);
     Object.assign(collapseStarts, hazardResult.collapseStarts);
     if (hazardResult.event !== 'none') {
-      distance += hazardResult.distanceDelta;
       pursuer.x += hazardResult.distanceDelta;
       hazardSlowTimerMs = hazardResult.hazardSlowTimerMs;
       event = hazardResult.event;
@@ -203,8 +168,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const collectedEnergy = new Set(state.collectedEnergyIds);
   for (const energy of level.energy) {
     if (!collectedEnergy.has(energy.id) && overlaps(playerBox, energy)) {
-      energyTimerMs = 1800;
-      distance = Math.max(0, distance - 38);
+      energyMeter = clamp(energyMeter + 58, 0, 100);
+      energyTimerMs = 900;
       pursuer.x -= 38;
       event = 'energy';
       collectedEnergy.add(energy.id);
@@ -216,7 +181,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (!collectedCoins.has(coin.id) && overlaps(playerBox, coin)) {
       collectedCoins.add(coin.id);
       coins += 1;
-      distance = Math.max(0, distance - 14);
       pursuer.x -= 14;
       event = 'coin';
     }
@@ -227,8 +191,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (obstacle.type === 'surprise' && player.velocityY < 0) {
       collectedObstacle.add(obstacle.id);
       coins += 1;
-      energyTimerMs = 1200;
-      distance = Math.max(0, distance - 28);
+      energyMeter = clamp(energyMeter + 34, 0, 100);
+      energyTimerMs = 600;
       pursuer.x -= 28;
       event = 'surprise';
     } else if (obstacle.type === 'spring') {
@@ -249,10 +213,13 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       collectedObstacle.add(obstacle.id);
       event = 'slip';
     }
+    if (obstacle.type === 'wind') {
+      windTimerMs = 850;
+      if (event === 'none') event = 'wind';
+    }
   }
 
   if (hitCooldownMs === 0 && level.obstacles.some((obstacle) => ['bookbag', 'barrier'].includes(obstacle.type) && overlaps(playerBox, obstacle))) {
-    distance += 34;
     pursuer.x += 34;
     hitCooldownMs = 650;
     event = 'hit';
@@ -272,8 +239,13 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     player.velocityY = 0;
     player.grounded = true;
     player.jumpsUsed = 0;
-    distance += 48;
-    pursuer = { ...pursuer, x: player.x + distance, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0 };
+    pursuer = {
+      ...pursuer,
+      x: player.x + Math.min(level.maxDistance - 40, (pursuer.x - player.x) + 48),
+      mode: 'cruise',
+      modeTimerMs: 0,
+      evadeCooldownMs: 0,
+    };
     event = 'fell';
   }
 
@@ -288,9 +260,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       event = downed ? 'pursuerDowned' : 'pursuerSlowed';
     }
   }
-  distance = pursuer.x - player.x;
   const progress = level.finishX ? player.x / level.finishX : 1;
-  if (progress < 0.7 && distance < SAFE_CHASE_GAP) {
+  if (progress < 0.7 && pursuer.x - player.x < SAFE_CHASE_GAP) {
     pursuer = {
       ...pursuer,
       x: player.x + SAFE_CHASE_GAP,
@@ -299,10 +270,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       modeTimerMs: 900,
       evadeCooldownMs: 2000,
     };
-    distance = SAFE_CHASE_GAP;
   }
-  const minimumLead = level.finishX && player.x < level.finishX ? 30 : 0;
-  distance = Math.max(minimumLead, distance);
+  if (level.finishX && player.x < level.finishX) pursuer.x = Math.max(player.x + 30, pursuer.x);
+  if (level.finishX && player.x >= level.finishX - 500) pursuer.x = Math.min(pursuer.x, player.x + CATCH_CONTACT_GAP - 1);
+  const distance = pursuer.x - player.x;
 
   const reachedFinish = Boolean(level.finishX && player.x >= level.finishX);
   let phase = 'playing';
@@ -313,27 +284,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     phase = 'lost';
     event = 'lost';
   } else {
-    const catchReady = progress >= 0.7 && distance <= CATCH_CONTACT_GAP && catchRollCooldownMs === 0;
-    const catchChance = Math.min(0.95, (progress >= 0.85 ? 0.7 : 0.35) + catchAttempts * 0.2 + (pursuer.mode === 'slowed' ? 0.18 : 0) + (pursuer.mode === 'downed' ? 0.45 : 0));
-    if (catchReady) {
-      event = 'catchRoll';
-      if (random() < catchChance) {
-        phase = 'caught';
-        event = 'caught';
-      } else {
-        catchRollCooldownMs = 1100;
-        catchAttempts += 1;
-        pursuer = {
-          ...pursuer,
-          x: player.x + SAFE_CHASE_GAP,
-          velocity: 205,
-          mode: 'evade',
-          modeTimerMs: 900,
-          evadeCooldownMs: 2000,
-        };
-        distance = SAFE_CHASE_GAP;
-        event = 'escaped';
-      }
+    if (progress >= 0.7 && distance <= CATCH_CONTACT_GAP) {
+      phase = 'caught';
+      event = 'caught';
     }
   }
 
@@ -342,22 +295,21 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     phase,
     player,
     distance,
-    pursuerX: pursuer.x,
     pursuer,
     checkpointX,
     energyTimerMs,
+    energyMeter,
     collectedEnergyIds,
     collectedObstacleIds: [...collectedObstacle],
     mistakes,
     basketball,
-    catchRollCooldownMs,
-    catchAttempts,
     coins,
     collectedCoinIds: [...collectedCoins],
     elapsedMs: nextElapsedMs,
     hitCooldownMs,
     hazardHitCooldownMs,
     hazardSlowTimerMs,
+    windTimerMs,
     collapseStarts,
     hazards,
     event,

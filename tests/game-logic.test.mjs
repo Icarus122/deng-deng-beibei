@@ -181,26 +181,21 @@ test('the first close approach after 70 percent has a 35 percent chance to catch
   assert.equal(state.phase, 'caught');
 });
 
-test('a missed close approach raises the next catch chance', () => {
+test('a close approach after 70 percent catches Meng without a dice roll', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18050 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
-  state = { ...state, catchRollCooldownMs: 0, pursuer: { ...state.pursuer, x: state.player.x + 50 } };
-  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.5 });
-
-  assert.equal(state.catchAttempts, 1);
   assert.equal(state.phase, 'caught');
+  assert.equal(state.event, 'caught');
 });
 
-test('after 70 percent, a failed catch roll immediately makes Meng escape', () => {
+test('after 70 percent, Meng no longer gets an automatic escape burst', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
-  assert.equal(state.phase, 'playing');
-  assert.equal(state.event, 'escaped');
-  assert.equal(state.pursuer.mode, 'evade');
-  assert.ok(state.pursuer.x - state.player.x >= 150);
+  assert.equal(state.phase, 'caught');
+  assert.notEqual(state.pursuer.mode, 'evade');
 });
 
 test('collecting Beibei energy starts a sprint and closes the gap', () => {

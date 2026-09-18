@@ -28,7 +28,9 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   const targetPlatformId = shortcut?.platformId ?? activeTargetPlatformId;
   const startingShortcut = Boolean(shortcut);
 
-  if (timer === 0 && pursuer.mode !== 'slowed' && pursuer.mode !== 'downed' && gap >= 80 && gap <= 190 && cooldown === 0) {
+  // Meng only uses his brief escape burst in the protected first 70%.
+  // The final stretch is intentionally skill-based: he can be caught.
+  if (progress < 0.7 && timer === 0 && pursuer.mode !== 'slowed' && pursuer.mode !== 'downed' && gap >= 80 && gap <= 190 && cooldown === 0) {
     mode = 'evade';
     modeTimerMs = 900;
     evadeCooldownMs = 2000;

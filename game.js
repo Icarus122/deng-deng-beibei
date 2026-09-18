@@ -1,12 +1,14 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260915r3';
+import { drawCharacter } from './character-renderer.js?v=20260918r1';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
 
 const canvas = document.querySelector('#game-canvas');
 const ctx = canvas.getContext('2d');
+const VIEWPORT_WIDTH = 1280;
+const VIEWPORT_HEIGHT = 540;
 const homeScreen = document.querySelector('#home-screen');
 const gameScreen = document.querySelector('#game-screen');
 const startButton = document.querySelector('#start-button');
@@ -19,18 +21,24 @@ const loseDialog = document.querySelector('#lose-dialog');
 const winDialog = document.querySelector('#win-dialog');
 const levelName = document.querySelector('#level-name');
 const distanceFill = document.querySelector('#distance-fill');
+const energyFill = document.querySelector('#energy-fill');
 const gameStatus = document.querySelector('#game-status');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 
 const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image() };
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
+const backgroundImages = Object.fromEntries(['gate', 'court', 'ginkgo', 'lakeside', 'bridge'].map((id) => {
+  const image = new Image();
+  image.src = `assets/bg-${id}-hd.png`;
+  return [id, image];
+}));
 beibeiPortrait.still.src = 'assets/beibei-runner.png';
-beibeiPortrait.runCycle.src = 'assets/beibei-run-cycle-clean.png';
+beibeiPortrait.runCycle.src = 'assets/beibei-hd-run-cycle.png';
 mengPortrait.still.src = 'assets/meng-runner.png';
 mengPortrait.runCycle.src = 'assets/meng-run-cycle.png';
 
-const input = { left: false, right: false, jumpPressed: false };
+const input = { left: false, right: false, sprint: false, jumpPressed: false };
 let currentLevel = 1;
 let state = null;
 let animationFrame = 0;
@@ -43,7 +51,17 @@ let simulationClock = createSimulationClock();
 let taunt = null;
 let lastTauntDistrictId = null;
 
+function configureCanvas() {
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = VIEWPORT_WIDTH * pixelRatio;
+  canvas.height = VIEWPORT_HEIGHT * pixelRatio;
+  canvas.style.aspectRatio = `${VIEWPORT_WIDTH} / ${VIEWPORT_HEIGHT}`;
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+}
+
+configureCanvas();
 ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = 'high';
 
 function closeDialogs() {
   [loseDialog, winDialog].forEach((dialog) => {
@@ -61,7 +79,7 @@ function scenePalette() {
 }
 
 function drawBackground(cameraX) {
-  drawScene(ctx, { region: currentDistrict(), cameraX, elapsedMs: state.elapsedMs });
+  drawScene(ctx, { region: currentDistrict(), cameraX, elapsedMs: state.elapsedMs, backgrounds: backgroundImages });
 }
 
 function drawPlatform(platform, elapsedMs) {
@@ -127,6 +145,21 @@ function drawHazard(hazard, elapsedMs) {
 }
 
 function drawObstacle(obstacle, elapsedMs) {
+  if (obstacle.type === 'wind') {
+    const sway = Math.sin(elapsedMs / 140) * 6;
+    ctx.save();
+    ctx.globalAlpha = 0.68;
+    ctx.strokeStyle = '#d9f5ff';
+    ctx.lineWidth = 3;
+    for (let y = obstacle.y + 18; y < obstacle.y + obstacle.height; y += 28) {
+      ctx.beginPath();
+      ctx.moveTo(obstacle.x, y);
+      ctx.quadraticCurveTo(obstacle.x + obstacle.width * 0.45, y + sway, obstacle.x + obstacle.width, y - 4);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
   if (obstacle.type === 'surprise') {
     ctx.fillStyle = '#754f8f';
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
@@ -186,31 +219,50 @@ function drawObstacle(obstacle, elapsedMs) {
 }
 
 function drawBasketball(ball) {
-  ctx.fillStyle = '#ef8c45';
-  ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
-  ctx.fillStyle = '#6b3b3a';
-  ctx.fillRect(ball.x + 10, ball.y, 3, ball.height);
-  ctx.fillRect(ball.x, ball.y + 10, ball.width, 3);
+  const radius = ball.width / 2;
+  ctx.save();
+  ctx.translate(ball.x + radius, ball.y + radius);
+  const ballGradient = ctx.createRadialGradient(-4, -5, 1, 0, 0, radius);
+  ballGradient.addColorStop(0, '#ffcf82');
+  ballGradient.addColorStop(0.36, '#f29a4c');
+  ballGradient.addColorStop(1, '#b84f37');
+  ctx.fillStyle = ballGradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#6b3b3a';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, -radius); ctx.lineTo(0, radius); ctx.moveTo(-radius, 0); ctx.lineTo(radius, 0); ctx.stroke();
+  ctx.restore();
 }
 
 function drawEnergy(energy, elapsedMs) {
-  const pulse = Math.round(Math.sin(elapsedMs / 110) * 3);
-  ctx.fillStyle = '#fff9e9';
-  ctx.fillRect(energy.x - 3 - pulse, energy.y + 6, energy.width + 6 + pulse * 2, energy.height - 8);
-  ctx.fillStyle = '#ff797f';
-  ctx.fillRect(energy.x, energy.y + 3, energy.width, energy.height - 6);
-  ctx.fillStyle = '#ffd858';
-  ctx.fillRect(energy.x + 5, energy.y, energy.width - 10, energy.height);
+  const pulse = Math.sin(elapsedMs / 110) * 3;
+  ctx.save();
+  ctx.translate(energy.x + energy.width / 2, energy.y + energy.height / 2);
+  ctx.fillStyle = 'rgba(255, 238, 149, .35)';
+  ctx.beginPath(); ctx.arc(0, 0, energy.width / 2 + 5 + pulse, 0, Math.PI * 2); ctx.fill();
+  const crystal = ctx.createLinearGradient(0, -energy.height / 2, 0, energy.height / 2);
+  crystal.addColorStop(0, '#fff1a0'); crystal.addColorStop(.5, '#ff8e93'); crystal.addColorStop(1, '#cc4f83');
+  ctx.fillStyle = crystal;
+  ctx.beginPath();
+  ctx.moveTo(0, -energy.height / 2); ctx.lineTo(energy.width / 2 - 2, 0); ctx.lineTo(0, energy.height / 2); ctx.lineTo(-energy.width / 2 + 2, 0); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawCoin(coin, elapsedMs) {
-  const shine = Math.round(Math.sin((elapsedMs + coin.x) / 120) * 2);
-  ctx.fillStyle = '#a86a28';
-  ctx.fillRect(coin.x + 3, coin.y, coin.width - 6, coin.height);
-  ctx.fillStyle = '#ffd85e';
-  ctx.fillRect(coin.x + 5 + shine, coin.y + 3, coin.width - 10 - shine * 2, coin.height - 6);
-  ctx.fillStyle = '#fff4ce';
-  ctx.fillRect(coin.x + 7, coin.y + 6, 4, 8);
+  const radius = coin.width / 2;
+  const shine = Math.sin((elapsedMs + coin.x) / 120) * 2;
+  ctx.save();
+  ctx.translate(coin.x + radius, coin.y + coin.height / 2);
+  ctx.scale(1 + shine * .04, 1);
+  const metal = ctx.createRadialGradient(-3, -5, 1, 0, 0, radius);
+  metal.addColorStop(0, '#fff6ba'); metal.addColorStop(.42, '#ffd75e'); metal.addColorStop(1, '#b96d28');
+  ctx.fillStyle = metal;
+  ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#fff4ce'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, radius - 3, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
 }
 
 function drawCheckpoint(checkpoint) {
@@ -232,12 +284,12 @@ function drawDistanceBubble() {
 function render() {
   if (!state) return;
   const renderDelta = Math.max(0, state.elapsedMs - lastRenderElapsedMs);
-  cameraX = advanceCamera(cameraX, state.player.x, renderDelta, 1280, LEVELS[currentLevel].worldEnd);
+  cameraX = advanceCamera(cameraX, state.player.x, renderDelta, VIEWPORT_WIDTH, LEVELS[currentLevel].worldEnd);
   lastRenderElapsedMs = state.elapsedMs;
   const level = LEVELS[currentLevel];
   const platforms = getRenderPlatforms(currentLevel, state.elapsedMs, state.collapseStarts);
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   ctx.save();
   drawBackground(cameraX);
   ctx.save();
@@ -276,6 +328,7 @@ function render() {
 
   const remaining = Math.max(0, Math.round(((state.maxDistance - state.distance) / state.maxDistance) * 100));
   distanceFill.style.width = `${remaining}%`;
+  energyFill.style.width = `${Math.round(state.energyMeter ?? 0)}%`;
   const district = currentDistrict();
   const progress = Math.min(100, Math.round((state.player.x / level.finishX) * 100));
   levelName.textContent = `${district?.name ?? level.name} · 路程 ${progress}% · 硬币 ${state.coins}`;
@@ -294,6 +347,7 @@ function updateLiveText() {
     constructionHit: '施工箱砸中了，孟培杰拉开距离。',
     blockerHit: '移动挡板把贝贝推开了。',
     patrolHit: '巡逻障碍拦住了贝贝。',
+    wind: '天桥横风来了，注意节奏！',
     checkpoint: '到达检查点。',
   };
   if (messages[state.event]) gameStatus.textContent = messages[state.event];
@@ -406,13 +460,13 @@ function queueJump(event) {
 
 window.addEventListener('keydown', (event) => {
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) { input.left = true; event.preventDefault(); }
-  if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = true; event.preventDefault(); }
+  if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = true; input.sprint = true; event.preventDefault(); }
   if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) queueJump(event);
 });
 
 window.addEventListener('keyup', (event) => {
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) input.left = false;
-  if (['ArrowRight', 'd', 'D'].includes(event.key)) input.right = false;
+  if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = false; input.sprint = false; }
 });
 
 canvas.addEventListener('pointerdown', queueJump);

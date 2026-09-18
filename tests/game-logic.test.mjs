@@ -113,9 +113,9 @@ test('banana peel records a mistake and temporarily slips Beibei', () => {
   assert.ok(state.player.slipTimerMs > 0);
 });
 
-test('before 70 percent, Meng immediately opens a safe gap instead of allowing a catch', () => {
+test('before 85 percent, Meng immediately opens a safe gap instead of allowing a catch', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 15000 }, pursuer: { ...state.pursuer, x: 15040 } };
+  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'playing');
@@ -165,33 +165,33 @@ test('Meng has playful taunts that change across the chase', () => {
   assert.equal(getPursuerTaunt(0.9), '孟培杰：快追上了？那就来呀！');
 });
 
-test('catch rolls can win after 70 percent when injected random succeeds', () => {
+test('a close approach after 85 percent catches Meng', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18100 } };
+  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20600 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
 });
 
-test('the first close approach after 70 percent has a 35 percent chance to catch Meng', () => {
+test('the catch window does not use injected randomness', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18050 } };
+  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.34 });
 
   assert.equal(state.phase, 'caught');
 });
 
-test('a close approach after 70 percent catches Meng without a dice roll', () => {
+test('a close approach at 85 percent catches Meng without a dice roll', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18050 } };
+  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
   assert.equal(state.phase, 'caught');
   assert.equal(state.event, 'caught');
 });
 
-test('after 70 percent, Meng no longer gets an automatic escape burst', () => {
+test('after 85 percent, Meng no longer gets an automatic escape burst', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
+  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20540 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
   assert.equal(state.phase, 'caught');

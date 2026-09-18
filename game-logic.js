@@ -8,6 +8,7 @@ const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
 const SAFE_CHASE_GAP = 150;
 const CATCH_CONTACT_GAP = 120;
+const CATCH_WINDOW_PROGRESS = 0.85;
 const GRAVITY = 1400;
 const JUMP_SPEED = 500;
 const FALL_Y = 640;
@@ -261,7 +262,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     }
   }
   const progress = level.finishX ? player.x / level.finishX : 1;
-  if (progress < 0.7 && pursuer.x - player.x < SAFE_CHASE_GAP) {
+  if (progress < CATCH_WINDOW_PROGRESS && pursuer.x - player.x < SAFE_CHASE_GAP) {
     pursuer = {
       ...pursuer,
       x: player.x + SAFE_CHASE_GAP,
@@ -284,7 +285,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     phase = 'lost';
     event = 'lost';
   } else {
-    if (progress >= 0.7 && distance <= CATCH_CONTACT_GAP) {
+    if (progress >= CATCH_WINDOW_PROGRESS && distance <= CATCH_CONTACT_GAP) {
       phase = 'caught';
       event = 'caught';
     }

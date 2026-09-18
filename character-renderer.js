@@ -95,6 +95,11 @@ export function drawCharacter(ctx, character, portrait) {
   ctx.save();
   ctx.translate(centreX, baselineY);
   ctx.scale(facing, 1);
+  if (portrait?.runnerId === 'meng') {
+    // His dark hair and denim jacket otherwise disappear into dusk/lake art on
+    // smaller phone screens; retain the supplied glasses while lifting contrast.
+    ctx.filter = 'brightness(1.18) saturate(1.14) drop-shadow(0 1px 1px rgba(255,255,255,.48))';
+  }
 
   if (pose === 'downed') {
     ctx.rotate(Math.PI / 2);

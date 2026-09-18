@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260918r4';
+import { drawCharacter } from './character-renderer.js?v=20260918r5';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -64,7 +64,7 @@ mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.poses.cry.addEventListener('load', resumeQueuedLevel);
 propsAtlas.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
-mengPortrait.runCycle.src = 'assets/meng-run-v2.png';
+mengPortrait.runCycle.src = 'assets/meng-run-v2.png?v=20260918m1';
 beibeiPortrait.poses.cry.src = 'assets/beibei-cry-v2.png';
 propsAtlas.src = 'assets/props-atlas-v1.png';
 

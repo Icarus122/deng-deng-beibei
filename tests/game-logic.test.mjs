@@ -181,7 +181,7 @@ test('Meng has playful taunts that change across the chase', () => {
 
 test('a close approach after 85 percent catches Meng', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20600 } };
+  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
@@ -205,7 +205,7 @@ test('a close approach at 85 percent catches Meng without a dice roll', () => {
 
 test('after 85 percent, Meng no longer gets an automatic escape burst', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20540 } };
+  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
   assert.equal(state.phase, 'caught');
@@ -256,7 +256,7 @@ test('falling returns Beibei to her checkpoint and widens the gap', () => {
   assert.equal(state.phase, 'playing');
 });
 
-test('falling behind loses immediately but catching is reserved for the journey finish', () => {
+test('falling behind loses immediately and the finish line does not auto-win', () => {
   let lost = createGame(1);
   lost = { ...lost, distance: lost.maxDistance - 1, pursuer: { ...lost.pursuer, x: lost.player.x + lost.maxDistance - 1 } };
   lost = updateGame(lost, { left: true, right: false, jumpPressed: false }, 50);
@@ -268,7 +268,7 @@ test('falling behind loses immediately but catching is reserved for the journey 
   assert.equal(early.phase, 'playing');
 
   let finish = createGame(1);
-  finish = { ...finish, distance: finish.maxDistance, player: { ...finish.player, x: LEVELS[1].finishX }, pursuer: { ...finish.pursuer, x: LEVELS[1].finishX + finish.maxDistance } };
+  finish = { ...finish, player: { ...finish.player, x: LEVELS[1].finishX }, pursuer: { ...finish.pursuer, x: LEVELS[1].finishX + finish.maxDistance } };
   finish = updateGame(finish, { left: false, right: true, jumpPressed: false }, 50);
-  assert.equal(finish.phase, 'caught');
+  assert.equal(finish.phase, 'playing');
 });

@@ -104,9 +104,16 @@ function drawPose(ctx, character, portrait, pose) {
   const poseImage = portrait?.poses?.[pose];
   if (poseImage?.naturalWidth) {
     ctx.drawImage(poseImage, -DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-    return;
+    return true;
   }
-  drawStillPortrait(ctx, portrait, -DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT);
+  return false;
+}
+
+function drawCurrentOutfit(ctx, character, portrait, pose) {
+  if (drawPose(ctx, character, portrait, pose)) return;
+  // Until dedicated pose art is available, use the current HD run-frame—not
+  // the legacy portrait—so jumping, sliding and crying never switch outfits.
+  if (!drawRunCycle(ctx, portrait, 0)) drawStillPortrait(ctx, portrait, -DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT);
 }
 
 export function drawCharacter(ctx, character, portrait) {
@@ -121,16 +128,16 @@ export function drawCharacter(ctx, character, portrait) {
 
   if (pose === 'downed') {
     ctx.rotate(Math.PI / 2);
-    drawPose(ctx, character, portrait, pose);
+    drawCurrentOutfit(ctx, character, portrait, pose);
   } else if (pose === 'cry') {
-    drawPose(ctx, character, portrait, pose);
+    drawCurrentOutfit(ctx, character, portrait, pose);
     ctx.fillStyle = '#74d7ee';
     ctx.fillRect(4, -27, 3, 12);
     ctx.fillRect(14, -24, 3, 9);
   } else {
     if (pose === 'jump') ctx.rotate(-0.07);
-    if (pose === 'run' && !drawRunCycle(ctx, portrait, distanceTravelled)) drawPose(ctx, character, portrait, pose);
-    if (pose !== 'run') drawPose(ctx, character, portrait, pose);
+    if (pose === 'run' && !drawRunCycle(ctx, portrait, distanceTravelled)) drawCurrentOutfit(ctx, character, portrait, pose);
+    if (pose !== 'run') drawCurrentOutfit(ctx, character, portrait, pose);
     if (pose === 'tap') {
       ctx.fillStyle = '#fff3a5';
       ctx.fillRect(22, -22, 14, 5);

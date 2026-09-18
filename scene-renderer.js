@@ -121,28 +121,32 @@ function drawHdParallax(ctx, region, cameraX, elapsedMs) {
   ctx.save();
 
   // Midground silhouettes move independently from the painted far background.
-  ctx.globalAlpha = 0.3;
-  const middleStart = -(offsets.middle % 340);
-  repeat(middleStart, 340, (x) => {
-    const glow = ctx.createRadialGradient(x + 70, 310, 3, x + 70, 310, 32);
-    glow.addColorStop(0, `${palette.accent}cc`);
-    glow.addColorStop(1, `${palette.accent}00`);
-    ctx.fillStyle = glow;
-    ctx.fillRect(x + 36, 276, 72, 68);
-    ctx.fillStyle = '#28334f';
-    ctx.fillRect(x + 66, 292, 7, 128);
-    ctx.fillRect(x + 49, 286, 40, 8);
-  });
+  if (region?.id === 'gate' || region?.id === 'court' || region?.id === 'bridge') {
+    ctx.globalAlpha = 0.3;
+    const middleStart = -(offsets.middle % 340);
+    repeat(middleStart, 340, (x) => {
+      const glow = ctx.createRadialGradient(x + 70, 310, 3, x + 70, 310, 32);
+      glow.addColorStop(0, `${palette.accent}cc`);
+      glow.addColorStop(1, `${palette.accent}00`);
+      ctx.fillStyle = glow;
+      ctx.fillRect(x + 36, 276, 72, 68);
+      ctx.fillStyle = '#28334f';
+      ctx.fillRect(x + 66, 292, 7, 128);
+      ctx.fillRect(x + 49, 286, 40, 8);
+    });
+  }
 
   // Near rail, leaves and light streaks are intentionally translucent so the
   // HD painting remains the world rather than becoming a covered backdrop.
   ctx.globalAlpha = 0.42;
   const foregroundStart = -(offsets.foreground % 190);
   repeat(foregroundStart, 190, (x) => {
-    ctx.fillStyle = '#1f2b42';
-    ctx.fillRect(x, 494, 154, 3);
-    ctx.fillRect(x + 18, 474, 4, 36);
-    ctx.fillRect(x + 132, 474, 4, 36);
+    if (region?.id !== 'ginkgo' && region?.id !== 'lakeside') {
+      ctx.fillStyle = '#1f2b42';
+      ctx.fillRect(x, 494, 154, 3);
+      ctx.fillRect(x + 18, 474, 4, 36);
+      ctx.fillRect(x + 132, 474, 4, 36);
+    }
     if (region?.id === 'ginkgo' || region?.id === 'lakeside') {
       const leafY = 322 + ((x / 19) % 4) * 22 + Math.sin((elapsedMs + x) / 280) * 7;
       ctx.fillStyle = region?.id === 'ginkgo' ? '#f3c46b' : '#b8e0c8';

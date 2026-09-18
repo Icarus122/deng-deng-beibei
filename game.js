@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260918r2';
+import { drawCharacter } from './character-renderer.js?v=20260918r3';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -31,11 +31,6 @@ const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new I
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
 const propsAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
-beibeiPortrait.still.src = 'assets/beibei-runner.png';
-beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
-mengPortrait.still.src = 'assets/meng-runner.png';
-mengPortrait.runCycle.src = 'assets/meng-run-v2.png';
-propsAtlas.src = 'assets/props-atlas-v1.png';
 
 const input = { left: false, right: false, sprint: false, jumpPressed: false };
 let currentLevel = 1;
@@ -46,9 +41,29 @@ let lastRenderElapsedMs = 0;
 let cameraX = 0;
 let endTimer = 0;
 let resultPose = 'running';
+let queuedLevelId = null;
 let simulationClock = createSimulationClock();
 let taunt = null;
 let lastTauntDistrictId = null;
+
+function runnersReady() {
+  return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth);
+}
+
+function resumeQueuedLevel() {
+  if (queuedLevelId === null || !runnersReady()) return;
+  const levelId = queuedLevelId;
+  queuedLevelId = null;
+  startButton.disabled = false;
+  startButton.textContent = '开始追赶';
+  startLevel(levelId);
+}
+
+beibeiPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
+mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
+beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
+mengPortrait.runCycle.src = 'assets/meng-run-v2.png';
+propsAtlas.src = 'assets/props-atlas-v1.png';
 
 function configureCanvas() {
   const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
@@ -558,6 +573,17 @@ function startLevel(levelId) {
   animationFrame = requestAnimationFrame(frame);
 }
 
+function requestLevelStart(levelId) {
+  if (runnersReady()) {
+    startLevel(levelId);
+    return;
+  }
+  queuedLevelId = levelId;
+  startButton.disabled = true;
+  startButton.textContent = '角色加载中…';
+  gameStatus.textContent = '正在加载高清角色素材。';
+}
+
 function returnHome() {
   stopGame();
   closeDialogs();
@@ -588,9 +614,9 @@ window.addEventListener('keyup', (event) => {
 });
 
 canvas.addEventListener('pointerdown', queueJump);
-startButton.addEventListener('click', () => startLevel(1));
-retryButton.addEventListener('click', () => startLevel(currentLevel));
+startButton.addEventListener('click', () => requestLevelStart(1));
+retryButton.addEventListener('click', () => requestLevelStart(currentLevel));
 giveUpButton.addEventListener('click', returnHome);
-nextLevelButton.addEventListener('click', () => startLevel(1));
-replayButton.addEventListener('click', () => startLevel(1));
+nextLevelButton.addEventListener('click', () => requestLevelStart(1));
+replayButton.addEventListener('click', () => requestLevelStart(1));
 homeButtons.forEach((button) => button.addEventListener('click', returnHome));

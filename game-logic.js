@@ -7,7 +7,9 @@ const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
 const SAFE_CHASE_GAP = 150;
-const CATCH_CONTACT_GAP = 120;
+// Rendered bodies are 60px wide.  A catch must now look like a real tap,
+// rather than succeeding with a character-sized empty gap between them.
+const CATCH_CONTACT_GAP = 56;
 const CATCH_WINDOW_PROGRESS = 0.85;
 const GRAVITY = 1400;
 const JUMP_SPEED = 500;
@@ -294,19 +296,14 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   if (level.finishX && player.x < level.finishX) pursuer.x = Math.max(player.x + 30, pursuer.x);
   const distance = pursuer.x - player.x;
 
-  const reachedFinish = Boolean(level.finishX && player.x >= level.finishX);
+  const reachedWorldEnd = player.x >= level.worldEnd - PLAYER_WIDTH;
   let phase = 'playing';
-  if (reachedFinish) {
+  if (progress >= CATCH_WINDOW_PROGRESS && distance <= CATCH_CONTACT_GAP) {
     phase = 'caught';
     event = 'caught';
-  } else if (distance >= level.maxDistance) {
+  } else if (distance >= level.maxDistance || reachedWorldEnd) {
     phase = 'lost';
     event = 'lost';
-  } else {
-    if (progress >= CATCH_WINDOW_PROGRESS && distance <= CATCH_CONTACT_GAP) {
-      phase = 'caught';
-      event = 'caught';
-    }
   }
 
   return {

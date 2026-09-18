@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260918r3';
+import { drawCharacter } from './character-renderer.js?v=20260918r4';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -27,7 +27,7 @@ const gameStatus = document.querySelector('#game-status');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 
-const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image() };
+const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image(), poses: { cry: new Image() } };
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
 const propsAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
@@ -47,7 +47,7 @@ let taunt = null;
 let lastTauntDistrictId = null;
 
 function runnersReady() {
-  return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth);
+  return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth && beibeiPortrait.poses.cry.naturalWidth && propsAtlas.naturalWidth);
 }
 
 function resumeQueuedLevel() {
@@ -61,8 +61,11 @@ function resumeQueuedLevel() {
 
 beibeiPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
+beibeiPortrait.poses.cry.addEventListener('load', resumeQueuedLevel);
+propsAtlas.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
 mengPortrait.runCycle.src = 'assets/meng-run-v2.png';
+beibeiPortrait.poses.cry.src = 'assets/beibei-cry-v2.png';
 propsAtlas.src = 'assets/props-atlas-v1.png';
 
 function configureCanvas() {

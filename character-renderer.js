@@ -37,43 +37,12 @@ function getStillPortrait(portrait) {
   return portrait?.still ?? portrait;
 }
 
-function drawFallbackRunner(ctx, portrait, x, y, width, height) {
-  const unit = width / 12;
-  const beibei = portrait?.runnerId === 'beibei';
-  const hair = beibei ? '#7a4b42' : '#252238';
-  const outfit = beibei ? '#ef8f9b' : '#5c89b5';
-  const collar = beibei ? '#f7d66f' : '#e8eef8';
-  const skin = '#f2bf9f';
-  const baseX = x + unit * 3;
-  const baseY = y + unit * 2;
-
-  ctx.fillStyle = hair;
-  ctx.fillRect(baseX, baseY, unit * 6, unit * 4);
-  ctx.fillStyle = skin;
-  ctx.fillRect(baseX + unit, baseY + unit * 2, unit * 4, unit * 3);
-  ctx.fillStyle = '#2c2540';
-  ctx.fillRect(baseX + unit * 2, baseY + unit * 3, unit, unit);
-  ctx.fillRect(baseX + unit * 4, baseY + unit * 3, unit, unit);
-  if (!beibei) {
-    ctx.fillStyle = '#dce4ef';
-    ctx.fillRect(baseX + unit, baseY + unit * 3, unit * 4, unit / 2);
-  }
-  ctx.fillStyle = outfit;
-  ctx.fillRect(baseX + unit, baseY + unit * 5, unit * 4, unit * 3);
-  ctx.fillStyle = collar;
-  ctx.fillRect(baseX + unit * 2, baseY + unit * 5, unit * 2, unit);
-  ctx.fillStyle = '#2c2540';
-  ctx.fillRect(baseX + unit, baseY + unit * 8, unit, unit * 2);
-  ctx.fillRect(baseX + unit * 4, baseY + unit * 8, unit, unit * 2);
-}
-
 function drawStillPortrait(ctx, portrait, x, y, width = DISPLAY_WIDTH, height = DISPLAY_HEIGHT) {
   const stillPortrait = getStillPortrait(portrait);
   if (stillPortrait?.naturalWidth) {
     ctx.drawImage(stillPortrait, x, y, width, height);
     return true;
   }
-  drawFallbackRunner(ctx, portrait, x, y, width, height);
   return false;
 }
 
@@ -103,7 +72,8 @@ function drawRunCycle(ctx, portrait, distanceTravelled) {
 function drawPose(ctx, character, portrait, pose) {
   const poseImage = portrait?.poses?.[pose];
   if (poseImage?.naturalWidth) {
-    ctx.drawImage(poseImage, -DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    const width = pose === 'cry' ? 54 : DISPLAY_WIDTH;
+    ctx.drawImage(poseImage, -width / 2, -DISPLAY_HEIGHT, width, DISPLAY_HEIGHT);
     return true;
   }
   return false;

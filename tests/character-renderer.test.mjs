@@ -41,7 +41,7 @@ test('running character draws without relying on a browser global', () => {
   assert.equal(drawCalls.length, 1);
 });
 
-test('running character remains visible while its portrait image is unavailable', () => {
+test('running character does not draw legacy fallback blocks while art is unavailable', () => {
   const fallbackDraws = [];
   const ctx = {
     save() {}, translate() {}, scale() {}, rotate() {}, restore() {},
@@ -53,5 +53,5 @@ test('running character remains visible while its portrait image is unavailable'
 
   drawCharacter(ctx, { x: 120, y: 200, grounded: true, facing: 1, slipTimerMs: 0 }, { runnerId: 'beibei', still: unavailableImage, runCycle: unavailableImage }, 0);
 
-  assert.ok(fallbackDraws.length > 0, 'a code-drawn runner should cover slow or failed image loads');
+  assert.equal(fallbackDraws.length, 0, 'the loading gate should prevent old fallback blocks from appearing');
 });

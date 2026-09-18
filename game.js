@@ -4,6 +4,7 @@ import { drawCharacter } from './character-renderer.js?v=20260918r1';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
+import { createLazyBackgrounds, preloadBackground } from './assets.js';
 
 const canvas = document.querySelector('#game-canvas');
 const ctx = canvas.getContext('2d');
@@ -28,11 +29,7 @@ const winDetail = document.querySelector('#win-detail');
 
 const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image() };
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
-const backgroundImages = Object.fromEntries(['gate', 'court', 'ginkgo', 'lakeside', 'bridge'].map((id) => {
-  const image = new Image();
-  image.src = `assets/bg-${id}-hd.png`;
-  return [id, image];
-}));
+const backgroundImages = createLazyBackgrounds();
 beibeiPortrait.still.src = 'assets/beibei-runner.png';
 beibeiPortrait.runCycle.src = 'assets/beibei-hd-run-cycle.png';
 mengPortrait.still.src = 'assets/meng-runner.png';
@@ -79,7 +76,11 @@ function scenePalette() {
 }
 
 function drawBackground(cameraX) {
-  drawScene(ctx, { region: currentDistrict(), cameraX, elapsedMs: state.elapsedMs, backgrounds: backgroundImages });
+  const district = currentDistrict();
+  preloadBackground(backgroundImages, district?.id);
+  const districtIndex = LEVELS[currentLevel].districts.findIndex((item) => item.id === district?.id);
+  preloadBackground(backgroundImages, LEVELS[currentLevel].districts[districtIndex + 1]?.id);
+  drawScene(ctx, { region: district, cameraX, elapsedMs: state.elapsedMs, backgrounds: backgroundImages });
 }
 
 function drawPlatform(platform, elapsedMs) {
@@ -288,9 +289,15 @@ function render() {
   lastRenderElapsedMs = state.elapsedMs;
   const level = LEVELS[currentLevel];
   const platforms = getRenderPlatforms(currentLevel, state.elapsedMs, state.collapseStarts);
+  const closeZoom = Math.max(0, Math.min(.025, (190 - state.distance) / 2800));
 
   ctx.clearRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   ctx.save();
+  if (closeZoom) {
+    ctx.translate(VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2);
+    ctx.scale(1 + closeZoom, 1 + closeZoom);
+    ctx.translate(-VIEWPORT_WIDTH / 2, -VIEWPORT_HEIGHT / 2);
+  }
   drawBackground(cameraX);
   ctx.save();
   ctx.translate(-cameraX, 0);
@@ -305,6 +312,8 @@ function render() {
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
   drawCharacter(ctx, beibei, beibeiPortrait, state.elapsedMs);
   drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36);
+  drawGapLabel(meng);
+  drawSpeedLines();
   if (state.basketball?.active) drawBasketball(state.basketball);
 
   if (state.phase === 'playing' && isTauntActive(taunt, state.elapsedMs)) {
@@ -323,8 +332,9 @@ function render() {
     ctx.fillText('没心眼，不等我', state.player.x + 43, state.player.y - 35);
   }
   ctx.restore();
-  drawDistanceBubble();
   ctx.restore();
+  drawDistanceBubble();
+  drawChaseFeedback();
 
   const remaining = Math.max(0, Math.round(((state.maxDistance - state.distance) / state.maxDistance) * 100));
   distanceFill.style.width = `${remaining}%`;
@@ -388,6 +398,48 @@ function handleTerminal() {
     render();
     endTimer = window.setTimeout(showWinDialog, 540);
   }, 440);
+}
+
+function drawGapLabel(pursuer) {
+  const gap = Math.max(0, Math.round(state.pursuer.x - state.player.x));
+  ctx.save();
+  ctx.fillStyle = 'rgba(24, 30, 57, .84)';
+  ctx.beginPath();
+  ctx.roundRect(pursuer.x - 24, pursuer.y - 39, 66, 22, 9);
+  ctx.fill();
+  ctx.fillStyle = gap <= 180 ? '#ffe68c' : '#fff9e9';
+  ctx.font = '700 13px "Microsoft YaHei", sans-serif';
+  ctx.fillText(`${gap}px`, pursuer.x - 15, pursuer.y - 24);
+  ctx.restore();
+}
+
+function drawSpeedLines() {
+  const alpha = Math.max(0, Math.min(1, (190 - state.distance) / 70));
+  if (!alpha) return;
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 247, 211, ${alpha * .72})`;
+  ctx.lineWidth = 2;
+  for (let index = 0; index < 7; index += 1) {
+    const y = 340 + index * 19;
+    const x = state.player.x - 130 + ((state.elapsedMs / 10 + index * 47) % 80);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 42 + index * 5, y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawChaseFeedback() {
+  const danger = Math.max(0, Math.min(1, (state.distance - state.maxDistance * .7) / (state.maxDistance * .3)));
+  if (!danger) return;
+  const pulse = .14 + Math.sin(state.elapsedMs / 120) * .07;
+  const width = 150 + danger * 200;
+  const edge = ctx.createLinearGradient(0, 0, width, 0);
+  edge.addColorStop(0, `rgba(222, 45, 76, ${pulse * danger})`);
+  edge.addColorStop(1, 'rgba(222, 45, 76, 0)');
+  ctx.fillStyle = edge; ctx.fillRect(0, 0, width, VIEWPORT_HEIGHT);
+  const right = ctx.createLinearGradient(VIEWPORT_WIDTH, 0, VIEWPORT_WIDTH - width, 0);
+  right.addColorStop(0, `rgba(222, 45, 76, ${pulse * danger})`);
+  right.addColorStop(1, 'rgba(222, 45, 76, 0)');
+  ctx.fillStyle = right; ctx.fillRect(VIEWPORT_WIDTH - width, 0, width, VIEWPORT_HEIGHT);
 }
 
 function updateTaunt() {

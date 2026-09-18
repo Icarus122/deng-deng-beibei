@@ -102,7 +102,7 @@ function drawHdBackground(ctx, image, cameraX) {
   if (!image?.naturalWidth) return false;
   // A wide overscan lets the painting drift with the camera without tiling.
   const drift = -135 + Math.sin(cameraX / 1200) * 135;
-  ctx.drawImage(image, drift, -166, 1550, 872);
+  ctx.drawImage(image, drift, -57, 1550, 654);
   ctx.fillStyle = 'rgba(62, 60, 122, .12)';
   ctx.fillRect(0, 0, 1300, 540);
   ctx.fillStyle = 'rgba(255, 188, 124, .08)';

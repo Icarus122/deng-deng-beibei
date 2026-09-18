@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { advanceCamera } from '../camera.js';
 import { overlaps } from '../entities.js';
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, updateGame } from '../game-logic.js';
-import { JOURNEY } from '../level-data.js';
+import { getHighRouteViolations, JOURNEY } from '../level-data.js';
 
 test('journey has five visually and mechanically distinct regions', () => {
   assert.equal(JOURNEY.regions.length, 5);
@@ -34,6 +34,11 @@ test('journey supplies dense elevated routes and varied hazards', () => {
   assert.ok(elevatedPlatforms.length >= 24);
   assert.ok(JOURNEY.shortcutNodes.length >= 8);
   assert.ok(JOURNEY.obstacles.length >= 18);
+});
+
+test('every hand-authored high route stays within the double-jump reach budget', () => {
+  assert.deepEqual(getHighRouteViolations(JOURNEY.platforms), []);
+  assert.ok(JOURNEY.platforms.filter((platform) => platform.boost).length >= 40);
 });
 
 test('journey includes every announced interactive hazard type across all districts', () => {

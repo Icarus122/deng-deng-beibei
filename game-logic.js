@@ -80,6 +80,7 @@ export function createGame(levelId) {
     hitCooldownMs: 0,
     hazardHitCooldownMs: 0,
     hazardSlowTimerMs: 0,
+    platformBoostTimerMs: 0,
     collapseStarts: {},
     hazards: getDynamicHazards(level, 0, {}),
     event: 'none',
@@ -129,6 +130,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let hitCooldownMs = Math.max(0, state.hitCooldownMs - stepMs);
   let hazardHitCooldownMs = Math.max(0, (state.hazardHitCooldownMs ?? 0) - stepMs);
   let hazardSlowTimerMs = Math.max(0, (state.hazardSlowTimerMs ?? 0) - stepMs);
+  let platformBoostTimerMs = Math.max(0, (state.platformBoostTimerMs ?? 0) - stepMs);
   let windTimerMs = Math.max(0, (state.windTimerMs ?? 0) - stepMs);
   let event = 'none';
 
@@ -145,13 +147,18 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     energyTimerMs = 160;
   }
   const runSpeed = sprinting ? 240 : 150;
-  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 112 : direction < 0 ? 75 : runSpeed;
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 112 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0);
   player.facing = direction;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   const previousBottom = player.y + player.height;
   player.velocityY += GRAVITY * seconds;
   player.y += player.velocityY * seconds;
   Object.assign(player, placeOnSurface(player, platforms, previousBottom));
+  const boostPlatform = player.grounded && platforms.find((platform) => platform.boost
+    && player.x + player.width > platform.x
+    && player.x < platform.x + platform.width
+    && Math.abs(player.y + player.height - platform.y) < 2);
+  if (boostPlatform) platformBoostTimerMs = 180;
 
   if (hazardHitCooldownMs === 0) {
     const hazardResult = resolveHazardContact({ player, collapseStarts, hazardSlowTimerMs }, hazards, nextElapsedMs);
@@ -310,6 +317,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hitCooldownMs,
     hazardHitCooldownMs,
     hazardSlowTimerMs,
+    platformBoostTimerMs,
     windTimerMs,
     collapseStarts,
     hazards,

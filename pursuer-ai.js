@@ -38,11 +38,12 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
 
   const velocity = mode === 'evade' ? EVADE_SPEED : mode === 'slowed' ? SLOWED_SPEED : mode === 'downed' ? 0 : CRUISE_SPEED;
   const verticalVelocity = startingShortcut ? -500 : (pursuer.velocityY ?? 0) + GRAVITY * seconds;
+  const previousBottom = (pursuer.y ?? GROUND_Y) + 32;
   let y = (pursuer.y ?? GROUND_Y) + verticalVelocity * seconds;
   let velocityY = verticalVelocity;
   let grounded = false;
   const platform = targetPlatformId ? level.platforms?.find((item) => item.id === targetPlatformId) : null;
-  if (platform && velocityY >= 0 && y + 32 >= platform.y && pursuer.x + velocity * seconds + 24 > platform.x && pursuer.x + velocity * seconds < platform.x + platform.width) {
+  if (platform && velocityY >= 0 && previousBottom <= platform.y && y + 32 >= platform.y && pursuer.x + velocity * seconds + 24 > platform.x && pursuer.x + velocity * seconds < platform.x + platform.width) {
     y = platform.y - 32;
     velocityY = 0;
     grounded = true;

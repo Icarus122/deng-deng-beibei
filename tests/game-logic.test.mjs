@@ -65,6 +65,15 @@ test('auto-run reaches the first elevated hazard without falling', () => {
   assert.notEqual(state.event, 'fell');
 });
 
+test('a low ramp is a walkable entrance to the high-speed route', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 298, y: 478, grounded: true } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
+
+  assert.equal(state.player.y, 458);
+  assert.ok(state.platformBoostTimerMs > 0);
+});
+
 test('allows exactly one air jump after a grounded jump', () => {
   let state = createGame(1);
   state = updateGame(state, { left: false, right: true, jumpPressed: true }, 16);

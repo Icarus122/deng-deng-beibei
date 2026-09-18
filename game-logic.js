@@ -31,12 +31,15 @@ function movingPlatform(platform, elapsedMs) {
 
 function placeOnSurface(player, platforms, previousBottom) {
   const bottom = player.y + player.height;
-  for (const platform of platforms) {
+  const surfaces = platforms.filter((platform) => {
     const coversPlayer = player.x + player.width > platform.x && player.x < platform.x + platform.width;
     const crossedTop = previousBottom <= platform.y && bottom >= platform.y;
-    if (coversPlayer && crossedTop && player.velocityY >= 0) {
-      return { ...player, y: platform.y - player.height, velocityY: 0, jumpsUsed: 0, grounded: true };
-    }
+    const canStepSlope = platform.slope && player.grounded && previousBottom >= platform.y && previousBottom - platform.y <= 24;
+    return coversPlayer && (crossedTop || canStepSlope) && player.velocityY >= 0;
+  }).sort((a, b) => a.y - b.y);
+  if (surfaces.length > 0) {
+    const platform = surfaces[0];
+    return { ...player, y: platform.y - player.height, velocityY: 0, jumpsUsed: 0, grounded: true };
   }
   return { ...player, grounded: false };
 }

@@ -26,7 +26,7 @@ const highRouteSpecs = [
 const highRoutes = highRouteSpecs.flatMap(([route, prefix, x]) => [
   { id: `${prefix}-1`, route, x: x - 220, y: 490, width: 100, height: 18, boost: 190, ramp: true, slope: true },
   { id: `${prefix}-2`, route, x: x - 100, y: 474, width: 100, height: 18, boost: 190, ramp: true, slope: true },
-  { id: `${prefix}-3`, route, x, y: 456, width: 420, height: 22, boost: 190 },
+  { id: `${prefix}-3`, route, x, y: 456, width: 420, height: 22, boost: 190, slope: true },
   { id: `${prefix}-4`, route, x: x + 440, y: 456, width: 420, height: 22, boost: 190 },
   { id: `${prefix}-5`, route, x: x + 880, y: 456, width: 420, height: 22, boost: 190 },
   { id: `${prefix}-6`, route, x: x + 1320, y: 456, width: 420, height: 22, boost: 190 },

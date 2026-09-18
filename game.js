@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260918r1';
+import { drawCharacter } from './character-renderer.js?v=20260918r2';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -29,11 +29,13 @@ const winDetail = document.querySelector('#win-detail');
 
 const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image() };
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
+const propsAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
 beibeiPortrait.still.src = 'assets/beibei-runner.png';
-beibeiPortrait.runCycle.src = 'assets/beibei-hd-run-cycle.png';
+beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
 mengPortrait.still.src = 'assets/meng-runner.png';
-mengPortrait.runCycle.src = 'assets/meng-run-cycle.png';
+mengPortrait.runCycle.src = 'assets/meng-run-v2.png';
+propsAtlas.src = 'assets/props-atlas-v1.png';
 
 const input = { left: false, right: false, sprint: false, jumpPressed: false };
 let currentLevel = 1;
@@ -85,6 +87,27 @@ function drawBackground(cameraX) {
 
 function drawPlatform(platform, elapsedMs) {
   const palette = scenePalette();
+  if (platform.y === 510) {
+    // Keep the source painting's lower foreground visible.  This is a thin,
+    // readable walkable curb instead of the old opaque 30px colour slab.
+    const curb = ctx.createLinearGradient(0, 502, 0, 510);
+    curb.addColorStop(0, 'rgba(255, 245, 208, .82)');
+    curb.addColorStop(.45, palette.platform);
+    curb.addColorStop(1, palette.edge);
+    ctx.fillStyle = 'rgba(20, 31, 50, .24)';
+    ctx.fillRect(platform.x, 507, platform.width, 7);
+    ctx.fillStyle = curb;
+    ctx.fillRect(platform.x, 503, platform.width, 5);
+    ctx.fillStyle = 'rgba(255,255,255,.42)';
+    ctx.fillRect(platform.x, 503, platform.width, 1);
+    if (propsAtlas.naturalWidth) {
+      for (let x = platform.x; x < platform.x + platform.width; x += 96) {
+        drawAtlasProp('curb', x, 496, Math.min(96, platform.x + platform.width - x), 14);
+      }
+    }
+    return;
+  }
+  if (!platform.collapse && !platform.motion && drawAtlasProp('platform', platform.x, platform.y - 6, platform.width, Math.max(30, platform.height + 12))) return;
   ctx.fillStyle = palette.edge;
   ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
   ctx.fillStyle = platform.collapse ? '#f39a5a' : palette.platform;
@@ -103,6 +126,19 @@ function drawPlatform(platform, elapsedMs) {
   }
 }
 
+const PROP_FRAMES = {
+  basketball: [0, 0], banana: [1, 0], bookbag: [2, 0], barrier: [3, 0],
+  crate: [0, 1], coin: [1, 1], energy: [2, 1], spring: [3, 1],
+  surprise: [0, 2], checkpoint: [1, 2], platform: [2, 2], curb: [3, 2],
+};
+
+function drawAtlasProp(id, x, y, width, height) {
+  const frame = PROP_FRAMES[id];
+  if (!frame || !propsAtlas.naturalWidth) return false;
+  ctx.drawImage(propsAtlas, frame[0] * 256, frame[1] * 256, 256, 256, x, y, width, height);
+  return true;
+}
+
 function drawHazard(hazard, elapsedMs) {
   if (hazard.type === 'collapse') {
     ctx.fillStyle = '#fff4ce';
@@ -112,6 +148,7 @@ function drawHazard(hazard, elapsedMs) {
     return;
   }
   if (hazard.type === 'constructionBox') {
+    if (drawAtlasProp('crate', hazard.x - 8, hazard.y - 6, hazard.width + 16, hazard.height + 16)) return;
     ctx.fillStyle = hazard.warning ? '#ffd85e' : '#bd6b43';
     ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
     ctx.fillStyle = '#2c2540';
@@ -124,6 +161,7 @@ function drawHazard(hazard, elapsedMs) {
     return;
   }
   if (hazard.type === 'blocker') {
+    if (drawAtlasProp('barrier', hazard.x - 8, hazard.y - 8, hazard.width + 16, hazard.height + 16)) return;
     ctx.fillStyle = '#2c2540';
     ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
     ctx.fillStyle = '#fff4ce';
@@ -162,6 +200,7 @@ function drawObstacle(obstacle, elapsedMs) {
     return;
   }
   if (obstacle.type === 'surprise') {
+    if (drawAtlasProp('surprise', obstacle.x - 7, obstacle.y - 7, obstacle.width + 14, obstacle.height + 14)) return;
     ctx.fillStyle = '#754f8f';
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = '#ffd85e';
@@ -172,6 +211,7 @@ function drawObstacle(obstacle, elapsedMs) {
     return;
   }
   if (obstacle.type === 'spring') {
+    if (drawAtlasProp('spring', obstacle.x - 6, obstacle.y - 10, obstacle.width + 12, obstacle.height + 20)) return;
     ctx.fillStyle = '#d95767';
     ctx.fillRect(obstacle.x, obstacle.y + 12, obstacle.width, 12);
     ctx.fillStyle = '#fff0b2';
@@ -181,6 +221,7 @@ function drawObstacle(obstacle, elapsedMs) {
     return;
   }
   if (obstacle.type === 'basketball') {
+    if (drawAtlasProp('basketball', obstacle.x - 3, obstacle.y - 3, obstacle.width + 6, obstacle.height + 6)) return;
     ctx.fillStyle = '#ef8c45';
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = '#6b3b3a';
@@ -189,6 +230,7 @@ function drawObstacle(obstacle, elapsedMs) {
     return;
   }
   if (obstacle.type === 'banana') {
+    if (drawAtlasProp('banana', obstacle.x - 4, obstacle.y - 4, obstacle.width + 8, obstacle.height + 8)) return;
     ctx.fillStyle = '#ffd85e';
     ctx.fillRect(obstacle.x, obstacle.y + 8, obstacle.width, 8);
     ctx.fillRect(obstacle.x + 4, obstacle.y + 4, obstacle.width - 8, 8);
@@ -198,6 +240,7 @@ function drawObstacle(obstacle, elapsedMs) {
     return;
   }
   if (obstacle.type === 'barrier') {
+    if (drawAtlasProp('barrier', obstacle.x - 8, obstacle.y - 8, obstacle.width + 16, obstacle.height + 16)) return;
     ctx.fillStyle = '#f3ae5b';
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = '#fff4ce';
@@ -205,7 +248,26 @@ function drawObstacle(obstacle, elapsedMs) {
     ctx.fillRect(obstacle.x + 4, obstacle.y + 24, obstacle.width - 8, 6);
     return;
   }
+  if (obstacle.type === 'speedPad') {
+    const glow = ctx.createLinearGradient(obstacle.x, 0, obstacle.x + obstacle.width, 0);
+    glow.addColorStop(0, '#4dd6d0');
+    glow.addColorStop(.5, '#f2ffe0');
+    glow.addColorStop(1, '#4dd6d0');
+    ctx.fillStyle = 'rgba(38, 74, 96, .68)';
+    ctx.fillRect(obstacle.x, obstacle.y + 8, obstacle.width, obstacle.height - 8);
+    ctx.fillStyle = glow;
+    for (let x = obstacle.x + 4; x < obstacle.x + obstacle.width - 8; x += 16) {
+      ctx.beginPath();
+      ctx.moveTo(x, obstacle.y + 9);
+      ctx.lineTo(x + 10, obstacle.y + 9);
+      ctx.lineTo(x + 4, obstacle.y + obstacle.height - 3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    return;
+  }
   const wobble = Math.round(Math.sin(elapsedMs / 140) * 3);
+  if (obstacle.type === 'bookbag' && drawAtlasProp('bookbag', obstacle.x - 6, obstacle.y - 6, obstacle.width + 12, obstacle.height + 12)) return;
   ctx.save();
   ctx.translate(obstacle.x + 14, obstacle.y + 18);
   ctx.rotate(wobble * 0.02);
@@ -238,6 +300,7 @@ function drawBasketball(ball) {
 }
 
 function drawEnergy(energy, elapsedMs) {
+  if (drawAtlasProp('energy', energy.x - 7, energy.y - 7, energy.width + 14, energy.height + 14)) return;
   const pulse = Math.sin(elapsedMs / 110) * 3;
   ctx.save();
   ctx.translate(energy.x + energy.width / 2, energy.y + energy.height / 2);
@@ -253,6 +316,7 @@ function drawEnergy(energy, elapsedMs) {
 }
 
 function drawCoin(coin, elapsedMs) {
+  if (drawAtlasProp('coin', coin.x - 5, coin.y - 5, coin.width + 10, coin.height + 10)) return;
   const radius = coin.width / 2;
   const shine = Math.sin((elapsedMs + coin.x) / 120) * 2;
   ctx.save();
@@ -267,6 +331,7 @@ function drawCoin(coin, elapsedMs) {
 }
 
 function drawCheckpoint(checkpoint) {
+  if (drawAtlasProp('checkpoint', checkpoint.x - 14, 416, 58, 94)) return;
   ctx.fillStyle = '#fff9e9';
   ctx.fillRect(checkpoint.x, 426, 6, 84);
   ctx.fillStyle = '#ff797f';
@@ -274,12 +339,13 @@ function drawCheckpoint(checkpoint) {
 }
 
 function drawDistanceBubble() {
-  if (state.energyTimerMs <= 0) return;
+  if (state.energyTimerMs <= 0 && state.platformBoostTimerMs <= 0 && state.speedPadTimerMs <= 0) return;
   ctx.fillStyle = '#ff797f';
   ctx.fillRect(350, 55, 210, 28);
   ctx.fillStyle = '#fff9e9';
   ctx.font = '16px monospace';
-  ctx.fillText('贝贝能量！冲刺中', 370, 75);
+  const label = state.speedPadTimerMs > 0 ? '加速带！高速前进' : state.platformBoostTimerMs > 0 ? '高路加速！保持节奏' : '贝贝能量！冲刺中';
+  ctx.fillText(label, 370, 75);
 }
 
 function render() {
@@ -310,8 +376,8 @@ function render() {
 
   const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
-  drawCharacter(ctx, beibei, beibeiPortrait, state.elapsedMs);
-  drawCharacter(ctx, meng, mengPortrait, state.elapsedMs + 36);
+  drawCharacter(ctx, beibei, beibeiPortrait);
+  drawCharacter(ctx, meng, mengPortrait);
   drawGapLabel(meng);
   drawSpeedLines();
   if (state.basketball?.active) drawBasketball(state.basketball);

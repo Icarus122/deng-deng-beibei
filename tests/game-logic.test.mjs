@@ -130,7 +130,7 @@ test('before 85 percent, Meng immediately opens a safe gap instead of allowing a
 
 test('collecting a coin closes the gap and records Beibei coin progress', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 1200 } };
+  state = { ...state, player: { ...state.player, x: 1200, y: 424 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'coin');
@@ -201,6 +201,15 @@ test('after 85 percent, Meng no longer gets an automatic escape burst', () => {
 
   assert.equal(state.phase, 'caught');
   assert.notEqual(state.pursuer.mode, 'evade');
+});
+
+test('the final bridge does not force a catch before close contact', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 23000 }, pursuer: { ...state.pursuer, x: 23160 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.phase, 'playing');
+  assert.ok(state.distance > 120);
 });
 
 test('collecting Beibei energy starts a sprint and closes the gap', () => {

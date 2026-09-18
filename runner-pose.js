@@ -3,7 +3,9 @@ export function getRunnerPose(elapsedMs, facing = 1) {
   const stride = Math.sin(phase);
 
   return {
-    bob: Math.abs(stride) * 2.6,
+    // Full-body sprite frames carry their own vertical motion.  Adding a
+    // second procedural bob created a mismatched 11 Hz shake.
+    bob: 0,
     torsoTilt: stride * 0.045 * facing,
     leftLeg: stride * 0.62,
     rightLeg: -stride * 0.62,

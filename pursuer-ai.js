@@ -5,7 +5,7 @@ const GROUND_Y = 478;
 const GRAVITY = 1400;
 
 export function createPursuer(startX) {
-  return { x: startX, y: GROUND_Y, velocityY: 0, grounded: true, targetPlatformId: null, velocity: CRUISE_SPEED, facing: 1, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0 };
+  return { x: startX, y: GROUND_Y, velocityY: 0, grounded: true, targetPlatformId: null, velocity: CRUISE_SPEED, facing: 1, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0, distanceTravelled: 0 };
 }
 
 export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
@@ -52,5 +52,18 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     velocityY = 0;
     grounded = true;
   }
-  return { ...pursuer, x: pursuer.x + velocity * seconds, y, velocityY, grounded, targetPlatformId, velocity, facing: 1, mode, modeTimerMs, evadeCooldownMs };
+  return {
+    ...pursuer,
+    x: pursuer.x + velocity * seconds,
+    y,
+    velocityY,
+    grounded,
+    targetPlatformId,
+    velocity,
+    facing: 1,
+    mode,
+    modeTimerMs,
+    evadeCooldownMs,
+    distanceTravelled: (pursuer.distanceTravelled ?? 0) + Math.abs(velocity * seconds),
+  };
 }

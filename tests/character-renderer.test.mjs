@@ -13,15 +13,15 @@ test('character pose comes from each character state rather than the other runne
 
 test('running animation advances through the four full-body sprite frames', () => {
   assert.equal(getRunFrameIndex(0), 0);
-  assert.equal(getRunFrameIndex(95), 1);
-  assert.equal(getRunFrameIndex(190), 2);
-  assert.equal(getRunFrameIndex(285), 3);
-  assert.equal(getRunFrameIndex(380), 0);
+  assert.equal(getRunFrameIndex(46), 1);
+  assert.equal(getRunFrameIndex(92), 2);
+  assert.equal(getRunFrameIndex(138), 3);
+  assert.equal(getRunFrameIndex(184), 0);
 });
 
 test('running animation keeps each whole-character frame crisp', async () => {
   const source = await readFile(new URL('../character-renderer.js', import.meta.url), 'utf8');
-  const runCycle = source.match(/function drawRunCycle[\s\S]*?\n}\r?\n\r?\nexport function drawCharacter/);
+  const runCycle = source.match(/function drawRunCycle[\s\S]*?\n}/);
 
   assert.ok(runCycle, 'drawRunCycle should remain available');
   assert.doesNotMatch(runCycle[0], /globalAlpha/, 'whole-character frames must not be crossfaded');

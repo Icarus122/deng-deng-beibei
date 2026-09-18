@@ -58,6 +58,7 @@ export function createGame(levelId) {
     grounded: true,
     jumpsUsed: 0,
     facing: 1,
+    distanceTravelled: 0,
   };
   return {
     levelId,
@@ -81,6 +82,7 @@ export function createGame(levelId) {
     hazardHitCooldownMs: 0,
     hazardSlowTimerMs: 0,
     platformBoostTimerMs: 0,
+    speedPadTimerMs: 0,
     collapseStarts: {},
     hazards: getDynamicHazards(level, 0, {}),
     event: 'none',
@@ -131,6 +133,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let hazardHitCooldownMs = Math.max(0, (state.hazardHitCooldownMs ?? 0) - stepMs);
   let hazardSlowTimerMs = Math.max(0, (state.hazardSlowTimerMs ?? 0) - stepMs);
   let platformBoostTimerMs = Math.max(0, (state.platformBoostTimerMs ?? 0) - stepMs);
+  let speedPadTimerMs = Math.max(0, (state.speedPadTimerMs ?? 0) - stepMs);
   let windTimerMs = Math.max(0, (state.windTimerMs ?? 0) - stepMs);
   let event = 'none';
 
@@ -143,13 +146,15 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const direction = input.left && !input.right ? -1 : 1;
   const sprinting = Boolean(input.sprint || input.right) && direction > 0 && energyMeter > 0 && player.slipTimerMs === 0 && hazardSlowTimerMs === 0;
   if (sprinting) {
-    energyMeter = Math.max(0, energyMeter - seconds * 32);
+    energyMeter = Math.max(0, energyMeter - seconds * 24);
     energyTimerMs = 160;
   }
   const runSpeed = sprinting ? 240 : 150;
-  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 112 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0);
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 112 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0, speedPadTimerMs > 0 ? 215 : 0);
   player.facing = direction;
+  const previousX = player.x;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
+  player.distanceTravelled = (player.distanceTravelled ?? 0) + Math.abs(player.x - previousX);
   const previousBottom = player.y + player.height;
   player.velocityY += GRAVITY * seconds;
   player.y += player.velocityY * seconds;
@@ -176,7 +181,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const collectedEnergy = new Set(state.collectedEnergyIds);
   for (const energy of level.energy) {
     if (!collectedEnergy.has(energy.id) && overlaps(playerBox, energy)) {
-      energyMeter = clamp(energyMeter + 58, 0, 100);
+      energyMeter = clamp(energyMeter + 80, 0, 100);
       energyTimerMs = 900;
       pursuer.x -= 38;
       event = 'energy';
@@ -220,6 +225,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       mistakes += 1;
       collectedObstacle.add(obstacle.id);
       event = 'slip';
+    }
+    if (obstacle.type === 'speedPad') {
+      speedPadTimerMs = 900;
+      if (event === 'none') event = 'speedPad';
     }
     if (obstacle.type === 'wind') {
       windTimerMs = 850;
@@ -280,7 +289,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     };
   }
   if (level.finishX && player.x < level.finishX) pursuer.x = Math.max(player.x + 30, pursuer.x);
-  if (level.finishX && player.x >= level.finishX - 500) pursuer.x = Math.min(pursuer.x, player.x + CATCH_CONTACT_GAP - 1);
   const distance = pursuer.x - player.x;
 
   const reachedFinish = Boolean(level.finishX && player.x >= level.finishX);
@@ -318,6 +326,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hazardHitCooldownMs,
     hazardSlowTimerMs,
     platformBoostTimerMs,
+    speedPadTimerMs,
     windTimerMs,
     collapseStarts,
     hazards,

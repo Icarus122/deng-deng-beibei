@@ -1,3 +1,25 @@
+const DISPLAY_WIDTH = 60;
+const DISPLAY_HEIGHT = 80;
+export const STRIDE_PX = 46;
+
+// These source rectangles deliberately stay explicit.  The imported legacy
+// sheets do not divide cleanly at their visual limbs, and replacement sheets
+// use the same named-frame contract at 240 x 320 per frame.
+const RUN_FRAMES = {
+  beibei: [
+    { x: 0, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+    { x: 240, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+    { x: 480, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+    { x: 720, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+  ],
+  meng: [
+    { x: 0, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+    { x: 240, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+    { x: 480, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+    { x: 720, y: 0, w: 240, h: 320, originX: 0, originY: 320 },
+  ],
+};
+
 export function getCharacterPose(character) {
   if (character.pose) return character.pose;
   if (character.mode === 'downed') return 'downed';
@@ -7,8 +29,8 @@ export function getCharacterPose(character) {
   return character.grounded ? 'run' : 'jump';
 }
 
-export function getRunFrameIndex(elapsedMs) {
-  return Math.floor(elapsedMs / 95) % 4;
+export function getRunFrameIndex(distanceTravelled = 0) {
+  return Math.floor(Math.abs(distanceTravelled) / STRIDE_PX) % 4;
 }
 
 function getStillPortrait(portrait) {
@@ -45,7 +67,7 @@ function drawFallbackRunner(ctx, portrait, x, y, width, height) {
   ctx.fillRect(baseX + unit * 4, baseY + unit * 8, unit, unit * 2);
 }
 
-function drawStillPortrait(ctx, portrait, x, y, width = 96, height = 120) {
+function drawStillPortrait(ctx, portrait, x, y, width = DISPLAY_WIDTH, height = DISPLAY_HEIGHT) {
   const stillPortrait = getStillPortrait(portrait);
   if (stillPortrait?.naturalWidth) {
     ctx.drawImage(stillPortrait, x, y, width, height);
@@ -55,52 +77,72 @@ function drawStillPortrait(ctx, portrait, x, y, width = 96, height = 120) {
   return false;
 }
 
-function drawRunCycle(ctx, runCycle, elapsedMs) {
-  if (!runCycle?.naturalWidth) return false;
-  const frameWidth = runCycle.naturalWidth / 4;
-  const frame = getRunFrameIndex(elapsedMs);
-  // The HD sheets have more vertical space for the swinging arms and skirt.
-  // Keep the feet on the same world baseline while showing the extra detail.
-  ctx.drawImage(runCycle, frame * frameWidth, 0, frameWidth, runCycle.naturalHeight, -56, -142, 112, 145);
+function drawRunCycle(ctx, portrait, distanceTravelled) {
+  const runCycle = portrait?.runCycle;
+  const frames = RUN_FRAMES[portrait?.runnerId];
+  if (!runCycle?.naturalWidth || !frames) return false;
+  const frame = frames[getRunFrameIndex(distanceTravelled)];
+  const scaleX = DISPLAY_WIDTH / frame.w;
+  const scaleY = DISPLAY_HEIGHT / frame.h;
+  const anchorOffsetX = frame.originX * scaleX;
+  const anchorOffsetY = (frame.h - frame.originY) * scaleY;
+  ctx.drawImage(
+    runCycle,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    -DISPLAY_WIDTH / 2 - anchorOffsetX,
+    -DISPLAY_HEIGHT + anchorOffsetY,
+    DISPLAY_WIDTH,
+    DISPLAY_HEIGHT,
+  );
   return true;
 }
 
-export function drawCharacter(ctx, character, portrait, elapsedMs) {
+function drawPose(ctx, character, portrait, pose) {
+  const poseImage = portrait?.poses?.[pose];
+  if (poseImage?.naturalWidth) {
+    ctx.drawImage(poseImage, -DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    return;
+  }
+  drawStillPortrait(ctx, portrait, -DISPLAY_WIDTH / 2, -DISPLAY_HEIGHT);
+}
+
+export function drawCharacter(ctx, character, portrait) {
   const pose = getCharacterPose(character);
   const facing = character.facing ?? 1;
-  const runPose = getRunnerPose(elapsedMs, facing);
-  const bob = pose === 'run' ? runPose.bob : 0;
-  const runCycle = portrait?.runCycle;
+  const distanceTravelled = character.distanceTravelled ?? character.x ?? 0;
+  const centreX = character.x + (character.width ?? 24) / 2;
+  const baselineY = character.y + (character.height ?? 32);
   ctx.save();
-  ctx.translate(character.x + 28, character.y + 30 + bob);
+  ctx.translate(centreX, baselineY);
   ctx.scale(facing, 1);
 
   if (pose === 'downed') {
     ctx.rotate(Math.PI / 2);
-    drawStillPortrait(ctx, portrait, -52, -38, 104, 76);
+    drawPose(ctx, character, portrait, pose);
   } else if (pose === 'cry') {
-    ctx.scale(0.82, 0.72);
-    drawStillPortrait(ctx, portrait, -48, -112, 96, 120);
+    drawPose(ctx, character, portrait, pose);
     ctx.fillStyle = '#74d7ee';
-    ctx.fillRect(5, -35, 5, 17);
-    ctx.fillRect(20, -31, 5, 13);
+    ctx.fillRect(4, -27, 3, 12);
+    ctx.fillRect(14, -24, 3, 9);
   } else {
-    if (pose === 'jump') ctx.rotate(-0.1);
-    if (pose === 'run') ctx.rotate(runPose.torsoTilt);
-    if (pose !== 'run' || !drawRunCycle(ctx, runCycle, elapsedMs)) drawStillPortrait(ctx, portrait, -48, -112, 96, 120);
+    if (pose === 'jump') ctx.rotate(-0.07);
+    if (pose === 'run' && !drawRunCycle(ctx, portrait, distanceTravelled)) drawPose(ctx, character, portrait, pose);
+    if (pose !== 'run') drawPose(ctx, character, portrait, pose);
     if (pose === 'tap') {
       ctx.fillStyle = '#fff3a5';
-      ctx.fillRect(35, -28, 18, 6);
-      ctx.fillRect(41, -34, 6, 18);
+      ctx.fillRect(22, -22, 14, 5);
+      ctx.fillRect(27, -28, 5, 14);
     }
   }
   ctx.restore();
 
-  if (pose === 'run' && getRunFrameIndex(elapsedMs) % 2 === 1) {
+  if (pose === 'run' && getRunFrameIndex(distanceTravelled) % 2 === 1) {
     const trailDirection = facing > 0 ? -1 : 1;
     ctx.fillStyle = '#fff0c7';
-    ctx.fillRect(character.x + trailDirection * 8, character.y + 28, 10, 4);
-    ctx.fillRect(character.x + trailDirection * 20, character.y + 33, 7, 3);
+    ctx.fillRect(character.x + trailDirection * 7, baselineY - 4, 8, 3);
+    ctx.fillRect(character.x + trailDirection * 16, baselineY - 2, 5, 2);
   }
 }
-import { getRunnerPose } from './runner-pose.js';

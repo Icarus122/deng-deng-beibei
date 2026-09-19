@@ -86,6 +86,71 @@ test('allows exactly one air jump after a grounded jump', () => {
   assert.equal(state.player.jumpsUsed, 2);
 });
 
+test('coyote time accepts a jump shortly after leaving a platform', () => {
+  let state = createGame(1);
+  state = {
+    ...state,
+    player: { ...state.player, x: 1840, y: 478, grounded: false, jumpsUsed: 0, coyoteTimerMs: 80 },
+  };
+
+  state = updateGame(state, { left: false, right: false, jumpPressed: true }, 16);
+
+  assert.equal(state.player.jumpsUsed, 1);
+  assert.ok(state.player.velocityY < -400);
+});
+
+test('a jump pressed just before landing is buffered and launches on contact', () => {
+  let state = createGame(1);
+  state = {
+    ...state,
+    player: {
+      ...state.player,
+      x: 100,
+      y: 470,
+      velocityY: 100,
+      grounded: false,
+      jumpsUsed: 2,
+      coyoteTimerMs: 0,
+    },
+  };
+
+  state = updateGame(state, { left: false, right: false, jumpPressed: true }, 50);
+
+  assert.equal(state.player.grounded, false);
+  assert.equal(state.player.jumpsUsed, 1);
+  assert.equal(state.player.velocityY, -500);
+  assert.equal(state.player.landTimerMs, 120);
+  assert.equal(state.player.dustTimerMs, 180);
+});
+
+test('releasing jump early creates a short hop and falling uses stronger gravity', () => {
+  const shortHop = updateGame({
+    ...createGame(1),
+    player: { ...createGame(1).player, x: 100, y: 300, grounded: false, jumpsUsed: 1, coyoteTimerMs: 0, velocityY: -400 },
+  }, { left: false, right: false, jumpPressed: false, jumpReleased: true }, 16);
+  const falling = updateGame({
+    ...createGame(1),
+    player: { ...createGame(1).player, x: 100, y: 300, grounded: false, jumpsUsed: 1, coyoteTimerMs: 0, velocityY: 100 },
+  }, { left: false, right: false, jumpPressed: false }, 50);
+
+  assert.ok(shortHop.player.velocityY > -220);
+  assert.equal(falling.player.velocityY, 187.5);
+});
+
+test('a hard obstacle collision briefly freezes the simulation and shakes the camera', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 8200 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.event, 'hit');
+  assert.equal(state.hitStopMs, 50);
+  assert.equal(state.shakeTimerMs, 90);
+  const frozenX = state.player.x;
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+  assert.equal(state.player.x, frozenX);
+  assert.equal(state.hitStopMs, 34);
+});
+
 test('the long journey keeps Beibei moving forward without a held keyboard key', () => {
   const before = createGame(1);
   const after = updateGame(before, { left: false, right: false, jumpPressed: false }, 50);

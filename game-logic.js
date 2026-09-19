@@ -12,8 +12,16 @@ const SAFE_CHASE_GAP = 150;
 const CATCH_CONTACT_GAP = 56;
 const CATCH_WINDOW_PROGRESS = 0.85;
 const GRAVITY = 1400;
+const FALL_GRAVITY = 1750;
 const JUMP_SPEED = 500;
 const FALL_Y = 640;
+const COYOTE_TIME_MS = 100;
+const JUMP_BUFFER_MS = 120;
+const SHORT_JUMP_FACTOR = 0.45;
+const HIT_STOP_MS = 50;
+const LAND_SQUASH_MS = 120;
+const DUST_MS = 180;
+const IMPACT_SHAKE_MS = 90;
 
 export const LEVELS = { 1: JOURNEY };
 
@@ -64,6 +72,10 @@ export function createGame(levelId) {
     jumpsUsed: 0,
     facing: 1,
     distanceTravelled: 0,
+    coyoteTimerMs: COYOTE_TIME_MS,
+    jumpBufferMs: 0,
+    landTimerMs: 0,
+    dustTimerMs: 0,
   };
   return {
     levelId,
@@ -88,6 +100,9 @@ export function createGame(levelId) {
     hazardSlowTimerMs: 0,
     platformBoostTimerMs: 0,
     speedPadTimerMs: 0,
+    hitStopMs: 0,
+    shakeTimerMs: 0,
+    impactTimerMs: 0,
     collapseStarts: {},
     hazards: getDynamicHazards(level, 0, {}),
     event: 'none',
@@ -119,6 +134,21 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
 
   const level = LEVELS[state.levelId];
   const stepMs = clamp(elapsedMs, 0, 50);
+  if ((state.hitStopMs ?? 0) > 0) {
+    return {
+      ...state,
+      elapsedMs: state.elapsedMs + stepMs,
+      event: 'none',
+      hitStopMs: Math.max(0, state.hitStopMs - stepMs),
+      shakeTimerMs: Math.max(0, (state.shakeTimerMs ?? 0) - stepMs),
+      impactTimerMs: Math.max(0, (state.impactTimerMs ?? 0) - stepMs),
+      player: {
+        ...state.player,
+        landTimerMs: Math.max(0, (state.player.landTimerMs ?? 0) - stepMs),
+        dustTimerMs: Math.max(0, (state.player.dustTimerMs ?? 0) - stepMs),
+      },
+    };
+  }
   const seconds = stepMs / 1000;
   const nextElapsedMs = state.elapsedMs + stepMs;
   const collapseStarts = { ...(state.collapseStarts ?? {}) };
@@ -140,13 +170,32 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let platformBoostTimerMs = Math.max(0, (state.platformBoostTimerMs ?? 0) - stepMs);
   let speedPadTimerMs = Math.max(0, (state.speedPadTimerMs ?? 0) - stepMs);
   let windTimerMs = Math.max(0, (state.windTimerMs ?? 0) - stepMs);
+  let hitStopMs = 0;
+  let shakeTimerMs = Math.max(0, (state.shakeTimerMs ?? 0) - stepMs);
+  let impactTimerMs = Math.max(0, (state.impactTimerMs ?? 0) - stepMs);
   let event = 'none';
 
-  if (input.jumpPressed && player.slipTimerMs === 0 && (player.grounded || player.jumpsUsed < 2)) {
+  const wasGrounded = player.grounded;
+  let coyoteTimerMs = player.grounded
+    ? COYOTE_TIME_MS
+    : Math.max(0, (player.coyoteTimerMs ?? 0) - stepMs);
+  let jumpBufferMs = Math.max(0, (player.jumpBufferMs ?? 0) - stepMs);
+  player.landTimerMs = Math.max(0, (player.landTimerMs ?? 0) - stepMs);
+  player.dustTimerMs = Math.max(0, (player.dustTimerMs ?? 0) - stepMs);
+  if (input.jumpPressed) jumpBufferMs = JUMP_BUFFER_MS;
+  if (input.jumpReleased && player.velocityY < 0) player.velocityY *= SHORT_JUMP_FACTOR;
+
+  const consumeBufferedJump = () => {
+    if (jumpBufferMs === 0 || player.slipTimerMs > 0) return false;
+    if (!player.grounded && coyoteTimerMs === 0 && player.jumpsUsed >= 2) return false;
     player.velocityY = -JUMP_SPEED;
     player.grounded = false;
     player.jumpsUsed += 1;
-  }
+    coyoteTimerMs = 0;
+    jumpBufferMs = 0;
+    return true;
+  };
+  consumeBufferedJump();
 
   const direction = input.left && !input.right ? -1 : 1;
   const sprinting = Boolean(input.sprint || input.right) && direction > 0 && energyMeter > 0 && player.slipTimerMs === 0 && hazardSlowTimerMs === 0;
@@ -161,9 +210,18 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   player.distanceTravelled = (player.distanceTravelled ?? 0) + Math.abs(player.x - previousX);
   const previousBottom = player.y + player.height;
-  player.velocityY += GRAVITY * seconds;
+  player.velocityY += (player.velocityY > 0 ? FALL_GRAVITY : GRAVITY) * seconds;
   player.y += player.velocityY * seconds;
   Object.assign(player, placeOnSurface(player, platforms, previousBottom));
+  if (player.grounded) coyoteTimerMs = COYOTE_TIME_MS;
+  if (!wasGrounded && player.grounded) {
+    player.landTimerMs = LAND_SQUASH_MS;
+    player.dustTimerMs = DUST_MS;
+    shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
+    consumeBufferedJump();
+  }
+  player.coyoteTimerMs = coyoteTimerMs;
+  player.jumpBufferMs = jumpBufferMs;
   const boostPlatform = player.grounded && platforms.find((platform) => platform.boost
     && player.x + player.width > platform.x
     && player.x < platform.x + platform.width
@@ -177,7 +235,12 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       pursuer.x += hazardResult.distanceDelta;
       hazardSlowTimerMs = hazardResult.hazardSlowTimerMs;
       event = hazardResult.event;
-      if (hazardResult.distanceDelta > 0) hazardHitCooldownMs = 650;
+      if (hazardResult.distanceDelta > 0) {
+        hazardHitCooldownMs = 650;
+        hitStopMs = HIT_STOP_MS;
+        shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
+        impactTimerMs = IMPACT_SHAKE_MS;
+      }
     }
   }
   hazards = getDynamicHazards(level, nextElapsedMs, collapseStarts);
@@ -245,6 +308,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     pursuer.x += 34;
     hitCooldownMs = 650;
     event = 'hit';
+    hitStopMs = HIT_STOP_MS;
+    shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
+    impactTimerMs = IMPACT_SHAKE_MS;
   }
 
   let checkpointX = state.checkpointX;
@@ -269,6 +335,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       evadeCooldownMs: 0,
     };
     event = 'fell';
+    hitStopMs = HIT_STOP_MS;
+    shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
+    impactTimerMs = IMPACT_SHAKE_MS;
   }
 
   pursuer = updatePursuer(pursuer, player, stepMs, { ...level, platforms });
@@ -327,6 +396,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hazardSlowTimerMs,
     platformBoostTimerMs,
     speedPadTimerMs,
+    hitStopMs,
+    shakeTimerMs,
+    impactTimerMs,
     windTimerMs,
     collapseStarts,
     hazards,

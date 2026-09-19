@@ -20,13 +20,22 @@ const RUN_FRAMES = {
   ],
 };
 
+const JUMP_POSE_INDEX = {
+  'jump-up': 0,
+  'jump-apex': 1,
+  fall: 2,
+};
+
 export function getCharacterPose(character) {
   if (character.pose) return character.pose;
   if (character.mode === 'downed') return 'downed';
   if (character.mode === 'cry') return 'cry';
   if (character.mode === 'tap') return 'tap';
   if (character.slipTimerMs > 0) return 'slip';
-  return character.grounded ? 'run' : 'jump';
+  if (character.grounded) return 'run';
+  if (character.velocityY < -80) return 'jump-up';
+  if (character.velocityY > 80) return 'fall';
+  return 'jump-apex';
 }
 
 export function getRunFrameIndex(distanceTravelled = 0) {
@@ -70,6 +79,24 @@ function drawRunCycle(ctx, portrait, distanceTravelled) {
 }
 
 function drawPose(ctx, character, portrait, pose) {
+  if (JUMP_POSE_INDEX[pose] !== undefined) {
+    const jumpSheet = portrait?.poses?.jump;
+    if (jumpSheet?.naturalWidth) {
+      const frameWidth = jumpSheet.naturalWidth / 3;
+      ctx.drawImage(
+        jumpSheet,
+        frameWidth * JUMP_POSE_INDEX[pose],
+        0,
+        frameWidth,
+        jumpSheet.naturalHeight,
+        -DISPLAY_WIDTH / 2,
+        -DISPLAY_HEIGHT,
+        DISPLAY_WIDTH,
+        DISPLAY_HEIGHT,
+      );
+      return true;
+    }
+  }
   const poseImage = portrait?.poses?.[pose];
   if (poseImage?.naturalWidth) {
     const width = pose === 'cry' ? 54 : DISPLAY_WIDTH;
@@ -94,7 +121,8 @@ export function drawCharacter(ctx, character, portrait) {
   const baselineY = character.y + (character.height ?? 32);
   ctx.save();
   ctx.translate(centreX, baselineY);
-  ctx.scale(facing, 1);
+  const landSquash = character.landTimerMs > 0 ? 0.88 : 1;
+  ctx.scale(facing * (character.landTimerMs > 0 ? 1.1 : 1), landSquash);
   if (portrait?.runnerId === 'meng') {
     // His dark hair and denim jacket otherwise disappear into dusk/lake art on
     // smaller phone screens; retain the supplied glasses while lifting contrast.
@@ -110,7 +138,6 @@ export function drawCharacter(ctx, character, portrait) {
     ctx.fillRect(4, -27, 3, 12);
     ctx.fillRect(14, -24, 3, 9);
   } else {
-    if (pose === 'jump') ctx.rotate(-0.07);
     if (pose === 'run' && !drawRunCycle(ctx, portrait, distanceTravelled)) drawCurrentOutfit(ctx, character, portrait, pose);
     if (pose !== 'run') drawCurrentOutfit(ctx, character, portrait, pose);
     if (pose === 'tap') {

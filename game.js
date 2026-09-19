@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260918r5';
+import { drawCharacter } from './character-renderer.js?v=20260919a1';
 import { drawScene, getPalette } from './scene-renderer.js';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -27,12 +27,12 @@ const gameStatus = document.querySelector('#game-status');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 
-const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image(), poses: { cry: new Image() } };
+const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image(), poses: { cry: new Image(), jump: new Image() } };
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
 const propsAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
 
-const input = { left: false, right: false, sprint: false, jumpPressed: false };
+const input = { left: false, right: false, sprint: false, jumpPressed: false, jumpReleased: false, jumpHeld: false };
 let currentLevel = 1;
 let state = null;
 let animationFrame = 0;
@@ -47,7 +47,7 @@ let taunt = null;
 let lastTauntDistrictId = null;
 
 function runnersReady() {
-  return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth && beibeiPortrait.poses.cry.naturalWidth && propsAtlas.naturalWidth);
+  return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth && beibeiPortrait.poses.cry.naturalWidth && beibeiPortrait.poses.jump.naturalWidth && propsAtlas.naturalWidth);
 }
 
 function resumeQueuedLevel() {
@@ -62,10 +62,12 @@ function resumeQueuedLevel() {
 beibeiPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.poses.cry.addEventListener('load', resumeQueuedLevel);
+beibeiPortrait.poses.jump.addEventListener('load', resumeQueuedLevel);
 propsAtlas.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
 mengPortrait.runCycle.src = 'assets/meng-run-v2.png?v=20260918m1';
 beibeiPortrait.poses.cry.src = 'assets/beibei-cry-v2.png';
+beibeiPortrait.poses.jump.src = 'assets/beibei-jump-v1.png';
 propsAtlas.src = 'assets/props-atlas-v1.png';
 
 function configureCanvas() {
@@ -377,6 +379,10 @@ function render() {
 
   ctx.clearRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   ctx.save();
+  if (state.shakeTimerMs > 0) {
+    const strength = Math.max(.4, state.shakeTimerMs / 90 * 3);
+    ctx.translate(Math.sin(state.elapsedMs * .17) * strength, Math.cos(state.elapsedMs * .23) * strength);
+  }
   if (closeZoom) {
     ctx.translate(VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2);
     ctx.scale(1 + closeZoom, 1 + closeZoom);
@@ -396,6 +402,7 @@ function render() {
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
   drawCharacter(ctx, beibei, beibeiPortrait);
   drawCharacter(ctx, meng, mengPortrait);
+  drawDust(beibei);
   drawGapLabel(meng);
   drawSpeedLines();
   if (state.basketball?.active) drawBasketball(state.basketball);
@@ -511,6 +518,18 @@ function drawSpeedLines() {
   ctx.restore();
 }
 
+function drawDust(player) {
+  if (!player.dustTimerMs) return;
+  const alpha = Math.min(1, player.dustTimerMs / 180);
+  ctx.save();
+  ctx.fillStyle = `rgba(255, 241, 199, ${alpha * .72})`;
+  for (let index = 0; index < 4; index += 1) {
+    const offset = index * 8;
+    ctx.fillRect(player.x - 10 - offset, player.y + player.height - 5 - index % 2 * 3, 5 - index % 2, 3);
+  }
+  ctx.restore();
+}
+
 function drawChaseFeedback() {
   const danger = Math.max(0, Math.min(1, (state.distance - state.maxDistance * .7) / (state.maxDistance * .3)));
   if (!danger) return;
@@ -545,6 +564,7 @@ function frame(timestamp) {
   for (let step = 0; step < pacing.steps && state.phase === 'playing'; step += 1) {
     state = updateGame(state, input, pacing.stepMs);
     input.jumpPressed = false;
+    input.jumpReleased = false;
     updateTaunt();
     updateLiveText();
   }
@@ -602,7 +622,15 @@ function returnHome() {
 
 function queueJump(event) {
   event?.preventDefault();
-  if (state?.phase === 'playing') input.jumpPressed = true;
+  if (state?.phase !== 'playing') return;
+  if (!input.jumpHeld) input.jumpPressed = true;
+  input.jumpHeld = true;
+}
+
+function releaseJump(event) {
+  event?.preventDefault();
+  if (input.jumpHeld && state?.phase === 'playing') input.jumpReleased = true;
+  input.jumpHeld = false;
 }
 
 window.addEventListener('keydown', (event) => {
@@ -614,9 +642,12 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener('keyup', (event) => {
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) input.left = false;
   if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = false; input.sprint = false; }
+  if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) releaseJump(event);
 });
 
 canvas.addEventListener('pointerdown', queueJump);
+canvas.addEventListener('pointerup', releaseJump);
+canvas.addEventListener('pointercancel', releaseJump);
 startButton.addEventListener('click', () => requestLevelStart(1));
 retryButton.addEventListener('click', () => requestLevelStart(currentLevel));
 giveUpButton.addEventListener('click', returnHome);

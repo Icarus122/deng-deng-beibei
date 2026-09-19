@@ -1,7 +1,7 @@
 import { overlaps } from './entities.js';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
-import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920b';
-import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920b';
+import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920c';
+import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920c';
 
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;

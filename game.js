@@ -1,7 +1,7 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920b';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920c';
 import { advanceCamera } from './camera.js';
 import { drawCharacter } from './character-renderer.js?v=20260919a1';
-import { drawScene, getPalette } from './scene-renderer.js?v=20260920b';
+import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
 import { createLazyBackgrounds, preloadBackground } from './assets.js';

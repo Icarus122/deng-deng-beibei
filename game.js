@@ -45,6 +45,7 @@ let queuedLevelId = null;
 let simulationClock = createSimulationClock();
 let taunt = null;
 let lastTauntDistrictId = null;
+let lastTauntMode = null;
 
 function runnersReady() {
   return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth && beibeiPortrait.poses.cry.naturalWidth && beibeiPortrait.poses.jump.naturalWidth && propsAtlas.naturalWidth);
@@ -549,9 +550,10 @@ function updateTaunt() {
   const level = LEVELS[currentLevel];
   const district = currentDistrict();
   if (state.phase !== 'playing' || state.player.x <= level.finishX * 0.08 || !district) return;
-  if (district.id !== lastTauntDistrictId) {
-    taunt = createTaunt(getPursuerTaunt(state.player.x / level.finishX), state.elapsedMs);
+  if (district.id !== lastTauntDistrictId || state.pursuer.mode !== lastTauntMode) {
+    taunt = createTaunt(getPursuerTaunt(state.player.x / level.finishX, state.pursuer.mode), state.elapsedMs);
     lastTauntDistrictId = district.id;
+    lastTauntMode = state.pursuer.mode;
   }
 }
 
@@ -588,6 +590,7 @@ function startLevel(levelId) {
   simulationClock = createSimulationClock();
   taunt = null;
   lastTauntDistrictId = null;
+  lastTauntMode = null;
   levelName.textContent = '校园入口 · 路程 0%';
   gameStatus.textContent = '连续追逐开始，追上孟培杰！';
   homeScreen.hidden = true;
@@ -615,6 +618,7 @@ function returnHome() {
   lastRenderElapsedMs = 0;
   taunt = null;
   lastTauntDistrictId = null;
+  lastTauntMode = null;
   homeScreen.hidden = false;
   gameScreen.hidden = true;
   gameStatus.textContent = '';

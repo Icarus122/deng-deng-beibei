@@ -100,14 +100,30 @@ function highRouteStartsAhead(state) {
   ));
 }
 
+function groundGapAhead(state, lookAhead = 30) {
+  const ground = sortByStart(getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts)
+    .filter((platform) => platform.y === GROUND_Y));
+  const front = state.player.x + PLAYER_WIDTH;
+  return ground.slice(1).map((platform, index) => ({
+    start: ground[index].x + ground[index].width,
+    end: platform.x,
+  })).find((gap) => front < gap.end && front + lookAhead >= gap.start);
+}
+
 function jumpInput(state, sprint = false, takeHighRoute = false, lookAhead = 30) {
   const needsJump = !hasSupportAhead(state, lookAhead);
+  const gap = groundGapAhead(state, lookAhead);
+  const front = state.player.x + PLAYER_WIDTH;
+  const jumpLead = gap ? Math.min(80, Math.max(30, gap.end - gap.start - 50)) : 0;
+  const gapNeedsJump = Boolean(gap) && (front >= gap.start || gap.start - front <= jumpLead);
   const routeJump = takeHighRoute && state.player.grounded && highRouteStartsAhead(state);
   const canGroundJump = state.player.grounded;
   const canAirJump = !state.player.grounded
     && state.player.velocityY > 0
     && state.player.jumpsUsed < 2;
-  const shouldJump = routeJump || (needsJump && (canGroundJump || canAirJump));
+  const shouldJump = routeJump
+    || (canGroundJump && (gapNeedsJump || needsJump))
+    || (canAirJump && (gapNeedsJump || needsJump));
   return {
     left: false,
     right: sprint,
@@ -122,14 +138,17 @@ export function runBot(name, inputForState, { maxMs = BOT_TIMEOUT_MS } = {}) {
   let elapsedMs = 0;
   let maxPlayerX = state.player.x;
   let firstCheckpointReached = false;
-  let falls = 0;
+  const falls = [];
   let caughtAt = null;
   let lostAt = null;
 
   while (elapsedMs < maxMs && state.phase === 'playing') {
-    const nextState = updateGame(state, inputForState(state), STEP_MS, { random: () => 0.9 });
+    const botInput = inputForState(state);
+    const nextState = updateGame(state, botInput, STEP_MS, { random: () => 0.9 });
     elapsedMs += STEP_MS;
-    if (nextState.event === 'fell') falls += 1;
+    if (nextState.event === 'fell') {
+      falls.push({ at: state.player.x, respawn: nextState.player.x });
+    }
     state = nextState;
     maxPlayerX = Math.max(maxPlayerX, state.player.x);
     firstCheckpointReached ||= maxPlayerX >= JOURNEY.checkpoints[0].x;
@@ -261,7 +280,7 @@ export function formatReport(analysis = analyseLevel()) {
     '',
     '机器人结果：',
     ...analysis.bots.map((bot) => (
-      `- ${bot.name}：${bot.phase}${bot.timedOut ? '（超时）' : ''}；最远 ${Math.round(bot.maxPlayerX)}px / ${(bot.progress * 100).toFixed(1)}%；跌落 ${bot.falls} 次；${(bot.elapsedMs / 1000).toFixed(1)} 秒`
+      `- ${bot.name}：${bot.phase}${bot.timedOut ? '（超时）' : ''}；最远 ${Math.round(bot.maxPlayerX)}px / ${(bot.progress * 100).toFixed(1)}%；跌落 ${bot.falls.length} 次${bot.falls.length ? `（${bot.falls.map((fall) => Math.round(fall.at)).join('，')}px）` : ''}；${(bot.elapsedMs / 1000).toFixed(1)} 秒`
     )),
     '',
     '断言：',

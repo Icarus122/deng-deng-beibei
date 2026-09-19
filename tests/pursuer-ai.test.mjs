@@ -1,14 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createPursuer, updatePursuer } from '../pursuer-ai.js';
+import { createPursuer, getPursuitRhythm, updatePursuer } from '../pursuer-ai.js';
 
-test('pursuer enters a brief evade state when Beibei gets close', () => {
+test('pursuer follows a learnable twelve-second cruise then three-second burst rhythm', () => {
   const pursuer = createPursuer(500);
-  const next = updatePursuer(pursuer, { x: 360, facing: 1 }, 50);
+  const close = updatePursuer(pursuer, { x: 360, facing: 1 }, 50);
+  const burst = updatePursuer({ ...pursuer, cycleElapsedMs: 11950 }, { x: 360, facing: 1 }, 50);
+  const reset = updatePursuer({ ...pursuer, cycleElapsedMs: 14950 }, { x: 360, facing: 1 }, 50);
 
-  assert.equal(next.mode, 'evade');
-  assert.ok(next.velocity > pursuer.velocity);
+  assert.equal(close.mode, 'cruise');
+  assert.equal(burst.mode, 'evade');
+  assert.equal(burst.velocity, 205);
+  assert.equal(reset.mode, 'cruise');
+  assert.equal(getPursuitRhythm(12000, 0.5), 'evade');
+});
+
+test('pursuer uses the catchable final pace only in the final two percent', () => {
+  const next = updatePursuer(createPursuer(23500), { x: 23100, facing: 1 }, 50, { finishX: 23500 });
+
+  assert.equal(next.mode, 'finalChase');
+  assert.equal(next.velocity, 170);
 });
 
 test('a downed pursuer does not copy Beibei running movement', () => {

@@ -28,11 +28,11 @@ test('the continuous journey keeps five regions but fits a compact play session'
   assert.ok(journey.checkpoints.length >= 6);
 });
 
-test('journey supplies dense elevated routes and varied hazards', () => {
+test('journey supplies dense elevated routes and varied hazards without stale pursuer shortcuts', () => {
   const elevatedPlatforms = JOURNEY.platforms.filter((platform) => platform.y < 470);
 
   assert.ok(elevatedPlatforms.length >= 24);
-  assert.ok(JOURNEY.shortcutNodes.length >= 8);
+  assert.deepEqual(JOURNEY.shortcutNodes, []);
   assert.ok(JOURNEY.obstacles.length >= 18);
 });
 
@@ -52,6 +52,7 @@ test('high routes hold coins while sprint energy stays reachable on the ground',
       && coin.y + coin.height === platform.y));
   }
   assert.ok(JOURNEY.energy.every((energy) => energy.y === 468));
+  assert.equal(new Set(JOURNEY.energy.map((energy) => energy.id)).size, JOURNEY.energy.length);
 });
 
 test('data-derived checkpoints respawn on solid ground twice per district', () => {
@@ -148,7 +149,7 @@ test('a jump pressed just before landing is buffered and launches on contact', (
 
   assert.equal(state.player.grounded, false);
   assert.equal(state.player.jumpsUsed, 1);
-  assert.equal(state.player.velocityY, -500);
+  assert.equal(state.player.velocityY, -580);
   assert.equal(state.player.landTimerMs, 120);
   assert.equal(state.player.dustTimerMs, 180);
 });
@@ -222,14 +223,14 @@ test('banana peel records a mistake and temporarily slips Beibei', () => {
   assert.ok(state.player.slipTimerMs > 0);
 });
 
-test('before 85 percent, Meng immediately opens a safe gap instead of allowing a catch', () => {
+test('before the final two percent, close contact restores a safe gap without changing Meng rhythm', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'playing');
-  assert.equal(state.pursuer.mode, 'evade');
-  assert.ok(state.pursuer.x - state.player.x >= 150);
+  assert.equal(state.pursuer.mode, 'cruise');
+  assert.ok(state.pursuer.x - state.player.x >= 100);
 });
 
 test('collecting a coin closes the gap and records Beibei coin progress', () => {
@@ -272,11 +273,13 @@ test('Meng has playful taunts that change across the chase', () => {
   assert.equal(getPursuerTaunt(0.12), '孟培杰：等等？你也太慢啦！');
   assert.equal(getPursuerTaunt(0.55), '孟培杰：前面有惊喜方块，敢不敢顶？');
   assert.equal(getPursuerTaunt(0.9), '孟培杰：快追上了？那就来呀！');
+  assert.equal(getPursuerTaunt(0.5, 'evade'), '孟培杰：三秒爆发，跟得上吗？');
+  assert.equal(getPursuerTaunt(0.99, 'finalChase'), '孟培杰：天桥尽头见！');
 });
 
-test('a close approach after 85 percent catches Meng', () => {
+test('a close approach in the final two percent catches Meng', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
+  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
@@ -284,27 +287,38 @@ test('a close approach after 85 percent catches Meng', () => {
 
 test('the catch window does not use injected randomness', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
+  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.34 });
 
   assert.equal(state.phase, 'caught');
 });
 
-test('a close approach at 85 percent catches Meng without a dice roll', () => {
+test('a close approach at 98 percent catches Meng without a dice roll', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
+  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
   assert.equal(state.phase, 'caught');
   assert.equal(state.event, 'caught');
 });
 
-test('after 85 percent, Meng no longer gets an automatic escape burst', () => {
+test('inside the final window, Meng switches to the catchable final pace', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 20500 }, pursuer: { ...state.pursuer, x: 20550 } };
+  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
   assert.equal(state.phase, 'caught');
-  assert.notEqual(state.pursuer.mode, 'evade');
+  assert.equal(state.pursuer.mode, 'finalChase');
+});
+
+test('opening the final window creates a contestable gap instead of an automatic win', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23600 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
+
+  assert.equal(state.phase, 'playing');
+  assert.equal(state.finalWindowOpened, true);
+  assert.ok(state.distance > 56);
+  assert.ok(state.distance <= 100);
 });
 
 test('the final bridge does not force a catch before close contact', () => {
@@ -363,7 +377,7 @@ test('falling behind loses immediately and the finish line does not auto-win', (
   assert.equal(early.phase, 'playing');
 
   let finish = createGame(1);
-  finish = { ...finish, player: { ...finish.player, x: LEVELS[1].finishX }, pursuer: { ...finish.pursuer, x: LEVELS[1].finishX + finish.maxDistance } };
+  finish = { ...finish, player: { ...finish.player, x: LEVELS[1].finishX }, pursuer: { ...finish.pursuer, x: LEVELS[1].finishX + 300 } };
   finish = updateGame(finish, { left: false, right: true, jumpPressed: false }, 50);
   assert.equal(finish.phase, 'playing');
 });

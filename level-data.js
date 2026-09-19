@@ -66,8 +66,9 @@ const routeCoins = beatPlans.flatMap((plan, routeIndex) => {
 const groundEnergy = [
   { id: 'energy-0', x: 1880 }, { id: 'energy-1', x: 4010 },
   { id: 'energy-2', x: 6750 }, { id: 'energy-3', x: 8800 },
-  { id: 'energy-4', x: 11480 }, { id: 'energy-5', x: 16300 },
-  { id: 'energy-6', x: 21060 },
+  { id: 'energy-4', x: 12200 }, { id: 'energy-5', x: 13600 },
+  { id: 'energy-6', x: 18400 }, { id: 'energy-7', x: 19900 }, { id: 'energy-8', x: 21800 }, { id: 'energy-9', x: 22900 },
+  { id: 'energy-10', x: 21060 },
 ].map((energy) => ({ ...energy, type: 'energy', y: 468, width: 22, height: 22 }));
 
 const pickups = [...routeCoins, ...groundEnergy];
@@ -96,13 +97,9 @@ export const JOURNEY = {
     { id: 'collapse-gate', x: 1560, y: 448, width: 96, height: 18, collapse: true },
     { id: 'collapse-ginkgo', x: 11620, y: 448, width: 100, height: 18, collapse: true },
   ],
-  shortcutNodes: [
-    { platformId: 'gate-route-1', start: 800, end: 980 }, { platformId: 'gate-route-6', start: 2690, end: 2870 },
-    { platformId: 'court-route-1', start: 5240, end: 5420 }, { platformId: 'court-route-6', start: 7370, end: 7550 },
-    { platformId: 'ginkgo-route-1', start: 10100, end: 10280 }, { platformId: 'ginkgo-route-6', start: 12890, end: 13070 },
-    { platformId: 'lake-route-1', start: 15050, end: 15230 }, { platformId: 'lake-route-6', start: 17320, end: 17500 },
-    { platformId: 'bridge-route-1', start: 20000, end: 20180 }, { platformId: 'bridge-route-6', start: 21980, end: 22160 },
-  ],
+  // Meng keeps to his own ground route. The retired node list used platform IDs
+  // from an older level layout and could never resolve against today's routes.
+  shortcutNodes: [],
   hazards: [
     { id: 'collapse-gate', type: 'collapse', district: 'gate', x: 1560, y: 448, width: 96, height: 18 },
     { id: 'box-gate', type: 'constructionBox', district: 'gate', x: 3180, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2800, warningMs: 760 },

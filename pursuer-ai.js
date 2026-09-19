@@ -1,23 +1,34 @@
 const CRUISE_SPEED = 136;
 const EVADE_SPEED = 205;
+const FINAL_CHASE_SPEED = 170;
 const SLOWED_SPEED = 92;
 const GROUND_Y = 478;
 const GRAVITY = 1400;
+const CRUISE_MS = 12000;
+const EVADE_MS = 3000;
+const RHYTHM_MS = CRUISE_MS + EVADE_MS;
+const FINAL_WINDOW_PROGRESS = 0.98;
+
+export function getPursuitRhythm(cycleElapsedMs, progress) {
+  if (progress >= FINAL_WINDOW_PROGRESS) return 'finalChase';
+  return cycleElapsedMs % RHYTHM_MS >= CRUISE_MS ? 'evade' : 'cruise';
+}
 
 export function createPursuer(startX) {
-  return { x: startX, y: GROUND_Y, velocityY: 0, grounded: true, targetPlatformId: null, velocity: CRUISE_SPEED, facing: 1, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0, distanceTravelled: 0 };
+  return { x: startX, y: GROUND_Y, velocityY: 0, grounded: true, targetPlatformId: null, velocity: CRUISE_SPEED, facing: 1, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0, cycleElapsedMs: 0, distanceTravelled: 0 };
 }
 
 export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   const stepMs = Math.min(elapsedMs, 50);
   const seconds = stepMs / 1000;
   const timer = Math.max(0, pursuer.modeTimerMs - stepMs);
-  const cooldown = Math.max(0, pursuer.evadeCooldownMs - stepMs);
-  const gap = pursuer.x - player.x;
-  let mode = timer > 0 ? pursuer.mode : 'cruise';
-  let modeTimerMs = timer;
-  let evadeCooldownMs = cooldown;
+  const cycleElapsedMs = (pursuer.cycleElapsedMs ?? 0) + stepMs;
   const progress = level.finishX ? player.x / level.finishX : 0;
+  const rhythm = getPursuitRhythm(cycleElapsedMs, progress);
+  let mode = timer > 0 && ['slowed', 'downed'].includes(pursuer.mode) ? pursuer.mode : rhythm;
+  let modeTimerMs = timer > 0 && ['slowed', 'downed'].includes(pursuer.mode)
+    ? timer
+    : rhythm === 'evade' ? RHYTHM_MS - cycleElapsedMs % RHYTHM_MS : 0;
   const currentPlatform = level.platforms?.find((item) => item.id === pursuer.targetPlatformId);
   const activeTargetPlatformId = currentPlatform && pursuer.x < currentPlatform.x + currentPlatform.width
     ? pursuer.targetPlatformId
@@ -28,15 +39,9 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   const targetPlatformId = shortcut?.platformId ?? activeTargetPlatformId;
   const startingShortcut = Boolean(shortcut);
 
-  // Meng only uses his brief escape burst before the final bridge stretch.
-  // From 85% onward, the chase is intentionally skill-based: he can be caught.
-  if (progress < 0.85 && timer === 0 && pursuer.mode !== 'slowed' && pursuer.mode !== 'downed' && gap >= 80 && gap <= 190 && cooldown === 0) {
-    mode = 'evade';
-    modeTimerMs = 900;
-    evadeCooldownMs = 2000;
-  }
-
-  const velocity = mode === 'evade' ? EVADE_SPEED : mode === 'slowed' ? SLOWED_SPEED : mode === 'downed' ? 0 : CRUISE_SPEED;
+  // The rhythm is clock-driven, not proximity-driven: a player can learn when
+  // Meng will burst instead of seeing an unexplained escape every time close.
+  const velocity = mode === 'evade' ? EVADE_SPEED : mode === 'finalChase' ? FINAL_CHASE_SPEED : mode === 'slowed' ? SLOWED_SPEED : mode === 'downed' ? 0 : CRUISE_SPEED;
   const verticalVelocity = startingShortcut ? -500 : (pursuer.velocityY ?? 0) + GRAVITY * seconds;
   const previousBottom = (pursuer.y ?? GROUND_Y) + 32;
   let y = (pursuer.y ?? GROUND_Y) + verticalVelocity * seconds;
@@ -64,7 +69,8 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     facing: 1,
     mode,
     modeTimerMs,
-    evadeCooldownMs,
+    evadeCooldownMs: 0,
+    cycleElapsedMs,
     distanceTravelled: (pursuer.distanceTravelled ?? 0) + Math.abs(velocity * seconds),
   };
 }

@@ -6,14 +6,15 @@ import { createPursuer, updatePursuer } from './pursuer-ai.js';
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
-const SAFE_CHASE_GAP = 150;
+const SAFE_CHASE_GAP = 100;
 // Rendered bodies are 60px wide.  A catch must now look like a real tap,
 // rather than succeeding with a character-sized empty gap between them.
 const CATCH_CONTACT_GAP = 56;
-const CATCH_WINDOW_PROGRESS = 0.85;
+const CATCH_WINDOW_PROGRESS = 0.98;
+const FINAL_APPROACH_GAP = 100;
 const GRAVITY = 1400;
 const FALL_GRAVITY = 1750;
-const JUMP_SPEED = 500;
+const JUMP_SPEED = 580;
 const FALL_Y = 640;
 const COYOTE_TIME_MS = 100;
 const JUMP_BUFFER_MS = 120;
@@ -103,6 +104,7 @@ export function createGame(levelId) {
     hitStopMs: 0,
     shakeTimerMs: 0,
     impactTimerMs: 0,
+    finalWindowOpened: false,
     collapseStarts: {},
     hazards: getDynamicHazards(level, 0, {}),
     event: 'none',
@@ -117,7 +119,9 @@ export function getPursuerRenderState(pursuer) {
   return { ...pursuer, y: pursuer.y ?? GROUND_Y - PLAYER_HEIGHT, grounded: pursuer.grounded ?? true };
 }
 
-export function getPursuerTaunt(progress) {
+export function getPursuerTaunt(progress, mode = 'cruise') {
+  if (mode === 'evade') return '孟培杰：三秒爆发，跟得上吗？';
+  if (mode === 'finalChase') return '孟培杰：天桥尽头见！';
   if (progress < 0.3) return '孟培杰：等等？你也太慢啦！';
   if (progress < 0.7) return '孟培杰：前面有惊喜方块，敢不敢顶？';
   return '孟培杰：快追上了？那就来呀！';
@@ -204,7 +208,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     energyTimerMs = 160;
   }
   const runSpeed = sprinting ? 240 : 150;
-  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 112 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0, speedPadTimerMs > 0 ? 215 : 0);
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 135 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0, speedPadTimerMs > 0 ? 215 : 0);
   player.facing = direction;
   const previousX = player.x;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
@@ -299,7 +303,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       if (event === 'none') event = 'speedPad';
     }
     if (obstacle.type === 'wind') {
-      windTimerMs = 850;
+      windTimerMs = 480;
       if (event === 'none') event = 'wind';
     }
   }
@@ -322,6 +326,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   if (player.y > FALL_Y) {
+    const distanceBeforeFall = pursuer.x - player.x;
     player.x = checkpointX;
     player.y = GROUND_Y - PLAYER_HEIGHT;
     player.velocityY = 0;
@@ -329,7 +334,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     player.jumpsUsed = 0;
     pursuer = {
       ...pursuer,
-      x: player.x + Math.min(level.maxDistance - 40, (pursuer.x - player.x) + 48),
+      x: player.x + Math.min(level.maxDistance - 40, distanceBeforeFall + 48),
       mode: 'cruise',
       modeTimerMs: 0,
       evadeCooldownMs: 0,
@@ -352,14 +357,15 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     }
   }
   const progress = level.finishX ? player.x / level.finishX : 1;
+  let finalWindowOpened = state.finalWindowOpened ?? false;
+  if (progress >= CATCH_WINDOW_PROGRESS && !finalWindowOpened) {
+    pursuer = { ...pursuer, x: Math.min(pursuer.x, player.x + FINAL_APPROACH_GAP) };
+    finalWindowOpened = true;
+  }
   if (progress < CATCH_WINDOW_PROGRESS && pursuer.x - player.x < SAFE_CHASE_GAP) {
     pursuer = {
       ...pursuer,
       x: player.x + SAFE_CHASE_GAP,
-      velocity: 205,
-      mode: 'evade',
-      modeTimerMs: 900,
-      evadeCooldownMs: 2000,
     };
   }
   if (level.finishX && player.x < level.finishX) pursuer.x = Math.max(player.x + 30, pursuer.x);
@@ -399,6 +405,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hitStopMs,
     shakeTimerMs,
     impactTimerMs,
+    finalWindowOpened,
     windTimerMs,
     collapseStarts,
     hazards,

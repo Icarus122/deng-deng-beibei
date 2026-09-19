@@ -29,20 +29,28 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   let modeTimerMs = timer > 0 && ['slowed', 'downed'].includes(pursuer.mode)
     ? timer
     : rhythm === 'evade' ? RHYTHM_MS - cycleElapsedMs % RHYTHM_MS : 0;
+  // The rhythm is clock-driven, not proximity-driven: a player can learn when
+  // Meng will burst instead of seeing an unexplained escape every time close.
+  const velocity = mode === 'evade' ? EVADE_SPEED : mode === 'finalChase' ? FINAL_CHASE_SPEED : mode === 'slowed' ? SLOWED_SPEED : mode === 'downed' ? 0 : CRUISE_SPEED;
+  const routeNode = level.shortcutNodes?.find((node) => node.route
+    && (pursuer.targetRoute === node.route || (pursuer.x >= node.start && pursuer.x < node.end)));
+  const startingRoute = Boolean(routeNode && !pursuer.targetRoute && pursuer.grounded);
   const currentPlatform = level.platforms?.find((item) => item.id === pursuer.targetPlatformId);
   const activeTargetPlatformId = currentPlatform && pursuer.x < currentPlatform.x + currentPlatform.width
     ? pursuer.targetPlatformId
     : null;
-  const shortcut = progress < 0.7 && pursuer.grounded && !activeTargetPlatformId
-    ? level.shortcutNodes?.find((node) => pursuer.x >= node.start && pursuer.x <= node.end)
+  const legacyShortcut = !routeNode && progress < 0.7 && pursuer.grounded && !activeTargetPlatformId
+    ? level.shortcutNodes?.find((node) => node.platformId && pursuer.x >= node.start && pursuer.x <= node.end)
     : null;
-  const targetPlatformId = shortcut?.platformId ?? activeTargetPlatformId;
-  const startingShortcut = Boolean(shortcut);
+  const routePlatform = routeNode
+    ? level.platforms?.filter((item) => item.route === routeNode.route)
+      .sort((a, b) => a.x - b.x)
+      .find((item) => item.x + item.width > pursuer.x + velocity * seconds)
+    : null;
+  const targetPlatformId = routePlatform?.id ?? legacyShortcut?.platformId ?? activeTargetPlatformId;
+  const startingShortcut = Boolean(startingRoute || legacyShortcut);
 
-  // The rhythm is clock-driven, not proximity-driven: a player can learn when
-  // Meng will burst instead of seeing an unexplained escape every time close.
-  const velocity = mode === 'evade' ? EVADE_SPEED : mode === 'finalChase' ? FINAL_CHASE_SPEED : mode === 'slowed' ? SLOWED_SPEED : mode === 'downed' ? 0 : CRUISE_SPEED;
-  const verticalVelocity = startingShortcut ? -500 : (pursuer.velocityY ?? 0) + GRAVITY * seconds;
+  const verticalVelocity = startingRoute ? -620 : legacyShortcut ? -500 : (pursuer.velocityY ?? 0) + GRAVITY * seconds;
   const previousBottom = (pursuer.y ?? GROUND_Y) + 32;
   let y = (pursuer.y ?? GROUND_Y) + verticalVelocity * seconds;
   let velocityY = verticalVelocity;
@@ -65,6 +73,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     velocityY,
     grounded,
     targetPlatformId,
+    targetRoute: routeNode && pursuer.x + velocity * seconds < routeNode.end ? routeNode.route : null,
     velocity,
     facing: 1,
     mode,

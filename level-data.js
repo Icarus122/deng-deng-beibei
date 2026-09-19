@@ -43,6 +43,14 @@ const highRoutes = beatPlans.flatMap((plan) => {
   ];
 });
 
+const bridgeUpperPlatforms = [
+  { id: 'bridge-upper-1', route: 'bridge-upper-route', x: 19570, y: 400, width: 180, height: 20, boost: 190 },
+  { id: 'bridge-upper-2', route: 'bridge-upper-route', x: 19775, y: 400, width: 180, height: 20, boost: 190 },
+  { id: 'bridge-upper-3', route: 'bridge-upper-route', x: 19980, y: 400, width: 180, height: 20, boost: 190 },
+  { id: 'bridge-upper-4', route: 'bridge-upper-route', x: 20185, y: 400, width: 180, height: 20, boost: 190 },
+  { id: 'bridge-upper-5', route: 'bridge-upper-route', x: 20390, y: 400, width: 180, height: 20, boost: 190 },
+];
+
 const regions = [
   { id: 'gate', name: '校园入口', start: 0, end: 4800, palette: 'morning', landmark: 'gate', foreground: 'flowerbeds', interaction: 'surprise' },
   { id: 'court', name: '篮球场', start: 4800, end: 9600, palette: 'sports', landmark: 'hoop', foreground: 'bleachers', interaction: 'basketball' },
@@ -60,9 +68,15 @@ const routeCoins = beatPlans.flatMap((plan, routeIndex) => {
   ];
 });
 
-// Energy remains on the ground: it is the resource that lets a player choose
-// to sprint across a pressure beat, while high-road coins reward the harder
-// route without making ordinary progress impossible.
+const bridgeUpperCoins = [
+  { id: 'bridge-upper-coin-1', type: 'coin', x: 19600, y: 376, width: 20, height: 24 },
+  { id: 'bridge-upper-coin-2', type: 'coin', x: 19820, y: 376, width: 20, height: 24 },
+  { id: 'bridge-upper-coin-3', type: 'coin', x: 20040, y: 376, width: 20, height: 24 },
+  { id: 'bridge-upper-coin-4', type: 'coin', x: 20420, y: 376, width: 20, height: 24 },
+];
+
+// Ground energy supports the ordinary route; the bridge's upper spring path
+// also carries a single bonus crystal for the harder late-game route.
 const groundEnergy = [
   { id: 'energy-0', x: 1880 }, { id: 'energy-1', x: 4010 },
   { id: 'energy-2', x: 6750 }, { id: 'energy-3', x: 8800 },
@@ -71,7 +85,8 @@ const groundEnergy = [
   { id: 'energy-10', x: 21060 },
 ].map((energy) => ({ ...energy, type: 'energy', y: 468, width: 22, height: 22 }));
 
-const pickups = [...routeCoins, ...groundEnergy];
+const bridgeUpperEnergy = { id: 'energy-11', type: 'energy', x: 20080, y: 378, width: 22, height: 22 };
+const pickups = [...routeCoins, ...bridgeUpperCoins, ...groundEnergy, bridgeUpperEnergy];
 
 const checkpoints = beatPlans.flatMap((plan) => {
   const regularStart = plan.start + plan.lengths[0] + plan.gaps[0];
@@ -94,12 +109,13 @@ export const JOURNEY = {
   platforms: [
     ...groundBeats,
     ...highRoutes,
+    ...bridgeUpperPlatforms,
     { id: 'collapse-gate', x: 1560, y: 448, width: 96, height: 18, collapse: true },
     { id: 'collapse-ginkgo', x: 11620, y: 448, width: 100, height: 18, collapse: true },
   ],
-  // Meng keeps to his own ground route. The retired node list used platform IDs
-  // from an older level layout and could never resolve against today's routes.
-  shortcutNodes: [],
+  // Meng independently takes the bridge spring route; it is driven by his own
+  // position and is not coupled to Beibei's jump input.
+  shortcutNodes: [{ start: 19500, end: 20590, route: 'bridge-upper-route' }],
   hazards: [
     { id: 'collapse-gate', type: 'collapse', district: 'gate', x: 1560, y: 448, width: 96, height: 18 },
     { id: 'box-gate', type: 'constructionBox', district: 'gate', x: 3180, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2800, warningMs: 760 },
@@ -128,15 +144,16 @@ export const JOURNEY = {
     { id: 'barrier-1', type: 'barrier', x: 16100, y: 470, width: 36, height: 40 },
     { id: 'spring-2', type: 'spring', x: 17800, y: 486, width: 34, height: 24 },
     { id: 'basketball-2', type: 'basketball', x: 20300, y: 482, width: 22, height: 22 },
-    { id: 'wind-1', type: 'wind', x: 21150, y: 360, width: 280, height: 150 },
-    { id: 'wind-2', type: 'wind', x: 21800, y: 360, width: 320, height: 150 },
-    { id: 'wind-3', type: 'wind', x: 22600, y: 360, width: 360, height: 150 },
+    { id: 'wind-1', type: 'wind', x: 21150, y: 420, width: 280, height: 90 },
+    { id: 'wind-2', type: 'wind', x: 21800, y: 420, width: 320, height: 90 },
+    { id: 'wind-3', type: 'wind', x: 22600, y: 420, width: 360, height: 90 },
     { id: 'banana-2', type: 'banana', x: 3900, y: 490, width: 24, height: 16 },
     { id: 'barrier-2', type: 'barrier', x: 5750, y: 470, width: 36, height: 40 },
     { id: 'surprise-3', type: 'surprise', x: 7100, y: 400, width: 30, height: 30 },
     { id: 'banana-3', type: 'banana', x: 9600, y: 490, width: 24, height: 16 },
     { id: 'bookbag-2', type: 'bookbag', x: 11800, y: 478, width: 28, height: 32 },
     { id: 'spring-3', type: 'spring', x: 14650, y: 486, width: 34, height: 24 },
+    { id: 'spring-bridge-upper', type: 'spring', x: 19510, y: 486, width: 34, height: 24 },
     { id: 'barrier-3', type: 'barrier', x: 19000, y: 470, width: 36, height: 40 },
     { id: 'banana-4', type: 'banana', x: 22600, y: 490, width: 24, height: 16 },
     { id: 'speed-pad-1', type: 'speedPad', x: 3440, y: 492, width: 96, height: 18 },
@@ -170,3 +187,33 @@ export function getHighRouteViolations(platforms) {
     return gap > 150 || rise > 60 ? [{ route: platform.route, from: previous.id, to: platform.id, gap, rise }] : [];
   }));
 }
+
+export const CHAPTERS = Object.fromEntries(regions.map((region, index) => {
+  const start = region.start;
+  const end = region.end;
+  const localize = (item) => ({ ...item, x: item.x - start });
+  const includesX = (item) => item.x >= start && item.x < end;
+  const chapterRegion = { ...region, start: 0, end: end - start };
+  const chapterPlatforms = JOURNEY.platforms.filter(includesX).map(localize);
+  const chapterPickups = JOURNEY.pickups.filter(includesX).map(localize);
+  return [index + 2, {
+    name: region.name,
+    worldEnd: end - start,
+    finishX: end - start - 200,
+    maxDistance: JOURNEY.maxDistance,
+    pursuerSpeed: JOURNEY.pursuerSpeed,
+    districts: [chapterRegion],
+    regions: [chapterRegion],
+    platforms: chapterPlatforms,
+    shortcutNodes: region.id === 'bridge' ? [{ start: 19500 - start, end: 20590 - start, route: 'bridge-upper-route' }] : [],
+    hazards: JOURNEY.hazards.filter((hazard) => hazard.district === region.id).map(localize),
+    obstacles: JOURNEY.obstacles.filter(includesX).map(localize),
+    pickups: chapterPickups,
+    energy: chapterPickups.filter((pickup) => pickup.type === 'energy'),
+    coins: chapterPickups.filter((pickup) => pickup.type === 'coin'),
+    checkpoints: JOURNEY.checkpoints.filter(includesX).map((checkpoint) => ({
+      ...localize(checkpoint),
+      respawnX: checkpoint.respawnX - start,
+    })),
+  }];
+}));

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createPursuer, getPursuitRhythm, updatePursuer } from '../pursuer-ai.js';
+import { JOURNEY } from '../level-data.js';
 
 test('pursuer follows a learnable twelve-second cruise then three-second burst rhythm', () => {
   const pursuer = createPursuer(500);
@@ -58,4 +59,14 @@ test('Meng moves on from a finished shortcut to the next high route', () => {
 
   assert.equal(next.targetPlatformId, 'shortcut-b');
   assert.ok(next.velocityY < 0);
+});
+
+test('Meng autonomously rides the bridge spring route without player input', () => {
+  let pursuer = createPursuer(19500);
+  const player = { x: 19100, facing: 1 };
+  for (let frame = 0; frame < 20; frame += 1) pursuer = updatePursuer(pursuer, player, 50, JOURNEY);
+
+  assert.equal(pursuer.targetRoute, 'bridge-upper-route');
+  assert.ok(pursuer.y < 380);
+  assert.ok(pursuer.x > 19570);
 });

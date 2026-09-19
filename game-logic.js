@@ -1,7 +1,7 @@
 import { overlaps } from './entities.js';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
-import { JOURNEY } from './level-data.js';
-import { createPursuer, updatePursuer } from './pursuer-ai.js';
+import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920b';
+import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920b';
 
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
@@ -23,7 +23,7 @@ const HIT_STOP_MS = 50;
 const LAND_SQUASH_MS = 120;
 const DUST_MS = 180;
 
-export const LEVELS = { 1: JOURNEY };
+export const LEVELS = { 1: JOURNEY, ...CHAPTERS };
 
 function clonePlayer(player) {
   return { ...player };
@@ -92,6 +92,8 @@ export function createGame(levelId) {
     collectedEnergyIds: [],
     collectedObstacleIds: [],
     mistakes: 0,
+    damageCount: 0,
+    sprinted: false,
     basketball: null,
     coins: 0,
     collectedCoinIds: [],
@@ -99,6 +101,8 @@ export function createGame(levelId) {
     hitCooldownMs: 0,
     hazardHitCooldownMs: 0,
     hazardSlowTimerMs: 0,
+    windTimerMs: 0,
+    windContactIds: [],
     platformBoostTimerMs: 0,
     speedPadTimerMs: 0,
     hitStopMs: 0,
@@ -117,7 +121,47 @@ export function getPursuerRenderState(pursuer) {
   return { ...pursuer, y: pursuer.y ?? GROUND_Y - PLAYER_HEIGHT, grounded: pursuer.grounded ?? true };
 }
 
-export function getPursuerTaunt(progress, mode = 'cruise') {
+const REGIONAL_TAUNTS = {
+  gate: {
+    cruise: '孟培杰：校门口有弹簧台，敢不敢借它跳一段？',
+    evade: '孟培杰：我要加速啦，别被香蕉皮绊住！',
+    slowed: '孟培杰：哎，球场那边的篮球还挺有劲！',
+    downed: '孟培杰：等等，我刚才是不是被球砸倒了？',
+    finalChase: '孟培杰：校门这段最后冲刺，看谁先到！',
+  },
+  court: {
+    cruise: '孟培杰：篮球场的球可不是摆设，小心我把它踢走！',
+    evade: '孟培杰：球场直道，我要冲刺咯！',
+    slowed: '孟培杰：糟了，篮球把我绊住了！',
+    downed: '孟培杰：你这球传得也太准了吧！',
+    finalChase: '孟培杰：穿过球场就到下一段啦！',
+  },
+  ginkgo: {
+    cruise: '孟培杰：银杏叶下面藏着硬币，眼睛放亮点！',
+    evade: '孟培杰：落叶路有点滑，我还是跑快点吧！',
+    slowed: '孟培杰：我慢下来啦，趁现在追上来！',
+    downed: '孟培杰：哎哟，刚才那一下可真重！',
+    finalChase: '孟培杰：穿过银杏林，我们再比一段！',
+  },
+  lakeside: {
+    cruise: '孟培杰：看施工箱的影子，预判它要落在哪儿！',
+    evade: '孟培杰：施工区不等人，我先冲过去啦！',
+    slowed: '孟培杰：挡板把我拦住了，快追！',
+    downed: '孟培杰：等会儿，我先缓一下……',
+    finalChase: '孟培杰：湖畔尽头见，别被箱子砸到！',
+  },
+  bridge: {
+    cruise: '孟培杰：横风变强了，弹簧能送你上天桥高路！',
+    evade: '孟培杰：桥上风大，我先加速啦！',
+    slowed: '孟培杰：风把我吹慢了，你快跟上！',
+    downed: '孟培杰：在高路上也能追到我？服啦！',
+    finalChase: '孟培杰：天桥尽头见！这次你可别松劲！',
+  },
+};
+
+export function getPursuerTaunt(progress, mode = 'cruise', regionId = null) {
+  const regional = REGIONAL_TAUNTS[regionId];
+  if (regional) return regional[mode] ?? regional.cruise;
   if (mode === 'evade') return '孟培杰：三秒爆发，跟得上吗？';
   if (mode === 'finalChase') return '孟培杰：天桥尽头见！';
   if (progress < 0.3) return '孟培杰：等等？你也太慢啦！';
@@ -157,6 +201,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const player = clonePlayer(state.player);
   let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.player.x + state.initialDistance);
   let mistakes = state.mistakes ?? 0;
+  let damageCount = state.damageCount ?? 0;
+  let sprinted = state.sprinted ?? false;
   let basketball = state.basketball ? { ...state.basketball } : null;
   let coins = state.coins ?? 0;
   const collectedObstacle = new Set(state.collectedObstacleIds ?? []);
@@ -170,6 +216,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let platformBoostTimerMs = Math.max(0, (state.platformBoostTimerMs ?? 0) - stepMs);
   let speedPadTimerMs = Math.max(0, (state.speedPadTimerMs ?? 0) - stepMs);
   let windTimerMs = Math.max(0, (state.windTimerMs ?? 0) - stepMs);
+  const previousWindContacts = new Set(state.windContactIds ?? []);
+  const currentWindContacts = new Set();
   let hitStopMs = 0;
   let event = 'none';
 
@@ -198,6 +246,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const direction = input.left && !input.right ? -1 : 1;
   const sprinting = Boolean(input.sprint || input.right) && direction > 0 && energyMeter > 0 && player.slipTimerMs === 0 && hazardSlowTimerMs === 0;
   if (sprinting) {
+    sprinted = true;
     energyMeter = Math.max(0, energyMeter - seconds * 24);
     energyTimerMs = 160;
     if (energyMeter === 0) event = 'energyEmpty';
@@ -235,6 +284,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       hazardSlowTimerMs = hazardResult.hazardSlowTimerMs;
       event = hazardResult.event;
       if (hazardResult.distanceDelta > 0) {
+        damageCount += 1;
         hazardHitCooldownMs = 650;
         hitStopMs = HIT_STOP_MS;
       }
@@ -288,6 +338,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (obstacle.type === 'banana') {
       player.slipTimerMs = 700;
       mistakes += 1;
+      damageCount += 1;
       collectedObstacle.add(obstacle.id);
       event = 'slip';
     }
@@ -296,13 +347,17 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       if (event === 'none') event = 'speedPad';
     }
     if (obstacle.type === 'wind') {
-      windTimerMs = 480;
-      if (event === 'none') event = 'wind';
+      if (overlaps(playerBox, obstacle)) {
+        currentWindContacts.add(obstacle.id);
+        windTimerMs = 480;
+        if (!previousWindContacts.has(obstacle.id) && event === 'none') event = 'wind';
+      }
     }
   }
 
   if (hitCooldownMs === 0 && level.obstacles.some((obstacle) => ['bookbag', 'barrier'].includes(obstacle.type) && overlaps(playerBox, obstacle))) {
     pursuer.x += 34;
+    damageCount += 1;
     hitCooldownMs = 650;
     event = 'hit';
     hitStopMs = HIT_STOP_MS;
@@ -317,6 +372,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   if (player.y > FALL_Y) {
+    damageCount += 1;
     const distanceBeforeFall = pursuer.x - player.x;
     player.x = checkpointX;
     player.y = GROUND_Y - PLAYER_HEIGHT;
@@ -383,6 +439,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     collectedEnergyIds,
     collectedObstacleIds: [...collectedObstacle],
     mistakes,
+    damageCount,
+    sprinted,
     basketball,
     coins,
     collectedCoinIds: [...collectedCoins],
@@ -395,6 +453,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hitStopMs,
     finalWindowOpened,
     windTimerMs,
+    windContactIds: [...currentWindContacts],
     collapseStarts,
     hazards,
     event,

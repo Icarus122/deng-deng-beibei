@@ -59,6 +59,13 @@ h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 
 .controls, .touch-tip { margin: 8px 0 0; font-size: .85rem; color: #524765; }
 .primary-button { background: #ff797f; }
 .ghost-button { background: #c9c2d7; }
+.chapter-select { width: min(100%, 720px); margin-top: 4px; }
+.chapter-select h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.chapter-select > p { margin: 4px 0 10px; color: #524765; font-size: .82rem; }
+.chapter-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.chapter-button { min-height: 58px; padding: 7px; font-size: .82rem; }
+.chapter-button:disabled { cursor: not-allowed; opacity: .5; transform: none; box-shadow: 4px 4px 0 #2c2540; }
+.progress-summary { min-height: 1.2em; }
 
 .game-screen { min-height: 0; padding: clamp(10px, 2vw, 22px); background: #eee7d8; }
 .hud { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 2px 4px 12px; font-weight: 900; }
@@ -91,4 +98,6 @@ canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; b
   .hud { align-items: flex-start; flex-direction: column; gap: 5px; }
   .distance-track { width: 44vw; }
   .controls { line-height: 1.7; }
+  .chapter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chapter-button:last-child { grid-column: 1 / -1; }
 }

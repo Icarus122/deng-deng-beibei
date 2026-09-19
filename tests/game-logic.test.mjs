@@ -32,16 +32,17 @@ test('journey supplies dense elevated routes and varied hazards without stale pu
   const elevatedPlatforms = JOURNEY.platforms.filter((platform) => platform.y < 470);
 
   assert.ok(elevatedPlatforms.length >= 24);
-  assert.deepEqual(JOURNEY.shortcutNodes, []);
+  assert.ok(JOURNEY.shortcutNodes.every((node) => JOURNEY.platforms.some((platform) => platform.route === node.route)));
   assert.ok(JOURNEY.obstacles.length >= 18);
 });
 
 test('five hand-authored high routes stay within the jump reach budget', () => {
   assert.deepEqual(getHighRouteViolations(JOURNEY.platforms), []);
-  assert.equal(new Set(JOURNEY.platforms.filter((platform) => platform.route).map((platform) => platform.route)).size, 5);
-  assert.equal(JOURNEY.platforms.filter((platform) => platform.boost).length, 30);
+  assert.equal(new Set(JOURNEY.platforms.filter((platform) => platform.route && platform.route !== 'bridge-upper-route').map((platform) => platform.route)).size, 5);
+  assert.equal(JOURNEY.platforms.filter((platform) => platform.boost).length, 35);
   assert.ok(JOURNEY.platforms.filter((platform) => platform.route).every((platform) => !platform.slope));
   assert.ok(JOURNEY.platforms.filter((platform) => platform.route).some((platform) => platform.y === 414));
+  assert.equal(JOURNEY.platforms.filter((platform) => platform.route === 'bridge-upper-route').length, 5);
 });
 
 test('high routes hold coins while sprint energy stays reachable on the ground', () => {
@@ -51,7 +52,8 @@ test('high routes hold coins while sprint energy stays reachable on the ground',
       && coin.x < platform.x + platform.width
       && coin.y + coin.height === platform.y));
   }
-  assert.ok(JOURNEY.energy.every((energy) => energy.y === 468));
+  assert.equal(JOURNEY.energy.filter((energy) => energy.y === 468).length, JOURNEY.energy.length - 1);
+  assert.ok(JOURNEY.energy.some((energy) => energy.y + energy.height === 400));
   assert.equal(new Set(JOURNEY.energy.map((energy) => energy.id)).size, JOURNEY.energy.length);
 });
 
@@ -291,6 +293,49 @@ test('Meng has playful taunts that change across the chase', () => {
   assert.equal(getPursuerTaunt(0.9), '孟培杰：快追上了？那就来呀！');
   assert.equal(getPursuerTaunt(0.5, 'evade'), '孟培杰：三秒爆发，跟得上吗？');
   assert.equal(getPursuerTaunt(0.99, 'finalChase'), '孟培杰：天桥尽头见！');
+  assert.match(getPursuerTaunt(0.5, 'cruise', 'court'), /篮球场/);
+  assert.match(getPursuerTaunt(0.5, 'cruise', 'bridge'), /弹簧/);
+});
+
+test('five standalone chapter levels contain localized playable data', () => {
+  for (const levelId of [2, 3, 4, 5, 6]) {
+    const level = LEVELS[levelId];
+    assert.ok(level.name);
+    assert.equal(level.worldEnd, 4800);
+    assert.equal(level.finishX, 4600);
+    assert.equal(level.districts.length, 1);
+    for (const field of ['platforms', 'coins', 'energy', 'obstacles', 'hazards', 'checkpoints']) assert.ok(Array.isArray(level[field]), `${level.name}: ${field}`);
+    assert.ok(level.platforms.every((platform) => platform.x >= 0 && platform.x + platform.width <= level.worldEnd));
+    assert.equal(createGame(levelId).phase, 'playing');
+  }
+  assert.ok(LEVELS[6].shortcutNodes.some((node) => node.route === 'bridge-upper-route'));
+});
+
+test('bridge spring launches Beibei onto the upper route while Meng chooses it independently', () => {
+  let state = createGame(6);
+  state = { ...state, player: { ...state.player, x: 290 } };
+  for (let frame = 0; frame < 15; frame += 1) {
+    state = updateGame(state, { left: false, right: false, sprint: false, jumpPressed: false }, 50);
+  }
+
+  assert.equal(state.player.y, 368);
+  assert.equal(state.player.grounded, true);
+  assert.ok(state.platformBoostTimerMs > 0);
+  assert.equal(state.pursuer.y, 368);
+  assert.equal(state.pursuer.targetRoute, 'bridge-upper-route');
+});
+
+test('wind slowdown notifies once per entry instead of spamming every simulation step', () => {
+  let state = createGame(1);
+  state = { ...state, player: { ...state.player, x: 21200 } };
+  let windEvents = 0;
+  for (let frame = 0; frame < 12; frame += 1) {
+    state = updateGame(state, { left: false, right: false, sprint: false, jumpPressed: false }, 50);
+    if (state.event === 'wind') windEvents += 1;
+  }
+
+  assert.equal(windEvents, 1);
+  assert.ok(state.windTimerMs > 0);
 });
 
 test('a close approach in the final two percent catches Meng', () => {

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7c76b" />
     <title>等等贝贝吧</title>
-    <link rel="stylesheet" href="style.css?v=20260915r4" />
+    <link rel="stylesheet" href="style.css?v=20260920a" />
   </head>
   <body>
     <main class="game-shell">
@@ -32,7 +32,10 @@
             <span>能量</span><div class="energy-track"><i id="energy-fill"></i></div>
           </div>
         </header>
-        <canvas id="game-canvas" width="1280" height="540" aria-label="董贝贝追赶孟培杰的连续像素追逐游戏"></canvas>
+        <div class="game-stage">
+          <canvas id="game-canvas" width="1280" height="540" aria-label="董贝贝追赶孟培杰的连续像素追逐游戏"></canvas>
+          <p id="hud-notice" class="hud-notice" hidden></p>
+        </div>
         <p id="game-status" class="sr-only" aria-live="polite"></p>
         <p class="touch-tip">自动前进 · 点击画面跳跃 · 顶惊喜方块 · 碰篮球自动踢向前方</p>
       </section>
@@ -62,6 +65,6 @@
       </div>
     </dialog>
 
-    <script type="module" src="game.js?v=20260919a1"></script>
+    <script type="module" src="game.js?v=20260920a"></script>
   </body>
 </html>

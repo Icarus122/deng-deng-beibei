@@ -22,7 +22,6 @@ const SHORT_JUMP_FACTOR = 0.45;
 const HIT_STOP_MS = 50;
 const LAND_SQUASH_MS = 120;
 const DUST_MS = 180;
-const IMPACT_SHAKE_MS = 90;
 
 export const LEVELS = { 1: JOURNEY };
 
@@ -68,6 +67,7 @@ export function createGame(levelId) {
     y: GROUND_Y - PLAYER_HEIGHT,
     width: PLAYER_WIDTH,
     height: PLAYER_HEIGHT,
+    horizontalSpeed: 150,
     velocityY: 0,
     grounded: true,
     jumpsUsed: 0,
@@ -102,8 +102,6 @@ export function createGame(levelId) {
     platformBoostTimerMs: 0,
     speedPadTimerMs: 0,
     hitStopMs: 0,
-    shakeTimerMs: 0,
-    impactTimerMs: 0,
     finalWindowOpened: false,
     collapseStarts: {},
     hazards: getDynamicHazards(level, 0, {}),
@@ -144,8 +142,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       elapsedMs: state.elapsedMs + stepMs,
       event: 'none',
       hitStopMs: Math.max(0, state.hitStopMs - stepMs),
-      shakeTimerMs: Math.max(0, (state.shakeTimerMs ?? 0) - stepMs),
-      impactTimerMs: Math.max(0, (state.impactTimerMs ?? 0) - stepMs),
       player: {
         ...state.player,
         landTimerMs: Math.max(0, (state.player.landTimerMs ?? 0) - stepMs),
@@ -175,8 +171,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let speedPadTimerMs = Math.max(0, (state.speedPadTimerMs ?? 0) - stepMs);
   let windTimerMs = Math.max(0, (state.windTimerMs ?? 0) - stepMs);
   let hitStopMs = 0;
-  let shakeTimerMs = Math.max(0, (state.shakeTimerMs ?? 0) - stepMs);
-  let impactTimerMs = Math.max(0, (state.impactTimerMs ?? 0) - stepMs);
   let event = 'none';
 
   const wasGrounded = player.grounded;
@@ -206,12 +200,14 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   if (sprinting) {
     energyMeter = Math.max(0, energyMeter - seconds * 24);
     energyTimerMs = 160;
+    if (energyMeter === 0) event = 'energyEmpty';
   }
   const runSpeed = sprinting ? 240 : 150;
   const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 135 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0, speedPadTimerMs > 0 ? 215 : 0);
   player.facing = direction;
   const previousX = player.x;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
+  player.horizontalSpeed = direction * movementSpeed;
   player.distanceTravelled = (player.distanceTravelled ?? 0) + Math.abs(player.x - previousX);
   const previousBottom = player.y + player.height;
   player.velocityY += (player.velocityY > 0 ? FALL_GRAVITY : GRAVITY) * seconds;
@@ -221,7 +217,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   if (!wasGrounded && player.grounded) {
     player.landTimerMs = LAND_SQUASH_MS;
     player.dustTimerMs = DUST_MS;
-    shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
     consumeBufferedJump();
   }
   player.coyoteTimerMs = coyoteTimerMs;
@@ -242,8 +237,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       if (hazardResult.distanceDelta > 0) {
         hazardHitCooldownMs = 650;
         hitStopMs = HIT_STOP_MS;
-        shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
-        impactTimerMs = IMPACT_SHAKE_MS;
       }
     }
   }
@@ -313,8 +306,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hitCooldownMs = 650;
     event = 'hit';
     hitStopMs = HIT_STOP_MS;
-    shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
-    impactTimerMs = IMPACT_SHAKE_MS;
   }
 
   let checkpointX = state.checkpointX;
@@ -341,8 +332,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     };
     event = 'fell';
     hitStopMs = HIT_STOP_MS;
-    shakeTimerMs = Math.max(shakeTimerMs, IMPACT_SHAKE_MS);
-    impactTimerMs = IMPACT_SHAKE_MS;
   }
 
   pursuer = updatePursuer(pursuer, player, stepMs, { ...level, platforms });
@@ -361,6 +350,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   if (progress >= CATCH_WINDOW_PROGRESS && !finalWindowOpened) {
     pursuer = { ...pursuer, x: Math.min(pursuer.x, player.x + FINAL_APPROACH_GAP) };
     finalWindowOpened = true;
+    event = 'catchWindowOpened';
   }
   if (progress < CATCH_WINDOW_PROGRESS && pursuer.x - player.x < SAFE_CHASE_GAP) {
     pursuer = {
@@ -403,8 +393,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     platformBoostTimerMs,
     speedPadTimerMs,
     hitStopMs,
-    shakeTimerMs,
-    impactTimerMs,
     finalWindowOpened,
     windTimerMs,
     collapseStarts,

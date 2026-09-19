@@ -168,14 +168,14 @@ test('releasing jump early creates a short hop and falling uses stronger gravity
   assert.equal(falling.player.velocityY, 187.5);
 });
 
-test('a hard obstacle collision briefly freezes the simulation and shakes the camera', () => {
+test('a hard obstacle collision briefly freezes the simulation without shaking the camera', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 8200 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'hit');
   assert.equal(state.hitStopMs, 50);
-  assert.equal(state.shakeTimerMs, 90);
+  assert.equal(Object.hasOwn(state, 'shakeTimerMs'), false);
   const frozenX = state.player.x;
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
   assert.equal(state.player.x, frozenX);
@@ -202,6 +202,22 @@ test('camera eases toward a runner who has passed the initial viewport', () => {
 
   assert.ok(cameraX > 0);
   assert.ok(cameraX < 1540);
+});
+
+test('camera looks farther ahead when Beibei sprints', () => {
+  const normal = advanceCamera(0, 2000, 210, 1280, 42000, 150);
+  const sprinting = advanceCamera(0, 2000, 210, 1280, 42000, 240);
+
+  assert.equal(Math.round(sprinting - normal), 36);
+});
+
+test('sprint exhaustion produces a gameplay cue', () => {
+  let state = createGame(1);
+  state = { ...state, energyMeter: 1 };
+  state = updateGame(state, { left: false, right: true, sprint: true, jumpPressed: false }, 50);
+
+  assert.equal(state.energyMeter, 0);
+  assert.equal(state.event, 'energyEmpty');
 });
 
 test('touching a basketball launches it forward automatically', () => {
@@ -317,6 +333,7 @@ test('opening the final window creates a contestable gap instead of an automatic
 
   assert.equal(state.phase, 'playing');
   assert.equal(state.finalWindowOpened, true);
+  assert.equal(state.event, 'catchWindowOpened');
   assert.ok(state.distance > 56);
   assert.ok(state.distance <= 100);
 });

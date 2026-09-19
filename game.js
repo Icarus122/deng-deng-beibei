@@ -24,6 +24,7 @@ const levelName = document.querySelector('#level-name');
 const distanceFill = document.querySelector('#distance-fill');
 const energyFill = document.querySelector('#energy-fill');
 const gameStatus = document.querySelector('#game-status');
+const hudNotice = document.querySelector('#hud-notice');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 
@@ -372,7 +373,7 @@ function drawDistanceBubble() {
 function render() {
   if (!state) return;
   const renderDelta = Math.max(0, state.elapsedMs - lastRenderElapsedMs);
-  cameraX = advanceCamera(cameraX, state.player.x, renderDelta, VIEWPORT_WIDTH, LEVELS[currentLevel].worldEnd);
+  cameraX = advanceCamera(cameraX, state.player.x, renderDelta, VIEWPORT_WIDTH, LEVELS[currentLevel].worldEnd, state.player.horizontalSpeed);
   lastRenderElapsedMs = state.elapsedMs;
   const level = LEVELS[currentLevel];
   const platforms = getRenderPlatforms(currentLevel, state.elapsedMs, state.collapseStarts);
@@ -380,10 +381,6 @@ function render() {
 
   ctx.clearRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   ctx.save();
-  if (state.shakeTimerMs > 0) {
-    const strength = Math.max(.4, state.shakeTimerMs / 90 * 3);
-    ctx.translate(Math.sin(state.elapsedMs * .17) * strength, Math.cos(state.elapsedMs * .23) * strength);
-  }
   if (closeZoom) {
     ctx.translate(VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2);
     ctx.scale(1 + closeZoom, 1 + closeZoom);
@@ -401,6 +398,7 @@ function render() {
 
   const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
+  drawPursuerMotion(meng);
   drawCharacter(ctx, beibei, beibeiPortrait);
   drawCharacter(ctx, meng, mengPortrait);
   drawDust(beibei);
@@ -409,11 +407,12 @@ function render() {
   if (state.basketball?.active) drawBasketball(state.basketball);
 
   if (state.phase === 'playing' && isTauntActive(taunt, state.elapsedMs)) {
+    const tauntY = Math.max(110, state.pursuer.y - 160);
     ctx.fillStyle = '#fff9e9';
-    ctx.fillRect(state.pursuer.x - 130, 360, 260, 34);
+    ctx.fillRect(state.pursuer.x - 130, tauntY, 260, 34);
     ctx.fillStyle = '#2c2540';
     ctx.font = '16px "Microsoft YaHei", sans-serif';
-    ctx.fillText(taunt.text, state.pursuer.x - 120, 384);
+    ctx.fillText(taunt.text, state.pursuer.x - 120, tauntY + 24);
   }
 
   if (state.phase === 'caught') {
@@ -442,6 +441,7 @@ function updateLiveText() {
     hit: '撞到书包了，孟培杰拉开了距离。',
     fell: '掉下去了，回到检查点，距离拉开。',
     energy: '拿到贝贝能量，正在冲刺！',
+    energyEmpty: '能量耗尽，冲刺结束！',
     coin: '收集到硬币，距离缩短！',
     surprise: '惊喜方块！硬币和冲刺都拿到了。',
     spring: '弹簧台！跳得更高了。',
@@ -451,8 +451,16 @@ function updateLiveText() {
     patrolHit: '巡逻障碍拦住了贝贝。',
     wind: '天桥横风来了，注意节奏！',
     checkpoint: '到达检查点。',
+    catchWindowOpened: '追上窗口开启！冲刺追上孟培杰！',
   };
-  if (messages[state.event]) gameStatus.textContent = messages[state.event];
+  if (messages[state.event]) {
+    gameStatus.textContent = messages[state.event];
+    hudNotice.textContent = messages[state.event];
+    hudNotice.hidden = false;
+    hudNotice.dataset.expiresAt = String(state.elapsedMs + 1400);
+  } else if (!hudNotice.hidden && state.elapsedMs >= Number(hudNotice.dataset.expiresAt)) {
+    hudNotice.hidden = true;
+  }
 }
 
 function stopGame() {
@@ -494,15 +502,51 @@ function handleTerminal() {
 
 function drawGapLabel(pursuer) {
   const gap = Math.max(0, Math.round(state.pursuer.x - state.player.x));
+  const bubbleY = pursuer.y - 100;
   ctx.save();
   ctx.fillStyle = 'rgba(24, 30, 57, .84)';
   ctx.beginPath();
-  ctx.roundRect(pursuer.x - 24, pursuer.y - 39, 66, 22, 9);
+  ctx.roundRect(pursuer.x - 24, bubbleY, 66, 22, 9);
   ctx.fill();
   ctx.fillStyle = gap <= 180 ? '#ffe68c' : '#fff9e9';
   ctx.font = '700 13px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`${gap}px`, pursuer.x - 15, pursuer.y - 24);
+  ctx.fillText(`${gap}px`, pursuer.x - 15, bubbleY + 15);
   ctx.restore();
+}
+
+function drawPursuerMotion(pursuer) {
+  if (pursuer.mode === 'downed') return;
+  const baseline = pursuer.y + (pursuer.height ?? 32);
+  if (['evade', 'finalChase', 'cruise'].includes(pursuer.mode)) {
+    const count = pursuer.mode === 'finalChase' ? 5 : pursuer.mode === 'evade' ? 4 : 2;
+    const color = pursuer.mode === 'finalChase' ? '255, 214, 110' : pursuer.mode === 'evade' ? '255, 121, 127' : '225, 240, 247';
+    ctx.save();
+    ctx.strokeStyle = `rgba(${color}, ${pursuer.mode === 'cruise' ? .42 : .78})`;
+    ctx.lineWidth = pursuer.mode === 'cruise' ? 1.5 : 2;
+    for (let index = 0; index < count; index += 1) {
+      const x = pursuer.x - 22 - index * 14 - ((state.elapsedMs / 18) % 10);
+      const y = baseline - 12 - index % 3 * 15;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - (pursuer.mode === 'finalChase' ? 26 : 18), y);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
+  if (pursuer.mode === 'slowed') {
+    ctx.save();
+    ctx.fillStyle = '#ffe68c';
+    const pulse = Math.sin(state.elapsedMs / 90) * 2;
+    for (let index = 0; index < 3; index += 1) {
+      const x = pursuer.x + 7 + index * 13;
+      const y = baseline - 84 - pulse - index % 2 * 5;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 4); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3, y); ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 }
 
 function drawSpeedLines() {
@@ -591,6 +635,7 @@ function startLevel(levelId) {
   taunt = null;
   lastTauntDistrictId = null;
   lastTauntMode = null;
+  hudNotice.hidden = true;
   levelName.textContent = '校园入口 · 路程 0%';
   gameStatus.textContent = '连续追逐开始，追上孟培杰！';
   homeScreen.hidden = true;
@@ -619,6 +664,7 @@ function returnHome() {
   taunt = null;
   lastTauntDistrictId = null;
   lastTauntMode = null;
+  hudNotice.hidden = true;
   homeScreen.hidden = false;
   gameScreen.hidden = true;
   gameStatus.textContent = '';

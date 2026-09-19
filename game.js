@@ -5,6 +5,7 @@ import { drawScene, getPalette } from './scene-renderer.js?v=20260920b';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
 import { createLazyBackgrounds, preloadBackground } from './assets.js';
+import { createGameAudio } from './audio.js';
 import { loadProgress, recordLevelResult, saveProgress } from './level-progress.js';
 
 const canvas = document.querySelector('#game-canvas');
@@ -35,6 +36,7 @@ const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new I
 const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
 const propsAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
+const gameAudio = createGameAudio();
 
 const input = { left: false, right: false, sprint: false, jumpPressed: false, jumpReleased: false, jumpHeld: false };
 let currentLevel = 1;
@@ -53,6 +55,7 @@ let lastTauntMode = null;
 let savedProgress = loadProgress();
 let runRecorded = false;
 let lastRunResult = null;
+let sprintAudioActive = false;
 
 function runnersReady() {
   return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth && beibeiPortrait.poses.cry.naturalWidth && beibeiPortrait.poses.jump.naturalWidth && propsAtlas.naturalWidth);
@@ -528,11 +531,13 @@ function handleTerminal() {
   persistRunResult();
   stopGame();
   if (state.phase === 'lost') {
+    gameAudio.play('lost', { speed: state.player.horizontalSpeed });
     resultPose = 'crying';
     render();
     endTimer = window.setTimeout(showLoseDialog, 520);
     return;
   }
+  gameAudio.play('caught', { speed: state.player.horizontalSpeed });
   resultPose = 'tap';
   render();
   endTimer = window.setTimeout(() => {
@@ -643,6 +648,20 @@ function updateTaunt() {
   }
 }
 
+function playStepSounds(previous, next, jumpPressed) {
+  if (jumpPressed) gameAudio.play('jump', { speed: next.player.horizontalSpeed });
+  if (!previous.player.grounded && next.player.grounded) gameAudio.play('land', { speed: next.player.horizontalSpeed });
+  const soundByEvent = {
+    coin: 'pickup', energy: 'pickup', surprise: 'pickup', basketball: 'pickup', spring: 'pickup',
+    checkpoint: 'checkpoint', hit: 'hit', constructionHit: 'hit', blockerHit: 'hit',
+    patrolHit: 'hit', slip: 'hit', fell: 'hit', pursuerDowned: 'hit', pursuerSlowed: 'hit',
+  };
+  if (soundByEvent[next.event]) gameAudio.play(soundByEvent[next.event], { speed: next.player.horizontalSpeed });
+  const sprinting = next.player.horizontalSpeed >= 220;
+  if (sprinting && !sprintAudioActive) gameAudio.play('sprint', { speed: next.player.horizontalSpeed });
+  sprintAudioActive = sprinting;
+}
+
 function frame(timestamp) {
   if (!lastFrame) lastFrame = timestamp;
   const elapsedMs = Math.min(50, timestamp - lastFrame);
@@ -650,7 +669,10 @@ function frame(timestamp) {
   const pacing = advanceSimulationClock(simulationClock, elapsedMs);
   simulationClock = pacing.clock;
   for (let step = 0; step < pacing.steps && state.phase === 'playing'; step += 1) {
+    const previousState = state;
+    const jumpPressed = input.jumpPressed;
     state = updateGame(state, input, pacing.stepMs);
+    playStepSounds(previousState, state, jumpPressed);
     input.jumpPressed = false;
     input.jumpReleased = false;
     updateTaunt();
@@ -669,6 +691,7 @@ function startLevel(levelId) {
   closeDialogs();
   currentLevel = levelId;
   state = createGame(levelId);
+  sprintAudioActive = false;
   runRecorded = false;
   lastRunResult = null;
   resultPose = 'running';
@@ -689,6 +712,7 @@ function startLevel(levelId) {
 }
 
 function requestLevelStart(levelId) {
+  void gameAudio.resume();
   if (runnersReady()) {
     startLevel(levelId);
     return;

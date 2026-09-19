@@ -241,7 +241,7 @@ test('banana peel records a mistake and temporarily slips Beibei', () => {
   assert.ok(state.player.slipTimerMs > 0);
 });
 
-test('before the final two percent, close contact restores a safe gap without changing Meng rhythm', () => {
+test('before the final fifteen percent, close contact restores a safe gap without changing Meng rhythm', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
@@ -326,8 +326,8 @@ test('bridge spring launches Beibei onto the upper route while Meng chooses it i
 });
 
 test('wind slowdown notifies once per entry instead of spamming every simulation step', () => {
-  let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 21200 } };
+  let state = createGame(6);
+  state = { ...state, player: { ...state.player, x: 2000 }, pursuer: { ...state.pursuer, x: 2220 } };
   let windEvents = 0;
   for (let frame = 0; frame < 12; frame += 1) {
     state = updateGame(state, { left: false, right: false, sprint: false, jumpPressed: false }, 50);
@@ -338,9 +338,9 @@ test('wind slowdown notifies once per entry instead of spamming every simulation
   assert.ok(state.windTimerMs > 0);
 });
 
-test('a close approach in the final two percent catches Meng', () => {
+test('a close approach after the 85 percent window opens catches Meng', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
+  state = { ...state, player: { ...state.player, x: 20000 }, pursuer: { ...state.pursuer, x: 20050 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
@@ -348,32 +348,35 @@ test('a close approach in the final two percent catches Meng', () => {
 
 test('the catch window does not use injected randomness', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
+  state = { ...state, player: { ...state.player, x: 20000 }, pursuer: { ...state.pursuer, x: 20050 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.34 });
 
   assert.equal(state.phase, 'caught');
 });
 
-test('a close approach at 98 percent catches Meng without a dice roll', () => {
+test('a close approach after 85 percent catches Meng without a dice roll', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
+  state = { ...state, player: { ...state.player, x: 20000 }, pursuer: { ...state.pursuer, x: 20050 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
   assert.equal(state.phase, 'caught');
   assert.equal(state.event, 'caught');
 });
 
-test('inside the final window, Meng switches to the catchable final pace', () => {
+test('inside the 85 percent catch window, Meng switches pace without granting an automatic win', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23150 } };
+  state = { ...state, player: { ...state.player, x: 19975 }, pursuer: { ...state.pursuer, x: 21000 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
-  assert.equal(state.phase, 'caught');
+  assert.equal(state.phase, 'playing');
   assert.equal(state.pursuer.mode, 'finalChase');
+  assert.equal(state.finalWindowOpened, true);
+  assert.equal(state.event, 'catchWindowOpened');
+  assert.ok(state.distance > 56);
 });
 
-test('opening the final window creates a contestable gap instead of an automatic win', () => {
+test('opening the 85 percent window creates a contestable gap instead of an automatic win', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 23100 }, pursuer: { ...state.pursuer, x: 23600 } };
+  state = { ...state, player: { ...state.player, x: 19975 }, pursuer: { ...state.pursuer, x: 21000 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
 
   assert.equal(state.phase, 'playing');
@@ -383,9 +386,9 @@ test('opening the final window creates a contestable gap instead of an automatic
   assert.ok(state.distance <= 100);
 });
 
-test('the final bridge does not force a catch before close contact', () => {
+test('the bridge does not force a catch before the 85 percent window opens', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 23000 }, pursuer: { ...state.pursuer, x: 23160 } };
+  state = { ...state, player: { ...state.player, x: 19800 }, pursuer: { ...state.pursuer, x: 19960 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.phase, 'playing');

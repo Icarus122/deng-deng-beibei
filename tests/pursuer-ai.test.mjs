@@ -17,9 +17,11 @@ test('pursuer follows a learnable twelve-second cruise then three-second burst r
   assert.equal(getPursuitRhythm(12000, 0.5), 'evade');
 });
 
-test('pursuer uses the catchable final pace only in the final two percent', () => {
-  const next = updatePursuer(createPursuer(23500), { x: 23100, facing: 1 }, 50, { finishX: 23500 });
+test('pursuer uses the catchable final pace after 85 percent progress', () => {
+  const beforeWindow = updatePursuer(createPursuer(19000), { x: 19974, facing: 1 }, 50, { finishX: 23500 });
+  const next = updatePursuer(createPursuer(20000), { x: 19975, facing: 1 }, 50, { finishX: 23500 });
 
+  assert.notEqual(beforeWindow.mode, 'finalChase');
   assert.equal(next.mode, 'finalChase');
   assert.equal(next.velocity, 170);
 });

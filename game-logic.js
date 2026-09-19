@@ -10,7 +10,7 @@ const SAFE_CHASE_GAP = 100;
 // Rendered bodies are 60px wide.  A catch must now look like a real tap,
 // rather than succeeding with a character-sized empty gap between them.
 const CATCH_CONTACT_GAP = 56;
-const CATCH_WINDOW_PROGRESS = 0.98;
+const CATCH_WINDOW_PROGRESS = 0.85;
 const FINAL_APPROACH_GAP = 100;
 const GRAVITY = 1400;
 const FALL_GRAVITY = 1750;

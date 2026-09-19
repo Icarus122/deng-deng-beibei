@@ -7,7 +7,7 @@ const GRAVITY = 1400;
 const CRUISE_MS = 12000;
 const EVADE_MS = 3000;
 const RHYTHM_MS = CRUISE_MS + EVADE_MS;
-const FINAL_WINDOW_PROGRESS = 0.98;
+const FINAL_WINDOW_PROGRESS = 0.85;
 
 export function getPursuitRhythm(cycleElapsedMs, progress) {
   if (progress >= FINAL_WINDOW_PROGRESS) return 'finalChase';

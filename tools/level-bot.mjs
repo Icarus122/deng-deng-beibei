@@ -255,8 +255,8 @@ export function analyseLevel() {
       detail: measureRegions(ground).map((region) => `${region.id}:${region.measured}`).join('，'),
     },
     {
-      label: '理想机器人在至少 95% 进度才可追上',
-      pass: idealBot.phase === 'caught' && idealBot.progress >= 0.95,
+      label: '理想机器人在 85% 追上窗口开启后才可追上',
+      pass: idealBot.phase === 'caught' && idealBot.progress >= 0.85,
       detail: `${idealBot.phase}，最远进度 ${(idealBot.progress * 100).toFixed(1)}%`,
     },
     {

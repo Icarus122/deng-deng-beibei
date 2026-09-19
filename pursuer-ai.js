@@ -15,7 +15,7 @@ export function getPursuitRhythm(cycleElapsedMs, progress) {
 }
 
 export function createPursuer(startX) {
-  return { x: startX, y: GROUND_Y, velocityY: 0, grounded: true, targetPlatformId: null, velocity: CRUISE_SPEED, facing: 1, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0, cycleElapsedMs: 0, distanceTravelled: 0 };
+  return { x: startX, y: GROUND_Y, velocityY: 0, grounded: true, targetPlatformId: null, velocity: CRUISE_SPEED, facing: 1, mode: 'cruise', modeTimerMs: 0, evadeCooldownMs: 0, cycleElapsedMs: 0, distanceTravelled: 0, runDistanceTravelled: 0 };
 }
 
 export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
@@ -66,9 +66,12 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     velocityY = 0;
     grounded = true;
   }
+  const nextX = pursuer.x + velocity * seconds;
+  const runDistanceTravelled = (pursuer.runDistanceTravelled ?? 0)
+    + (pursuer.grounded && grounded && mode !== 'downed' ? Math.abs(nextX - pursuer.x) : 0);
   return {
     ...pursuer,
-    x: pursuer.x + velocity * seconds,
+    x: nextX,
     y,
     velocityY,
     grounded,
@@ -81,5 +84,6 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     evadeCooldownMs: 0,
     cycleElapsedMs,
     distanceTravelled: (pursuer.distanceTravelled ?? 0) + Math.abs(velocity * seconds),
+    runDistanceTravelled,
   };
 }

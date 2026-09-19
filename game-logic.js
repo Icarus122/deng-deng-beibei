@@ -1,7 +1,7 @@
 import { overlaps } from './entities.js';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
 import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920c';
-import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920c';
+import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920d';
 
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
@@ -73,6 +73,7 @@ export function createGame(levelId) {
     jumpsUsed: 0,
     facing: 1,
     distanceTravelled: 0,
+    runDistanceTravelled: 0,
     coyoteTimerMs: COYOTE_TIME_MS,
     jumpBufferMs: 0,
     landTimerMs: 0,
@@ -257,11 +258,15 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const previousX = player.x;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
   player.horizontalSpeed = direction * movementSpeed;
-  player.distanceTravelled = (player.distanceTravelled ?? 0) + Math.abs(player.x - previousX);
+  const horizontalDistance = Math.abs(player.x - previousX);
+  player.distanceTravelled = (player.distanceTravelled ?? 0) + horizontalDistance;
   const previousBottom = player.y + player.height;
   player.velocityY += (player.velocityY > 0 ? FALL_GRAVITY : GRAVITY) * seconds;
   player.y += player.velocityY * seconds;
   Object.assign(player, placeOnSurface(player, platforms, previousBottom));
+  if (wasGrounded && player.grounded && player.slipTimerMs === 0) {
+    player.runDistanceTravelled = (player.runDistanceTravelled ?? 0) + horizontalDistance;
+  }
   if (player.grounded) coyoteTimerMs = COYOTE_TIME_MS;
   if (!wasGrounded && player.grounded) {
     player.landTimerMs = LAND_SQUASH_MS;

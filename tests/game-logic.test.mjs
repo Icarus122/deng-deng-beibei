@@ -18,6 +18,18 @@ test('shared hitboxes overlap only when their rectangles intersect', () => {
   assert.equal(overlaps({ x: 0, y: 0, width: 10, height: 10 }, { x: 10, y: 0, width: 10, height: 10 }), false);
 });
 
+test('Beibei animation distance advances on the ground and pauses in the air', () => {
+  const grounded = updateGame(createGame(1), { left: false, right: false, jumpPressed: false }, 50);
+  const airborne = updateGame({
+    ...grounded,
+    player: { ...grounded.player, grounded: false, y: 360, velocityY: -250 },
+  }, { left: false, right: false, jumpPressed: false }, 50);
+
+  assert.equal(grounded.player.runDistanceTravelled, 7.5);
+  assert.equal(airborne.player.runDistanceTravelled, grounded.player.runDistanceTravelled);
+  assert.ok(airborne.player.distanceTravelled > grounded.player.distanceTravelled);
+});
+
 test('the continuous journey keeps five regions but fits a compact play session', () => {
   const journey = LEVELS[1];
 

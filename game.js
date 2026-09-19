@@ -1,6 +1,6 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920c';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920d';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260919a1';
+import { drawCharacter } from './character-renderer.js?v=20260920d';
 import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -56,12 +56,56 @@ let savedProgress = loadProgress();
 let runRecorded = false;
 let lastRunResult = null;
 let sprintAudioActive = false;
+let runnerAssetsFailed = false;
+let runnerAssetRetry = 0;
+
+const runnerAssets = [
+  { image: beibeiPortrait.runCycle, url: 'assets/beibei-run-cycle-v3.png?v=20260920d' },
+  { image: mengPortrait.runCycle, url: 'assets/meng-run-cycle-v3.png?v=20260920d' },
+  { image: beibeiPortrait.poses.cry, url: 'assets/beibei-cry-v2.png?v=20260920d' },
+  { image: beibeiPortrait.poses.jump, url: 'assets/beibei-jump-v1.png?v=20260920d' },
+  { image: propsAtlas, url: 'assets/props-atlas-v1.png?v=20260920d' },
+];
 
 function runnersReady() {
-  return Boolean(beibeiPortrait.runCycle.naturalWidth && mengPortrait.runCycle.naturalWidth && beibeiPortrait.poses.cry.naturalWidth && beibeiPortrait.poses.jump.naturalWidth && propsAtlas.naturalWidth);
+  return Boolean(
+    beibeiPortrait.runCycle.naturalWidth === 960
+    && beibeiPortrait.runCycle.naturalHeight === 960
+    && mengPortrait.runCycle.naturalWidth === 960
+    && mengPortrait.runCycle.naturalHeight === 960
+    && beibeiPortrait.poses.cry.naturalWidth
+    && beibeiPortrait.poses.jump.naturalWidth
+    && propsAtlas.naturalWidth,
+  );
+}
+
+function showAssetRetry() {
+  if (queuedLevelId === null) return;
+  startButton.disabled = false;
+  startButton.textContent = '素材加载失败，点击重试';
+  gameStatus.textContent = '角色素材没有加载成功。点击开始按钮重试，或检查网络后再试。';
+}
+
+function handleRunnerAssetError() {
+  runnerAssetsFailed = true;
+  showAssetRetry();
+}
+
+function retryRunnerAssets() {
+  runnerAssetRetry += 1;
+  runnerAssetsFailed = false;
+  startButton.disabled = true;
+  startButton.textContent = '正在重试素材…';
+  gameStatus.textContent = '正在重新加载角色和道具素材。';
+  for (const { image, url } of runnerAssets) {
+    if (image.naturalWidth) continue;
+    const separator = url.includes('?') ? '&' : '?';
+    image.src = `${url}${separator}retry=${runnerAssetRetry}`;
+  }
 }
 
 function resumeQueuedLevel() {
+  if (runnersReady()) runnerAssetsFailed = false;
   if (queuedLevelId === null || !runnersReady()) return;
   const levelId = queuedLevelId;
   queuedLevelId = null;
@@ -75,11 +119,10 @@ mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.poses.cry.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.poses.jump.addEventListener('load', resumeQueuedLevel);
 propsAtlas.addEventListener('load', resumeQueuedLevel);
-beibeiPortrait.runCycle.src = 'assets/beibei-run-v2.png';
-mengPortrait.runCycle.src = 'assets/meng-run-v2.png?v=20260918m1';
-beibeiPortrait.poses.cry.src = 'assets/beibei-cry-v2.png';
-beibeiPortrait.poses.jump.src = 'assets/beibei-jump-v1.png';
-propsAtlas.src = 'assets/props-atlas-v1.png';
+runnerAssets.forEach(({ image, url }) => {
+  image.addEventListener('error', handleRunnerAssetError);
+  image.src = url;
+});
 
 function configureCanvas() {
   const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
@@ -146,21 +189,21 @@ refreshChapterButtons();
 function drawPlatform(platform, elapsedMs) {
   const palette = scenePalette();
   if (platform.y === 510) {
-    // Keep the source painting's lower foreground visible.  This is a thin,
-    // readable walkable curb instead of the old opaque 30px colour slab.
-    const curb = ctx.createLinearGradient(0, 502, 0, 510);
+    // Enlarge the readable road edge while preserving its y=510 contact line
+    // and leaving the painting's bottom foreground visible.
+    const curb = ctx.createLinearGradient(0, 492, 0, 510);
     curb.addColorStop(0, 'rgba(255, 245, 208, .82)');
     curb.addColorStop(.45, palette.platform);
     curb.addColorStop(1, palette.edge);
     ctx.fillStyle = 'rgba(20, 31, 50, .24)';
-    ctx.fillRect(platform.x, 507, platform.width, 7);
+    ctx.fillRect(platform.x, 504, platform.width, 6);
     ctx.fillStyle = curb;
-    ctx.fillRect(platform.x, 503, platform.width, 5);
+    ctx.fillRect(platform.x, 493, platform.width, 17);
     ctx.fillStyle = 'rgba(255,255,255,.42)';
-    ctx.fillRect(platform.x, 503, platform.width, 1);
+    ctx.fillRect(platform.x, 493, platform.width, 1);
     if (propsAtlas.naturalWidth) {
       for (let x = platform.x; x < platform.x + platform.width; x += 96) {
-        drawAtlasProp('curb', x, 496, Math.min(96, platform.x + platform.width - x), 14);
+        drawAtlasProp('curb', x, 489, Math.min(96, platform.x + platform.width - x), 21);
       }
     }
     return;
@@ -438,7 +481,6 @@ function render() {
   drawCharacter(ctx, beibei, beibeiPortrait);
   drawCharacter(ctx, meng, mengPortrait);
   drawDust(beibei);
-  drawGapLabel(meng);
   drawSpeedLines();
   if (state.basketball?.active) drawBasketball(state.basketball);
 
@@ -455,10 +497,10 @@ function render() {
 
   if (state.phase === 'caught') {
     ctx.fillStyle = '#fff9e9';
-    ctx.fillRect(state.player.x + 34, state.player.y - 55, 190, 30);
+    ctx.fillRect(state.player.x + 34, state.player.y - 68, 190, 30);
     ctx.fillStyle = '#2c2540';
     ctx.font = '16px monospace';
-    ctx.fillText('没心眼，不等我', state.player.x + 43, state.player.y - 35);
+    ctx.fillText('没心眼，不等我', state.player.x + 43, state.player.y - 48);
   }
   ctx.restore();
   ctx.restore();
@@ -545,20 +587,6 @@ function handleTerminal() {
     render();
     endTimer = window.setTimeout(showWinDialog, 540);
   }, 440);
-}
-
-function drawGapLabel(pursuer) {
-  const gap = Math.max(0, Math.round(state.pursuer.x - state.player.x));
-  const bubbleY = pursuer.y - 100;
-  ctx.save();
-  ctx.fillStyle = 'rgba(24, 30, 57, .84)';
-  ctx.beginPath();
-  ctx.roundRect(pursuer.x - 24, bubbleY, 66, 22, 9);
-  ctx.fill();
-  ctx.fillStyle = gap <= 180 ? '#ffe68c' : '#fff9e9';
-  ctx.font = '700 13px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`${gap}px`, pursuer.x - 15, bubbleY + 15);
-  ctx.restore();
 }
 
 function drawPursuerMotion(pursuer) {
@@ -718,6 +746,10 @@ function requestLevelStart(levelId) {
     return;
   }
   queuedLevelId = levelId;
+  if (runnerAssetsFailed) {
+    retryRunnerAssets();
+    return;
+  }
   startButton.disabled = true;
   startButton.textContent = '角色加载中…';
   gameStatus.textContent = '正在加载高清角色素材。';

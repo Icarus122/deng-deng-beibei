@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7c76b" />
+    <title>角色跑步动作预览 · 等等贝贝吧</title>
+    <style>
+      :root { color-scheme: light; font-family: "Microsoft YaHei", sans-serif; color: #2c2540; background: #eee8dc; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; padding: 24px; background: radial-gradient(circle at top, #faf4e5, #d9d4e6 78%); }
+      main { width: min(1120px, 100%); margin: 0 auto; border: 4px solid #2c2540; padding: clamp(18px, 4vw, 36px); background: #fff9e9; box-shadow: 8px 8px 0 #2c2540; }
+      header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+      h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2.2rem); }
+      a { color: #72557a; font-weight: 800; }
+      .intro { margin: 10px 0 22px; line-height: 1.7; color: #5a5269; }
+      .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 20px; }
+      label { display: grid; gap: 5px; font-size: .82rem; font-weight: 800; }
+      select, button { min-height: 42px; border: 2px solid #2c2540; border-radius: 0; padding: 8px 12px; color: #2c2540; background: #fff; font: inherit; font-weight: 700; }
+      button { cursor: pointer; box-shadow: 3px 3px 0 #2c2540; }
+      button:hover, button:focus-visible { transform: translate(-1px, -1px); }
+      .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      article { min-width: 0; border: 2px solid #d7cfb8; padding: 14px; background: #fbf7ec; }
+      h2 { margin: 0 0 10px; font-size: 1.2rem; }
+      .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      figure { min-width: 0; margin: 0; }
+      figcaption { margin: 0 0 5px; font-size: .78rem; font-weight: 800; }
+      canvas { display: block; width: 100%; height: auto; border: 1px solid #c9c1ad; background: #e5e8ef; }
+      .caption { margin: 10px 0 0; color: #60566b; font-size: .82rem; }
+      #status { min-height: 1.4em; margin: 16px 0 0; font-weight: 700; color: #a04669; }
+      @media (max-width: 760px) { body { padding: 10px; } .comparison { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>跑步动作对比预览</h1>
+        <a href="index.html">返回游戏</a>
+      </header>
+      <p class="intro">左右并排对照旧四帧与新版十二帧循环。跑步相位按实际位移推进；速度、慢放和朝向可随时切换，逐帧检查接触、承重、经过与腾空。</p>
+      <section class="toolbar" aria-label="动画控制">
+        <label>跑步速度
+          <select id="speed">
+            <option value="105">回头 105 px/s</option>
+            <option value="136">孟培杰巡航 136 px/s</option>
+            <option value="150" selected>普通跑 150 px/s</option>
+            <option value="190">高路 190 px/s</option>
+            <option value="205">孟培杰加速 205 px/s</option>
+            <option value="240">冲刺 240 px/s</option>
+          </select>
+        </label>
+        <label>朝向
+          <select id="facing"><option value="1">向右</option><option value="-1">向左</option></select>
+        </label>
+        <button id="toggle" type="button">暂停</button>
+        <button id="previous" type="button">上一帧</button>
+        <button id="next" type="button">下一帧</button>
+        <label><span>慢放</span><span><input id="slow" type="checkbox" /> 1/4 速度</span></label>
+      </section>
+      <section class="comparison" aria-label="新旧动作对照">
+        <article>
+          <h2>董贝贝</h2>
+          <div class="panels">
+            <figure><figcaption>旧版 · 4 帧</figcaption><canvas id="beibei-old" width="560" height="230"></canvas></figure>
+            <figure><figcaption>新版 · 12 帧</figcaption><canvas id="beibei-new" width="560" height="230"></canvas></figure>
+          </div>
+          <p class="caption" id="beibei-frame">准备加载…</p>
+        </article>
+        <article>
+          <h2>孟培杰</h2>
+          <div class="panels">
+            <figure><figcaption>旧版 · 4 帧</figcaption><canvas id="meng-old" width="560" height="230"></canvas></figure>
+            <figure><figcaption>新版 · 12 帧</figcaption><canvas id="meng-new" width="560" height="230"></canvas></figure>
+          </div>
+          <p class="caption" id="meng-frame">准备加载…</p>
+        </article>
+      </section>
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="animation-preview.js?v=20260920d"></script>
+  </body>
+</html>

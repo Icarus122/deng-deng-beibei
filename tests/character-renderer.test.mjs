@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { drawCharacter, getCharacterPose, getRunFrameIndex } from '../character-renderer.js';
+import { drawCharacter, getCharacterPose, getRunFrameIndex, getRunFrameRect, RUN_CYCLE_DISTANCE_PX, RUN_FRAME_DISTANCE_PX } from '../character-renderer.js';
 
 test('character pose comes from each character state rather than the other runner', () => {
   assert.equal(getCharacterPose({ grounded: true, slipTimerMs: 0, mode: 'cruise' }), 'run');
@@ -13,12 +13,27 @@ test('character pose comes from each character state rather than the other runne
   assert.equal(getCharacterPose({ grounded: true, slipTimerMs: 0, mode: 'downed' }), 'downed');
 });
 
-test('running animation advances through the four full-body sprite frames', () => {
+test('running animation advances through twelve distance-driven full-body frames', () => {
   assert.equal(getRunFrameIndex(0), 0);
-  assert.equal(getRunFrameIndex(46), 1);
-  assert.equal(getRunFrameIndex(92), 2);
-  assert.equal(getRunFrameIndex(138), 3);
-  assert.equal(getRunFrameIndex(184), 0);
+  assert.equal(RUN_CYCLE_DISTANCE_PX, 96);
+  assert.equal(RUN_FRAME_DISTANCE_PX, 8);
+  for (let index = 0; index < 12; index += 1) assert.equal(getRunFrameIndex(index * RUN_FRAME_DISTANCE_PX), index);
+  assert.equal(getRunFrameIndex(RUN_CYCLE_DISTANCE_PX), 0);
+  assert.equal(getRunFrameIndex(-RUN_FRAME_DISTANCE_PX), 1);
+  assert.equal(getRunFrameRect('beibei', 11).x, 720);
+  assert.equal(getRunFrameRect('beibei', 11).y, 640);
+  assert.equal(getRunFrameRect('meng', 12).x, 0);
+  assert.equal(getRunFrameRect('unknown', 0), null);
+});
+
+test('replacement atlases use the shared 4 by 3 transparent-HD frame specification', async () => {
+  for (const runner of ['beibei', 'meng']) {
+    const bytes = await readFile(new URL(`../assets/${runner}-run-cycle-v3.png`, import.meta.url));
+
+    assert.equal(bytes.readUInt32BE(16), 960);
+    assert.equal(bytes.readUInt32BE(20), 960);
+    assert.equal(bytes[25], 6, 'the PNG must retain an RGBA alpha channel');
+  }
 });
 
 test('running animation keeps each whole-character frame crisp', async () => {
@@ -36,11 +51,13 @@ test('running character draws without relying on a browser global', () => {
     drawImage(...args) { drawCalls.push(args); },
     set fillStyle(value) {},
   };
-  const image = { naturalWidth: 400, naturalHeight: 120 };
+  const image = { naturalWidth: 960, naturalHeight: 960 };
 
-  drawCharacter(ctx, { x: 120, y: 200, grounded: true, facing: 1, slipTimerMs: 0 }, { still: image, runCycle: image }, 0);
+  drawCharacter(ctx, { x: 120, y: 200, grounded: true, facing: 1, slipTimerMs: 0, runDistanceTravelled: 24 }, { still: image, runnerId: 'beibei', runCycle: image });
 
   assert.equal(drawCalls.length, 1);
+  assert.deepEqual(drawCalls[0].slice(1, 5), [720, 0, 240, 320]);
+  assert.deepEqual(drawCalls[0].slice(5, 9), [-33, -88, 66, 88]);
 });
 
 test('running character does not draw legacy fallback blocks while art is unavailable', () => {

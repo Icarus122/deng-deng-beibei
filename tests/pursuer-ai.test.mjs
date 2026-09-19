@@ -34,6 +34,14 @@ test('a downed pursuer does not copy Beibei running movement', () => {
   assert.equal(next.mode, 'downed');
 });
 
+test('Meng keeps an independent ground-running distance and pauses it while airborne', () => {
+  const grounded = updatePursuer(createPursuer(500), { x: 300 }, 50);
+  const airborne = updatePursuer({ ...createPursuer(500), y: 300, grounded: false, velocityY: -20 }, { x: 300 }, 50);
+
+  assert.ok(Math.abs(grounded.runDistanceTravelled - 6.8) < 1e-9);
+  assert.equal(airborne.runDistanceTravelled, 0);
+});
+
 test('Meng independently jumps toward a shortcut platform before 70 percent', () => {
   const level = {
     finishX: 23500,

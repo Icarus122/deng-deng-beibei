@@ -57,6 +57,7 @@ h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 
 .portrait-row { display: flex; align-items: center; gap: 16px; font-weight: 900; color: #a04669; }
 .portrait-row img { width: 82px; height: 82px; object-fit: cover; image-rendering: auto; }
 .controls, .touch-tip { margin: 8px 0 0; font-size: .85rem; color: #524765; }
+.preview-link { color: #675579; font-size: .82rem; font-weight: 800; }
 .primary-button { background: #ff797f; }
 .ghost-button { background: #c9c2d7; }
 .chapter-select { width: min(100%, 720px); margin-top: 4px; }

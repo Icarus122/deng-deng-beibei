@@ -90,13 +90,24 @@ function hasSupportAhead(state, lookAhead = 30) {
   ));
 }
 
-function jumpInput(state, sprint = false) {
-  const needsJump = !hasSupportAhead(state);
+function highRouteStartsAhead(state) {
+  const playerFront = state.player.x + PLAYER_WIDTH;
+  return getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts).some((platform) => (
+    platform.route
+    && platform.y === 478
+    && platform.x >= playerFront
+    && platform.x - playerFront <= 70
+  ));
+}
+
+function jumpInput(state, sprint = false, takeHighRoute = false, lookAhead = 30) {
+  const needsJump = !hasSupportAhead(state, lookAhead);
+  const routeJump = takeHighRoute && state.player.grounded && highRouteStartsAhead(state);
   const canGroundJump = state.player.grounded;
   const canAirJump = !state.player.grounded
     && state.player.velocityY > 0
     && state.player.jumpsUsed < 2;
-  const shouldJump = needsJump && (canGroundJump || canAirJump);
+  const shouldJump = routeJump || (needsJump && (canGroundJump || canAirJump));
   return {
     left: false,
     right: sprint,
@@ -149,9 +160,14 @@ export function analyseLevel() {
     start: platform.x,
     end: platform.x + platform.width,
   })));
-  const highCoverage = highIntervals.reduce((total, interval) => total + interval.end - interval.start, 0);
+  const routeGroups = platformGroups(high);
+  const highRouteSpans = mergeIntervals([...routeGroups.values()].map((routePlatforms) => {
+    const ordered = sortByStart(routePlatforms);
+    return { start: ordered[0].x, end: ordered.at(-1).x + ordered.at(-1).width };
+  }));
+  const highCoverage = highRouteSpans.reduce((total, interval) => total + interval.end - interval.start, 0);
   const gaps = getGroundGaps(ground, highIntervals);
-  const routes = [...platformGroups(high).entries()].map(([route, routePlatforms]) => {
+  const routes = [...routeGroups.entries()].map(([route, routePlatforms]) => {
     const ordered = sortByStart(routePlatforms);
     const start = ordered[0].x;
     const end = ordered.at(-1).x + ordered.at(-1).width;
@@ -179,7 +195,7 @@ export function analyseLevel() {
   const bots = [
     runBot('零输入', () => ({ left: false, right: false, sprint: false, jumpPressed: false, jumpHeld: false })),
     runBot('自动跳跃（30px 前视）', (state) => jumpInput(state)),
-    runBot('理想路线（自动跳跃 + 冲刺）', (state) => jumpInput(state, true)),
+    runBot('理想路线（高路 + 自动跳跃 + 冲刺）', (state) => jumpInput(state, true, true)),
   ];
   const idealBot = bots[2];
   const zeroBot = bots[0];

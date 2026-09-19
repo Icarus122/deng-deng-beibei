@@ -1,36 +1,47 @@
 const GROUND_Y = 510;
 
-// Hand-authored beats: every region introduces pressure, offers a breather,
-// and then ramps up again instead of repeating a procedural gap pattern.
-const groundBeats = [
-  // Each district: tutorial gap, regular gap, pressure gap, a clear breather,
-  // then a real double-jump climax.  The widths are intentionally hand-set.
-  { id: 'gate-tutorial', x: 0, width: 1800 }, { id: 'gate-regular', x: 1850, width: 380 }, { id: 'gate-pressure', x: 2340, width: 420 }, { id: 'gate-breather', x: 2920, width: 1240 }, { id: 'gate-climax', x: 4410, width: 390 },
-  { id: 'court-tutorial', x: 4800, width: 650 }, { id: 'court-regular', x: 5510, width: 390 }, { id: 'court-pressure', x: 6020, width: 420 }, { id: 'court-breather', x: 6602, width: 1198 }, { id: 'court-climax', x: 8060, width: 1540 },
-  { id: 'ginkgo-tutorial', x: 9600, width: 650 }, { id: 'ginkgo-regular', x: 10305, width: 400 }, { id: 'ginkgo-pressure', x: 10825, width: 425 }, { id: 'ginkgo-breather', x: 11435, width: 1205 }, { id: 'ginkgo-climax', x: 12900, width: 1500 },
-  { id: 'lake-tutorial', x: 14400, width: 640 }, { id: 'lake-regular', x: 15095, width: 405 }, { id: 'lake-pressure', x: 15620, width: 430 }, { id: 'lake-breather', x: 16230, width: 1210 }, { id: 'lake-climax', x: 17700, width: 1500 },
-  { id: 'bridge-tutorial', x: 19200, width: 640 }, { id: 'bridge-regular', x: 19895, width: 410 }, { id: 'bridge-pressure', x: 20425, width: 430 }, { id: 'bridge-breather', x: 21035, width: 1205 }, { id: 'bridge-climax', x: 22500, width: 1500 },
-].map((beat) => ({ ...beat, y: GROUND_Y, height: 30 }));
-
-// The route specifications are hand-placed lanes.  Each entry gets two short
-// approach ramps and a flat 1,700px express lane, so the reward is sustained
-// speed instead of a decorative staircase that cannot actually be traversed.
-const highRouteSpecs = [
-  ['gate-1', 'gate-route', 520], ['gate-2', 'gate-route-b', 2880],
-  ['court-1', 'court-route', 5100], ['court-2', 'court-route-b', 7480],
-  ['ginkgo-1', 'ginkgo-route', 9900], ['ginkgo-2', 'ginkgo-route-b', 12120],
-  ['lake-1', 'lake-route', 14680], ['lake-2', 'lake-route-b', 16920],
-  ['bridge-1', 'bridge-route', 19480], ['bridge-2', 'bridge-route-b', 21620],
+// Every district follows a hand-authored Mario-style phrase: teach, ask for a
+// small jump, add pressure, offer a safe high-road choice, then close harder.
+// These are data, not a random generator: changing a row changes one whole
+// district while keeping its 4,800px visual background aligned.
+const beatPlans = [
+  { id: 'gate', start: 0, gaps: [55, 90, 130, 150], lengths: [1700, 420, 440, 1390, 425] },
+  { id: 'court', start: 4800, gaps: [60, 95, 135, 153], lengths: [1700, 420, 440, 1390, 407] },
+  { id: 'ginkgo', start: 9600, gaps: [60, 95, 135, 155], lengths: [1700, 420, 440, 1390, 405] },
+  { id: 'lake', start: 14400, gaps: [65, 100, 140, 158], lengths: [1700, 420, 440, 1390, 387] },
+  { id: 'bridge', start: 19200, gaps: [65, 100, 140, 160], lengths: [1700, 420, 440, 1390, 385] },
 ];
+const beatKinds = ['tutorial', 'regular', 'pressure', 'breather', 'climax'];
 
-const highRoutes = highRouteSpecs.flatMap(([route, prefix, x]) => [
-  { id: `${prefix}-1`, route, x: x - 220, y: 490, width: 100, height: 18, boost: 190, ramp: true, slope: true },
-  { id: `${prefix}-2`, route, x: x - 100, y: 474, width: 100, height: 18, boost: 190, ramp: true, slope: true },
-  { id: `${prefix}-3`, route, x, y: 456, width: 420, height: 22, boost: 190, slope: true },
-  { id: `${prefix}-4`, route, x: x + 440, y: 456, width: 420, height: 22, boost: 190 },
-  { id: `${prefix}-5`, route, x: x + 880, y: 456, width: 420, height: 22, boost: 190 },
-  { id: `${prefix}-6`, route, x: x + 1320, y: 456, width: 420, height: 22, boost: 190 },
-]);
+const groundBeats = beatPlans.flatMap((plan) => {
+  let x = plan.start;
+  return plan.lengths.map((width, index) => {
+    const beat = { id: `${plan.id}-${beatKinds[index]}`, x, width, y: GROUND_Y, height: 30 };
+    x += width + (plan.gaps[index] ?? 0);
+    return beat;
+  });
+});
+
+function getBreatherStart(plan) {
+  return plan.start + plan.lengths[0] + plan.gaps[0] + plan.lengths[1] + plan.gaps[1] + plan.lengths[2] + plan.gaps[2];
+}
+
+// Five optional technical routes live entirely above each district's safe
+// breather.  They are deliberately not slopes: Beibei must jump onto them,
+// then earns the 190px/s boost and high-route coin line.
+const highRoutes = beatPlans.flatMap((plan) => {
+  const route = `${plan.id}-route`;
+  const prefix = route;
+  const x = getBreatherStart(plan) + 100;
+  return [
+    { id: `${prefix}-s1`, route, x, y: 478, width: 90, height: 18, boost: 190 },
+    { id: `${prefix}-s2`, route, x: x + 140, y: 446, width: 90, height: 18, boost: 190 },
+    { id: `${prefix}-s3`, route, x: x + 280, y: 414, width: 90, height: 22, boost: 190 },
+    { id: `${prefix}-d1`, route, x: x + 420, y: 414, width: 170, height: 22, boost: 190 },
+    { id: `${prefix}-d2`, route, x: x + 670, y: 414, width: 170, height: 22, boost: 190 },
+    { id: `${prefix}-d3`, route, x: x + 960, y: 414, width: 170, height: 22, boost: 190 },
+  ];
+});
 
 const regions = [
   { id: 'gate', name: '校园入口', start: 0, end: 4800, palette: 'morning', landmark: 'gate', foreground: 'flowerbeds', interaction: 'surprise' },
@@ -40,27 +51,36 @@ const regions = [
   { id: 'bridge', name: '黄昏天桥', start: 19200, end: 24000, palette: 'sunset', landmark: 'city', foreground: 'lamps', interaction: 'wind' },
 ];
 
-const pickups = [
-  { id: 'coin-1', type: 'coin', x: 840, y: 430, width: 20, height: 24 },
-  { id: 'coin-2', type: 'coin', x: 1200, y: 430, width: 20, height: 24 },
-  { id: 'coin-3', type: 'coin', x: 1760, y: 430, width: 20, height: 24 },
-  { id: 'coin-4', type: 'coin', x: 3160, y: 430, width: 20, height: 24 },
-  { id: 'coin-5', type: 'coin', x: 5600, y: 430, width: 20, height: 24 },
-  { id: 'coin-6', type: 'coin', x: 6200, y: 430, width: 20, height: 24 },
-  { id: 'coin-7', type: 'coin', x: 10280, y: 430, width: 20, height: 24 },
-  { id: 'coin-8', type: 'coin', x: 12600, y: 430, width: 20, height: 24 },
-  { id: 'coin-9', type: 'coin', x: 15100, y: 430, width: 20, height: 24 },
-  { id: 'coin-10', type: 'coin', x: 19960, y: 430, width: 20, height: 24 },
-  { id: 'coin-11', type: 'coin', x: 20500, y: 430, width: 20, height: 24 },
-  { id: 'coin-12', type: 'coin', x: 22200, y: 430, width: 20, height: 24 },
-  { id: 'energy-0', type: 'energy', x: 1600, y: 430, width: 22, height: 22 },
-  { id: 'energy-1', type: 'energy', x: 4100, y: 468, width: 22, height: 22 },
-  { id: 'energy-2', type: 'energy', x: 6200, y: 430, width: 22, height: 22 },
-  { id: 'energy-3', type: 'energy', x: 12600, y: 430, width: 22, height: 22 },
-  { id: 'energy-4', type: 'energy', x: 15100, y: 430, width: 22, height: 22 },
-  { id: 'energy-5', type: 'energy', x: 20500, y: 430, width: 22, height: 22 },
-  { id: 'energy-6', type: 'energy', x: 22200, y: 430, width: 22, height: 22 },
-];
+const routeCoins = beatPlans.flatMap((plan, routeIndex) => {
+  const x = getBreatherStart(plan) + 100;
+  return [
+    { id: `coin-${routeIndex * 3 + 1}`, type: 'coin', x: x + 485, y: 390, width: 20, height: 24 },
+    { id: `coin-${routeIndex * 3 + 2}`, type: 'coin', x: x + 735, y: 390, width: 20, height: 24 },
+    { id: `coin-${routeIndex * 3 + 3}`, type: 'coin', x: x + 1035, y: 390, width: 20, height: 24 },
+  ];
+});
+
+// Energy remains on the ground: it is the resource that lets a player choose
+// to sprint across a pressure beat, while high-road coins reward the harder
+// route without making ordinary progress impossible.
+const groundEnergy = [
+  { id: 'energy-0', x: 1880 }, { id: 'energy-1', x: 4010 },
+  { id: 'energy-2', x: 6750 }, { id: 'energy-3', x: 8800 },
+  { id: 'energy-4', x: 11480 }, { id: 'energy-5', x: 16300 },
+  { id: 'energy-6', x: 21060 },
+].map((energy) => ({ ...energy, type: 'energy', y: 468, width: 22, height: 22 }));
+
+const pickups = [...routeCoins, ...groundEnergy];
+
+const checkpoints = beatPlans.flatMap((plan) => {
+  const regularStart = plan.start + plan.lengths[0] + plan.gaps[0];
+  const breatherStart = getBreatherStart(plan);
+  return [regularStart, breatherStart].map((x, index) => ({
+    id: `${plan.id}-${index === 0 ? 'regular' : 'breather'}-checkpoint`,
+    x: x + 20,
+    respawnX: x + 8,
+  }));
+});
 
 export const JOURNEY = {
   name: '等到天桥尽头',
@@ -104,7 +124,7 @@ export const JOURNEY = {
   obstacles: [
     { id: 'surprise-1', type: 'surprise', x: 2700, y: 400, width: 30, height: 30 },
     { id: 'spring-1', type: 'spring', x: 4600, y: 486, width: 34, height: 24 },
-    { id: 'basketball-1', type: 'basketball', x: 6500, y: 482, width: 22, height: 22 },
+    { id: 'basketball-1', type: 'basketball', x: 6800, y: 482, width: 22, height: 22 },
     { id: 'bookbag-1', type: 'bookbag', x: 8200, y: 478, width: 28, height: 32 },
     { id: 'banana-1', type: 'banana', x: 11100, y: 490, width: 24, height: 16 },
     { id: 'surprise-2', type: 'surprise', x: 13100, y: 400, width: 30, height: 30 },
@@ -131,10 +151,7 @@ export const JOURNEY = {
   pickups,
   energy: pickups.filter((pickup) => pickup.type === 'energy'),
   coins: pickups.filter((pickup) => pickup.type === 'coin'),
-  checkpoints: [
-    { x: 3600, respawnX: 3500 }, { x: 7200, respawnX: 7100 }, { x: 10800, respawnX: 10700 },
-    { x: 14400, respawnX: 14300 }, { x: 18000, respawnX: 17900 }, { x: 21600, respawnX: 21500 },
-  ],
+  checkpoints,
 };
 
 export function getRegionAt(regionList, x) {

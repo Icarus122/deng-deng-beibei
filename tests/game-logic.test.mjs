@@ -36,9 +36,31 @@ test('journey supplies dense elevated routes and varied hazards', () => {
   assert.ok(JOURNEY.obstacles.length >= 18);
 });
 
-test('every hand-authored high route stays within the double-jump reach budget', () => {
+test('five hand-authored high routes stay within the jump reach budget', () => {
   assert.deepEqual(getHighRouteViolations(JOURNEY.platforms), []);
-  assert.ok(JOURNEY.platforms.filter((platform) => platform.boost).length >= 40);
+  assert.equal(new Set(JOURNEY.platforms.filter((platform) => platform.route).map((platform) => platform.route)).size, 5);
+  assert.equal(JOURNEY.platforms.filter((platform) => platform.boost).length, 30);
+  assert.ok(JOURNEY.platforms.filter((platform) => platform.route).every((platform) => !platform.slope));
+  assert.ok(JOURNEY.platforms.filter((platform) => platform.route).some((platform) => platform.y === 414));
+});
+
+test('high routes hold coins while sprint energy stays reachable on the ground', () => {
+  for (const coin of JOURNEY.coins) {
+    assert.ok(JOURNEY.platforms.some((platform) => platform.route
+      && coin.x + coin.width > platform.x
+      && coin.x < platform.x + platform.width
+      && coin.y + coin.height === platform.y));
+  }
+  assert.ok(JOURNEY.energy.every((energy) => energy.y === 468));
+});
+
+test('data-derived checkpoints respawn on solid ground twice per district', () => {
+  assert.equal(JOURNEY.checkpoints.length, 10);
+  for (const checkpoint of JOURNEY.checkpoints) {
+    assert.ok(JOURNEY.platforms.some((platform) => platform.y === 510
+      && checkpoint.respawnX >= platform.x
+      && checkpoint.respawnX < platform.x + platform.width));
+  }
 });
 
 test('journey includes every announced interactive hazard type across all districts', () => {
@@ -65,12 +87,20 @@ test('auto-run reaches the first elevated hazard without falling', () => {
   assert.notEqual(state.event, 'fell');
 });
 
-test('a low ramp is a walkable entrance to the high-speed route', () => {
+test('a high route requires a jump instead of automatically lifting Beibei', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 298, y: 478, grounded: true } };
+  state = { ...state, player: { ...state.player, x: 2928, y: 478, grounded: true } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
 
-  assert.equal(state.player.y, 458);
+  assert.equal(state.player.y, 478);
+  assert.equal(state.platformBoostTimerMs, 0);
+
+  state = {
+    ...state,
+    player: { ...state.player, x: 2920, y: 444, velocityY: 80, grounded: false, jumpsUsed: 1 },
+  };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
+  assert.equal(state.player.y, 446);
   assert.ok(state.platformBoostTimerMs > 0);
 });
 
@@ -175,7 +205,7 @@ test('camera eases toward a runner who has passed the initial viewport', () => {
 
 test('touching a basketball launches it forward automatically', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 6500 } };
+  state = { ...state, player: { ...state.player, x: 6800 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16, { random: () => 0.9 });
 
   assert.equal(state.basketball.active, true);
@@ -204,7 +234,7 @@ test('before 85 percent, Meng immediately opens a safe gap instead of allowing a
 
 test('collecting a coin closes the gap and records Beibei coin progress', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 1200, y: 424 } };
+  state = { ...state, player: { ...state.player, x: 3420, y: 382 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'coin');
@@ -288,7 +318,7 @@ test('the final bridge does not force a catch before close contact', () => {
 
 test('collecting Beibei energy starts a sprint and closes the gap', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 4100 } };
+  state = { ...state, player: { ...state.player, x: 1880 } };
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'energy');
@@ -298,11 +328,11 @@ test('collecting Beibei energy starts a sprint and closes the gap', () => {
 
 test('a collected Beibei energy stays collected on later frames', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 4100 } };
+  state = { ...state, player: { ...state.player, x: 1880 } };
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
 
-  assert.deepEqual(state.collectedEnergyIds, ['energy-1']);
+  assert.deepEqual(state.collectedEnergyIds, ['energy-0']);
 });
 
 test('falling returns Beibei to her checkpoint and widens the gap', () => {

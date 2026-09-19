@@ -43,7 +43,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   let velocityY = verticalVelocity;
   let grounded = false;
   const platform = targetPlatformId ? level.platforms?.find((item) => item.id === targetPlatformId) : null;
-  const canStepSlope = platform?.slope && pursuer.grounded && previousBottom >= platform.y && previousBottom - platform.y <= 24;
+  const canStepSlope = platform?.slope && pursuer.grounded && previousBottom >= platform.y && previousBottom - platform.y <= 6;
   if (platform && velocityY >= 0 && ((previousBottom <= platform.y && y + 32 >= platform.y) || canStepSlope) && pursuer.x + velocity * seconds + 24 > platform.x && pursuer.x + velocity * seconds < platform.x + platform.width) {
     y = platform.y - 32;
     velocityY = 0;

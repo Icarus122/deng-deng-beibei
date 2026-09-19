@@ -127,7 +127,7 @@ function drawPlatform(platform, elapsedMs) {
     }
     return;
   }
-  if (!platform.collapse && !platform.motion && drawAtlasProp('platform', platform.x, platform.y - 6, platform.width, Math.max(30, platform.height + 12))) return;
+  if (!platform.collapse && !platform.motion && drawAtlasProp('platform', platform.x, platform.y, platform.width, Math.max(30, platform.height + 12))) return;
   ctx.fillStyle = palette.edge;
   ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
   ctx.fillStyle = platform.collapse ? '#f39a5a' : palette.platform;

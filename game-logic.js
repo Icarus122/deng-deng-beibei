@@ -44,7 +44,7 @@ function placeOnSurface(player, platforms, previousBottom) {
   const surfaces = platforms.filter((platform) => {
     const coversPlayer = player.x + player.width > platform.x && player.x < platform.x + platform.width;
     const crossedTop = previousBottom <= platform.y && bottom >= platform.y;
-    const canStepSlope = platform.slope && player.grounded && previousBottom >= platform.y && previousBottom - platform.y <= 24;
+    const canStepSlope = platform.slope && player.grounded && previousBottom >= platform.y && previousBottom - platform.y <= 6;
     return coversPlayer && (crossedTop || canStepSlope) && player.velocityY >= 0;
   }).sort((a, b) => a.y - b.y);
   if (surfaces.length > 0) {

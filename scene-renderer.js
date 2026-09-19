@@ -98,11 +98,34 @@ function drawBridge(ctx, x, palette) {
   }
 }
 
+export function getCoverSourceRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
+  if (!(sourceWidth > 0 && sourceHeight > 0 && targetWidth > 0 && targetHeight > 0)) return null;
+  const sourceAspect = sourceWidth / sourceHeight;
+  const targetAspect = targetWidth / targetHeight;
+  if (sourceAspect > targetAspect) {
+    const width = sourceHeight * targetAspect;
+    return { x: (sourceWidth - width) / 2, y: 0, width, height: sourceHeight };
+  }
+  const height = sourceWidth / targetAspect;
+  return { x: 0, y: (sourceHeight - height) / 2, width: sourceWidth, height };
+}
+
 function drawHdBackground(ctx, image, cameraX) {
   if (!image?.naturalWidth) return false;
-  // A wide overscan lets the painting drift with the camera without tiling.
+  // Keep the painting's proportions while overscanning horizontally for drift.
+  const viewportWidth = 1300;
+  const viewportHeight = 540;
+  const drawWidth = 1550;
+  const drawHeight = drawWidth * viewportHeight / viewportWidth;
+  const drawY = (viewportHeight - drawHeight) / 2;
+  const crop = getCoverSourceRect(image.naturalWidth, image.naturalHeight, drawWidth, drawHeight);
+  if (!crop) return false;
   const drift = -135 + Math.sin(cameraX / 1200) * 135;
-  ctx.drawImage(image, drift, -57, 1550, 654);
+  ctx.drawImage(
+    image,
+    crop.x, crop.y, crop.width, crop.height,
+    drift, drawY, drawWidth, drawHeight,
+  );
   ctx.fillStyle = 'rgba(62, 60, 122, .12)';
   ctx.fillRect(0, 0, 1300, 540);
   ctx.fillStyle = 'rgba(255, 188, 124, .08)';
@@ -116,8 +139,46 @@ function drawHdBackground(ctx, image, cameraX) {
 }
 
 function drawHdParallax(ctx, region, cameraX, elapsedMs) {
-  // The supplied HD paintings already contain their own foreground.  Do not
-  // layer legacy procedural poles, rails or leaves over any region.
+  // Keep the paintings as the visual source of truth.  Only add a few subtle,
+  // naturally moving silhouettes; old rails and poles caused doubled edges.
+  const palette = getPalette(region);
+  const wrap = (value, width) => ((value % width) + width) % width;
+
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = region?.id === 'bridge' ? '#fff0cf' : '#f7fbf2';
+  ctx.lineWidth = 2;
+  for (let index = 0; index < 3; index += 1) {
+    const x = wrap(index * 470 - cameraX * 0.12 + elapsedMs * 0.012, 1480) - 70;
+    const y = 126 + (index % 2) * 43 + Math.sin((elapsedMs + index * 300) / 900) * 5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + 8, y - 7, x + 16, y);
+    ctx.moveTo(x + 16, y);
+    ctx.quadraticCurveTo(x + 24, y - 7, x + 32, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  if (!['ginkgo', 'lakeside', 'bridge'].includes(region?.id)) return;
+  ctx.save();
+  ctx.globalAlpha = 0.27;
+  ctx.fillStyle = region.id === 'ginkgo' ? '#f5d27e' : palette.accent;
+  for (let index = 0; index < 7; index += 1) {
+    const x = wrap(index * 223 - cameraX * 0.78 + elapsedMs * (index % 2 ? 0.025 : -0.018), 1450) - 70;
+    const y = 300 + ((index * 61 + elapsedMs * 0.018) % 145);
+    const width = 7 + index % 3;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.sin((elapsedMs + index * 170) / 360) * 0.8);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(width, -5, width + 5, 0);
+    ctx.quadraticCurveTo(width, 5, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 export function drawScene(ctx, { region, cameraX, elapsedMs, backgrounds }) {

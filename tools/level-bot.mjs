@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { JOURNEY } from '../level-data.js';
+import { getHighRouteViolations, JOURNEY } from '../level-data.js';
 import { createGame, getRenderPlatforms, updateGame } from '../game-logic.js';
+import { getDynamicHazards } from '../hazard-logic.js';
 
 const STEP_MS = 1000 / 60;
 const PLAYER_WIDTH = 24;
@@ -92,12 +93,20 @@ function hasSupportAhead(state, lookAhead = 30) {
 
 function highRouteStartsAhead(state) {
   const playerFront = state.player.x + PLAYER_WIDTH;
-  return getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts).some((platform) => (
-    platform.route
-    && platform.y === 478
-    && platform.x >= playerFront
-    && platform.x - playerFront <= 70
-  ));
+  const platforms = getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts);
+  const currentSurface = platforms.find((platform) => platform.id === state.player.groundedPlatformId);
+  const targetTier = currentSurface?.route
+    ? currentSurface.y
+    : 410;
+  const nextRoute = platforms.filter((platform) => platform.route
+    && platform.id !== currentSurface?.id
+    && platform.y <= targetTier
+    && platform.x + platform.width > playerFront)
+    .sort((a, b) => a.x - b.x)[0];
+  if (!nextRoute || nextRoute.x - playerFront > 120) return false;
+  if (!currentSurface?.route) return nextRoute.y === 410;
+  const horizontalGap = nextRoute.x - (currentSurface.x + currentSurface.width);
+  return nextRoute.y < currentSurface.y - 12 || horizontalGap > PLAYER_WIDTH;
 }
 
 function groundGapAhead(state, lookAhead = 30) {
@@ -110,18 +119,30 @@ function groundGapAhead(state, lookAhead = 30) {
   })).find((gap) => front < gap.end && front + lookAhead >= gap.start);
 }
 
-function jumpInput(state, sprint = false, takeHighRoute = false, lookAhead = 30) {
+export function jumpInput(state, sprint = false, takeHighRoute = false, lookAhead = 30) {
   const needsJump = !hasSupportAhead(state, lookAhead);
   const gap = groundGapAhead(state, lookAhead);
   const front = state.player.x + PLAYER_WIDTH;
   const jumpLead = gap ? Math.min(80, Math.max(30, gap.end - gap.start - 50)) : 0;
   const gapNeedsJump = Boolean(gap) && (front >= gap.start || gap.start - front <= jumpLead);
   const routeJump = takeHighRoute && state.player.grounded && highRouteStartsAhead(state);
+  const currentHazards = getDynamicHazards(JOURNEY, state.elapsedMs, state.collapseStarts);
+  const dangerous = [...currentHazards, ...JOURNEY.obstacles].some((hazard) => {
+    if (!['spikes', 'blocker', 'patrol', 'constructionBox', 'bookbag', 'barrier', 'banana'].includes(hazard.type)) return false;
+    const hazardY = hazard.type === 'constructionBox' ? (hazard.warning ? hazard.groundY ?? 466 : hazard.y) : hazard.y;
+    const hazardHeight = hazard.type === 'constructionBox' ? 44 : hazard.height;
+    const intersectsHeight = hazardY + hazardHeight + 10 > state.player.y
+      && hazardY - 10 < state.player.y + state.player.height;
+    const distanceAhead = hazard.x - front;
+    const jumpLead = hazard.type === 'banana' ? 76 : 90;
+    return intersectsHeight && distanceAhead >= -PLAYER_WIDTH && distanceAhead <= jumpLead;
+  });
   const canGroundJump = state.player.grounded;
   const canAirJump = !state.player.grounded
     && state.player.velocityY > 0
     && state.player.jumpsUsed < 2;
   const shouldJump = routeJump
+    || (dangerous && (canGroundJump || canAirJump))
     || (canGroundJump && (gapNeedsJump || needsJump))
     || (canAirJump && (gapNeedsJump || needsJump));
   return {
@@ -159,6 +180,11 @@ export function runBot(name, inputForState, { maxMs = BOT_TIMEOUT_MS } = {}) {
   return {
     name,
     phase: state.phase,
+    hearts: state.hearts,
+    distance: state.distance,
+    event: state.event,
+    playerY: state.player.y,
+    pursuerY: state.pursuer.y,
     elapsedMs,
     maxPlayerX,
     progress: maxPlayerX / JOURNEY.finishX,
@@ -230,9 +256,9 @@ export function analyseLevel() {
       detail: `最远 ${Math.round(zeroBot.maxPlayerX)}px，检查点 ${JOURNEY.checkpoints[0].x}px`,
     },
     {
-      label: '每个地面坑都有大于 24px 的暴露宽度',
-      pass: gaps.every((gap) => gap.exposed > 24),
-      detail: `${gaps.filter((gap) => gap.exposed <= 24).length}/${gaps.length} 个被高路完全或几乎完全遮住`,
+      label: '每个地面坑都可跳过或由高路安全覆盖',
+      pass: gaps.every((gap) => gap.exposed > 24 || gap.exposed === 0),
+      detail: `${gaps.filter((gap) => gap.exposed > 0 && gap.exposed <= 24).length}/${gaps.length} 个只有不足 25px 的暴露宽度`,
     },
     {
       label: '每条高路首尾都能落回真实地面',
@@ -240,9 +266,9 @@ export function analyseLevel() {
       detail: `${routes.filter((route) => route.startOnGround && route.endOnGround).length}/${routes.length} 条完整接地`,
     },
     {
-      label: '高路相邻平台间隙为 25–140px',
-      pass: routes.every((route) => route.adjacentGaps.every((gap) => gap >= 25 && gap <= 140)),
-      detail: `${routes.flatMap((route) => route.adjacentGaps).filter((gap) => gap < 25 || gap > 140).length} 个不合格连接`,
+      label: '高路平台连接处满足横向跳跃与高差预算',
+      pass: getHighRouteViolations(JOURNEY.platforms).length === 0,
+      detail: `${getHighRouteViolations(JOURNEY.platforms).length} 个连接超过 150px 间隙或 120px 高差`,
     },
     {
       label: '所有坑宽在 40–170px，且每区逐段加压',

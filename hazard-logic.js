@@ -41,14 +41,18 @@ export function resolveHazardContact(state, hazards, elapsedMs) {
     if (!overlaps(state.player, hazard) && !isStandingOnCollapse) continue;
     if (hazard.type === 'collapse') {
       if (collapseStarts[hazard.id] === undefined) collapseStarts[hazard.id] = elapsedMs;
-      return { collapseStarts, distanceDelta: 0, event: 'collapseWarning', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
+      return { collapseStarts, event: 'collapseWarning', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
     }
     if (hazard.type === 'constructionBox' && !hazard.warning) {
-      return { collapseStarts, distanceDelta: 42, event: 'constructionHit', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
+      return { collapseStarts, event: 'constructionHit', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
     }
-    if (hazard.type === 'blocker' || hazard.type === 'patrol') {
-      return { collapseStarts, distanceDelta: 20, event: hazard.type === 'blocker' ? 'blockerHit' : 'patrolHit', hazardSlowTimerMs: 700 };
+    if (hazard.type === 'blocker' || hazard.type === 'patrol' || hazard.type === 'spikes') {
+      return {
+        collapseStarts,
+        event: hazard.type === 'blocker' ? 'blockerHit' : hazard.type === 'patrol' ? 'patrolHit' : 'spikesHit',
+        hazardSlowTimerMs: hazard.type === 'spikes' ? state.hazardSlowTimerMs ?? 0 : 700,
+      };
     }
   }
-  return { collapseStarts, distanceDelta: 0, event: 'none', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
+  return { collapseStarts, event: 'none', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
 }

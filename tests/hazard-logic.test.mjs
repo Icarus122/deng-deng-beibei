@@ -18,13 +18,20 @@ test('collapse platform disappears after its warning duration', () => {
   assert.equal(hazards.some((hazard) => hazard.id === 'collapse-a'), false);
 });
 
-test('construction box collision pushes Beibei farther from Meng', () => {
+test('construction box contact reports damage without teleporting Meng', () => {
   const state = { player: { x: 420, y: 460, width: 24, height: 32 }, distance: 120, collapseStarts: {}, hazardSlowTimerMs: 0 };
   const hazards = [{ id: 'box-a', type: 'constructionBox', x: 414, y: 458, width: 34, height: 38 }];
 
   const result = resolveHazardContact(state, hazards, 600);
-  assert.equal(result.distanceDelta, 42);
+  assert.equal(Object.hasOwn(result, 'distanceDelta'), false);
   assert.equal(result.event, 'constructionHit');
+});
+
+test('spikes are recognized as a damaging hazard', () => {
+  const state = { player: { x: 420, y: 460, width: 24, height: 32 }, collapseStarts: {}, hazardSlowTimerMs: 0 };
+  const hazards = [{ id: 'spikes-a', type: 'spikes', x: 414, y: 458, width: 34, height: 38 }];
+
+  assert.equal(resolveHazardContact(state, hazards, 600).event, 'spikesHit');
 });
 
 test('landing on a collapse platform starts its warning timer', () => {

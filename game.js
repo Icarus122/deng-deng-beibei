@@ -1,6 +1,6 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920d';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920f';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260920d';
+import { drawCharacter } from './character-renderer.js?v=20260920f';
 import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -25,20 +25,23 @@ const winDialog = document.querySelector('#win-dialog');
 const levelName = document.querySelector('#level-name');
 const distanceFill = document.querySelector('#distance-fill');
 const energyFill = document.querySelector('#energy-fill');
+const heartIcons = document.querySelectorAll('#heart-icons span');
 const gameStatus = document.querySelector('#game-status');
 const hudNotice = document.querySelector('#hud-notice');
+const dropButton = document.querySelector('#drop-button');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 const chapterButtons = document.querySelectorAll('[data-level-id]');
 const progressSummary = document.querySelector('#progress-summary');
 
 const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image(), poses: { cry: new Image(), jump: new Image() } };
-const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image() };
+const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image(), poses: { jump: new Image() } };
 const propsAtlas = new Image();
+const platformAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
 const gameAudio = createGameAudio();
 
-const input = { left: false, right: false, sprint: false, jumpPressed: false, jumpReleased: false, jumpHeld: false };
+const input = { left: false, right: false, down: false, sprint: false, jumpPressed: false, jumpReleased: false, jumpHeld: false };
 let currentLevel = 1;
 let state = null;
 let animationFrame = 0;
@@ -60,11 +63,13 @@ let runnerAssetsFailed = false;
 let runnerAssetRetry = 0;
 
 const runnerAssets = [
-  { image: beibeiPortrait.runCycle, url: 'assets/beibei-run-cycle-v3.png?v=20260920d' },
-  { image: mengPortrait.runCycle, url: 'assets/meng-run-cycle-v3.png?v=20260920d' },
+  { image: beibeiPortrait.runCycle, url: 'assets/beibei-run-cycle-v4.png?v=20260920f' },
+  { image: mengPortrait.runCycle, url: 'assets/meng-run-cycle-v4.png?v=20260920f' },
   { image: beibeiPortrait.poses.cry, url: 'assets/beibei-cry-v2.png?v=20260920d' },
   { image: beibeiPortrait.poses.jump, url: 'assets/beibei-jump-v1.png?v=20260920d' },
-  { image: propsAtlas, url: 'assets/props-atlas-v1.png?v=20260920d' },
+  { image: mengPortrait.poses.jump, url: 'assets/meng-jump-v1.png?v=20260920f' },
+  { image: propsAtlas, url: 'assets/props-atlas-v2.png?v=20260920f' },
+  { image: platformAtlas, url: 'assets/platforms-atlas-v2.png?v=20260920f' },
 ];
 
 function runnersReady() {
@@ -75,7 +80,10 @@ function runnersReady() {
     && mengPortrait.runCycle.naturalHeight === 960
     && beibeiPortrait.poses.cry.naturalWidth
     && beibeiPortrait.poses.jump.naturalWidth
-    && propsAtlas.naturalWidth,
+    && mengPortrait.poses.jump.naturalWidth === 1881
+    && mengPortrait.poses.jump.naturalHeight === 836
+    && propsAtlas.naturalWidth === 1024
+    && platformAtlas.naturalWidth === 1024,
   );
 }
 
@@ -118,7 +126,9 @@ beibeiPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.poses.cry.addEventListener('load', resumeQueuedLevel);
 beibeiPortrait.poses.jump.addEventListener('load', resumeQueuedLevel);
+mengPortrait.poses.jump.addEventListener('load', resumeQueuedLevel);
 propsAtlas.addEventListener('load', resumeQueuedLevel);
+platformAtlas.addEventListener('load', resumeQueuedLevel);
 runnerAssets.forEach(({ image, url }) => {
   image.addEventListener('error', handleRunnerAssetError);
   image.src = url;
@@ -188,99 +198,115 @@ refreshChapterButtons();
 
 function drawPlatform(platform, elapsedMs) {
   const palette = scenePalette();
-  if (platform.y === 510) {
-    // Enlarge the readable road edge while preserving its y=510 contact line
-    // and leaving the painting's bottom foreground visible.
-    const curb = ctx.createLinearGradient(0, 492, 0, 510);
-    curb.addColorStop(0, 'rgba(255, 245, 208, .82)');
-    curb.addColorStop(.45, palette.platform);
-    curb.addColorStop(1, palette.edge);
-    ctx.fillStyle = 'rgba(20, 31, 50, .24)';
-    ctx.fillRect(platform.x, 504, platform.width, 6);
-    ctx.fillStyle = curb;
-    ctx.fillRect(platform.x, 493, platform.width, 17);
-    ctx.fillStyle = 'rgba(255,255,255,.42)';
-    ctx.fillRect(platform.x, 493, platform.width, 1);
-    if (propsAtlas.naturalWidth) {
-      for (let x = platform.x; x < platform.x + platform.width; x += 96) {
-        drawAtlasProp('curb', x, 489, Math.min(96, platform.x + platform.width - x), 21);
-      }
+  if (!platformAtlas.naturalWidth) return;
+  const districtId = platform.material ?? currentDistrict()?.id;
+  const materialRow = { gate: 0, court: 1, ginkgo: 0, lakeside: 2, bridge: 3 }[districtId] ?? 0;
+  const tileWidth = 144;
+  const tileHeight = 128;
+  const imageY = platform.y - 52;
+  const clipTop = imageY - 1;
+  const clipBottom = platform.y + Math.max(platform.height, 62);
+  const drawTile = (column, x, width) => {
+    ctx.drawImage(platformAtlas, column * 256, materialRow * 256, 256, 256, x, imageY, width, tileHeight);
+  };
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(platform.x, clipTop, platform.width, clipBottom - clipTop);
+  ctx.clip();
+  if (platform.width < tileWidth * 2) {
+    drawTile(platform.collapse ? 3 : 1, platform.x, platform.width);
+  } else {
+    drawTile(0, platform.x, tileWidth);
+    drawTile(2, platform.x + platform.width - tileWidth, tileWidth);
+    const middleColumn = platform.collapse ? 3 : 1;
+    for (let x = platform.x + tileWidth - 18; x < platform.x + platform.width - tileWidth + 18; x += tileWidth - 18) {
+      drawTile(middleColumn, x, tileWidth);
     }
-    return;
   }
-  if (!platform.collapse && !platform.motion && drawAtlasProp('platform', platform.x, platform.y, platform.width, Math.max(30, platform.height + 12))) return;
-  ctx.fillStyle = palette.edge;
-  ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-  ctx.fillStyle = platform.collapse ? '#f39a5a' : palette.platform;
-  ctx.fillRect(platform.x + 4, platform.y + 4, platform.width - 8, 13);
-  ctx.fillStyle = '#fff0b2';
-  for (let x = platform.x + 12; x < platform.x + platform.width - 6; x += 36) ctx.fillRect(x, platform.y + 9, 14, 3);
-  if (platform.collapse) {
-    ctx.fillStyle = Math.floor(elapsedMs / 80) % 2 ? '#fff4ce' : '#d95767';
-    ctx.fillRect(platform.x + 7, platform.y + 2, platform.width - 14, 3);
-  }
+  ctx.strokeStyle = platform.collapse ? 'rgba(255, 121, 127, .92)' : `${palette.edge}88`;
+  ctx.lineWidth = platform.collapse ? 2.5 : 1.4;
+  ctx.beginPath();
+  ctx.moveTo(platform.x + 3, platform.y + 1);
+  ctx.lineTo(platform.x + platform.width - 3, platform.y + 1);
+  ctx.stroke();
   if (platform.motion) {
-    ctx.fillStyle = '#73d3d0';
-    ctx.fillRect(platform.x + 8, platform.y + 17, platform.width - 16, 4);
-    ctx.fillRect(platform.x + 4, platform.y + 3, 5, platform.height - 4);
-    ctx.fillRect(platform.x + platform.width - 9, platform.y + 3, 5, platform.height - 4);
+    ctx.strokeStyle = 'rgba(87, 224, 224, .7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(platform.x + 12, platform.y + 9);
+    ctx.lineTo(platform.x + platform.width - 12, platform.y + 9);
+    ctx.stroke();
   }
+  ctx.restore();
 }
 
 const PROP_FRAMES = {
   basketball: [0, 0], banana: [1, 0], bookbag: [2, 0], barrier: [3, 0],
-  crate: [0, 1], coin: [1, 1], energy: [2, 1], spring: [3, 1],
-  surprise: [0, 2], checkpoint: [1, 2], platform: [2, 2], curb: [3, 2],
+  crate: [0, 1], spring: [1, 1], surprise: [2, 1], checkpoint: [3, 1],
+  coin: [0, 2], energy: [1, 2], patrol: [2, 2], spikes: [3, 2],
+  heart: [0, 3], speedPad: [1, 3], collapse: [2, 3], wind: [3, 3],
 };
 
 function drawAtlasProp(id, x, y, width, height) {
   const frame = PROP_FRAMES[id];
   if (!frame || !propsAtlas.naturalWidth) return false;
-  ctx.drawImage(propsAtlas, frame[0] * 256, frame[1] * 256, 256, 256, x, y, width, height);
+  const size = Math.max(width, height);
+  const drawX = x + (width - size) / 2;
+  const drawY = y + (height - size) / 2;
+  ctx.drawImage(propsAtlas, frame[0] * 256, frame[1] * 256, 256, 256, drawX, drawY, size, size);
   return true;
 }
 
 function drawHazard(hazard, elapsedMs) {
   if (hazard.type === 'collapse') {
-    ctx.fillStyle = '#fff4ce';
-    ctx.fillRect(hazard.x + hazard.width / 2 - 4, hazard.y - 28, 8, 12);
-    ctx.fillStyle = Math.floor(elapsedMs / 110) % 2 ? '#ff797f' : '#ffd85e';
-    ctx.fillRect(hazard.x + hazard.width / 2 - 10, hazard.y - 18, 20, 14);
+    const pulse = .72 + Math.sin(elapsedMs / 140) * .18;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#ff797f';
+    ctx.fillStyle = 'rgba(255, 247, 224, .9)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(hazard.x + hazard.width / 2, hazard.y - 25);
+    ctx.lineTo(hazard.x + hazard.width / 2 + 11, hazard.y - 5);
+    ctx.lineTo(hazard.x + hazard.width / 2 - 11, hazard.y - 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
     return;
   }
   if (hazard.type === 'constructionBox') {
-    if (drawAtlasProp('crate', hazard.x - 8, hazard.y - 6, hazard.width + 16, hazard.height + 16)) return;
-    ctx.fillStyle = hazard.warning ? '#ffd85e' : '#bd6b43';
-    ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
-    ctx.fillStyle = '#2c2540';
-    ctx.fillRect(hazard.x + 4, hazard.y + 5, hazard.width - 8, 5);
-    ctx.fillRect(hazard.x + 4, hazard.y + 17, hazard.width - 8, 5);
+    ctx.save();
     if (hazard.warning) {
+      ctx.globalAlpha = .18;
       ctx.fillStyle = '#ff797f';
-      ctx.fillRect(hazard.x + 12, hazard.y - 22, 14, 12);
+      ctx.beginPath();
+      ctx.ellipse(hazard.x + hazard.width / 2, (hazard.groundY ?? 466) + 39, hazard.width * 1.5, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = .6;
+      ctx.setLineDash([7, 7]);
+      ctx.strokeStyle = '#ffd85e';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hazard.x + hazard.width / 2, hazard.y + hazard.height);
+      ctx.lineTo(hazard.x + hazard.width / 2, (hazard.groundY ?? 466) + 31);
+      ctx.stroke();
     }
+    ctx.restore();
+    drawAtlasProp('crate', hazard.x - 10, hazard.y - 10, hazard.width + 20, hazard.height + 20);
     return;
   }
   if (hazard.type === 'blocker') {
-    if (drawAtlasProp('barrier', hazard.x - 8, hazard.y - 8, hazard.width + 16, hazard.height + 16)) return;
-    ctx.fillStyle = '#2c2540';
-    ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
-    ctx.fillStyle = '#fff4ce';
-    for (let y = hazard.y + 7; y < hazard.y + hazard.height - 5; y += 16) ctx.fillRect(hazard.x + 4, y, hazard.width - 8, 6);
-    ctx.fillStyle = '#ff797f';
-    ctx.fillRect(hazard.x - 6, hazard.y + hazard.height - 5, hazard.width + 12, 5);
+    drawAtlasProp('barrier', hazard.x - 10, hazard.y - 8, hazard.width + 20, hazard.height + 16);
     return;
   }
   if (hazard.type === 'patrol') {
-    const blink = Math.floor(elapsedMs / 120) % 2;
-    ctx.fillStyle = '#f3ae5b';
-    ctx.fillRect(hazard.x + 5, hazard.y + 10, hazard.width - 10, hazard.height - 10);
-    ctx.fillRect(hazard.x + 9, hazard.y + 4, hazard.width - 18, 8);
-    ctx.fillStyle = blink ? '#ff797f' : '#fff4ce';
-    ctx.fillRect(hazard.x + 11, hazard.y + 18, hazard.width - 22, 5);
-    ctx.fillStyle = '#2c2540';
-    ctx.fillRect(hazard.x + 4, hazard.y + hazard.height - 4, 6, 4);
-    ctx.fillRect(hazard.x + hazard.width - 10, hazard.y + hazard.height - 4, 6, 4);
+    drawAtlasProp('patrol', hazard.x - 7, hazard.y - 4, hazard.width + 14, hazard.height + 8);
+    return;
+  }
+  if (hazard.type === 'spikes') {
+    drawAtlasProp('spikes', hazard.x, hazard.y - 36, hazard.width, hazard.height + 72);
   }
 }
 
@@ -288,9 +314,9 @@ function drawObstacle(obstacle, elapsedMs) {
   if (obstacle.type === 'wind') {
     const sway = Math.sin(elapsedMs / 140) * 6;
     ctx.save();
-    ctx.globalAlpha = 0.68;
-    ctx.strokeStyle = '#d9f5ff';
-    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.58;
+    ctx.strokeStyle = '#e7fbff';
+    ctx.lineWidth = 2.5;
     for (let y = obstacle.y + 18; y < obstacle.y + obstacle.height; y += 28) {
       ctx.beginPath();
       ctx.moveTo(obstacle.x, y);
@@ -300,143 +326,56 @@ function drawObstacle(obstacle, elapsedMs) {
     ctx.restore();
     return;
   }
-  if (obstacle.type === 'surprise') {
-    if (drawAtlasProp('surprise', obstacle.x - 7, obstacle.y - 7, obstacle.width + 14, obstacle.height + 14)) return;
-    ctx.fillStyle = '#754f8f';
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-    ctx.fillStyle = '#ffd85e';
-    ctx.fillRect(obstacle.x + 4, obstacle.y + 4, obstacle.width - 8, obstacle.height - 8);
-    ctx.fillStyle = '#754f8f';
-    ctx.font = '20px monospace';
-    ctx.fillText('?', obstacle.x + 8, obstacle.y + 23);
-    return;
-  }
-  if (obstacle.type === 'spring') {
-    if (drawAtlasProp('spring', obstacle.x - 6, obstacle.y - 10, obstacle.width + 12, obstacle.height + 20)) return;
-    ctx.fillStyle = '#d95767';
-    ctx.fillRect(obstacle.x, obstacle.y + 12, obstacle.width, 12);
-    ctx.fillStyle = '#fff0b2';
-    ctx.fillRect(obstacle.x + 4, obstacle.y + 5, obstacle.width - 8, 7);
-    ctx.fillStyle = '#2c2540';
-    for (let x = obstacle.x + 5; x < obstacle.x + obstacle.width - 4; x += 8) ctx.fillRect(x, obstacle.y + 12, 4, 8);
-    return;
-  }
-  if (obstacle.type === 'basketball') {
-    if (drawAtlasProp('basketball', obstacle.x - 3, obstacle.y - 3, obstacle.width + 6, obstacle.height + 6)) return;
-    ctx.fillStyle = '#ef8c45';
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-    ctx.fillStyle = '#6b3b3a';
-    ctx.fillRect(obstacle.x + 10, obstacle.y, 3, obstacle.height);
-    ctx.fillRect(obstacle.x, obstacle.y + 10, obstacle.width, 3);
-    return;
-  }
-  if (obstacle.type === 'banana') {
-    if (drawAtlasProp('banana', obstacle.x - 4, obstacle.y - 4, obstacle.width + 8, obstacle.height + 8)) return;
-    ctx.fillStyle = '#ffd85e';
-    ctx.fillRect(obstacle.x, obstacle.y + 8, obstacle.width, 8);
-    ctx.fillRect(obstacle.x + 4, obstacle.y + 4, obstacle.width - 8, 8);
-    ctx.fillStyle = '#70514b';
-    ctx.fillRect(obstacle.x - 2, obstacle.y + 13, 5, 4);
-    ctx.fillRect(obstacle.x + obstacle.width - 3, obstacle.y + 6, 5, 4);
-    return;
-  }
-  if (obstacle.type === 'barrier') {
-    if (drawAtlasProp('barrier', obstacle.x - 8, obstacle.y - 8, obstacle.width + 16, obstacle.height + 16)) return;
-    ctx.fillStyle = '#f3ae5b';
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-    ctx.fillStyle = '#fff4ce';
-    ctx.fillRect(obstacle.x + 4, obstacle.y + 8, obstacle.width - 8, 6);
-    ctx.fillRect(obstacle.x + 4, obstacle.y + 24, obstacle.width - 8, 6);
-    return;
-  }
-  if (obstacle.type === 'speedPad') {
-    const glow = ctx.createLinearGradient(obstacle.x, 0, obstacle.x + obstacle.width, 0);
-    glow.addColorStop(0, '#4dd6d0');
-    glow.addColorStop(.5, '#f2ffe0');
-    glow.addColorStop(1, '#4dd6d0');
-    ctx.fillStyle = 'rgba(38, 74, 96, .68)';
-    ctx.fillRect(obstacle.x, obstacle.y + 8, obstacle.width, obstacle.height - 8);
-    ctx.fillStyle = glow;
-    for (let x = obstacle.x + 4; x < obstacle.x + obstacle.width - 8; x += 16) {
-      ctx.beginPath();
-      ctx.moveTo(x, obstacle.y + 9);
-      ctx.lineTo(x + 10, obstacle.y + 9);
-      ctx.lineTo(x + 4, obstacle.y + obstacle.height - 3);
-      ctx.closePath();
-      ctx.fill();
-    }
-    return;
-  }
-  const wobble = Math.round(Math.sin(elapsedMs / 140) * 3);
-  if (obstacle.type === 'bookbag' && drawAtlasProp('bookbag', obstacle.x - 6, obstacle.y - 6, obstacle.width + 12, obstacle.height + 12)) return;
-  ctx.save();
-  ctx.translate(obstacle.x + 14, obstacle.y + 18);
-  ctx.rotate(wobble * 0.02);
-  ctx.fillStyle = '#4d416d';
-  ctx.fillRect(-14, -16, 28, 30);
-  ctx.fillStyle = '#ffba75';
-  ctx.fillRect(-10, -13, 20, 7);
-  ctx.fillStyle = '#2c2540';
-  ctx.fillRect(-9, 14, 6, 5);
-  ctx.fillRect(3, 14, 6, 5);
-  ctx.restore();
+  const boxes = {
+    surprise: [-7, -7, 14, 14],
+    spring: [-18, -18, 36, 36],
+    basketball: [-8, -8, 16, 16],
+    banana: [-5, -8, 10, 16],
+    barrier: [-10, -9, 20, 18],
+    bookbag: [-8, -8, 16, 16],
+    speedPad: [0, -22, 0, 44],
+  };
+  const box = boxes[obstacle.type];
+  if (!box) return;
+  const [offsetX, offsetY, extraWidth, extraHeight] = box;
+  const width = extraWidth ? obstacle.width + extraWidth : obstacle.width;
+  const height = extraHeight ? obstacle.height + extraHeight : obstacle.height;
+  drawAtlasProp(obstacle.type, obstacle.x + offsetX, obstacle.y + offsetY, width, height);
 }
 
 function drawBasketball(ball) {
-  const radius = ball.width / 2;
-  ctx.save();
-  ctx.translate(ball.x + radius, ball.y + radius);
-  const ballGradient = ctx.createRadialGradient(-4, -5, 1, 0, 0, radius);
-  ballGradient.addColorStop(0, '#ffcf82');
-  ballGradient.addColorStop(0.36, '#f29a4c');
-  ballGradient.addColorStop(1, '#b84f37');
-  ctx.fillStyle = ballGradient;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#6b3b3a';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, -radius); ctx.lineTo(0, radius); ctx.moveTo(-radius, 0); ctx.lineTo(radius, 0); ctx.stroke();
-  ctx.restore();
+  drawAtlasProp('basketball', ball.x - 8, ball.y - 8, ball.width + 16, ball.height + 16);
 }
 
 function drawEnergy(energy, elapsedMs) {
-  if (drawAtlasProp('energy', energy.x - 7, energy.y - 7, energy.width + 14, energy.height + 14)) return;
   const pulse = Math.sin(elapsedMs / 110) * 3;
   ctx.save();
-  ctx.translate(energy.x + energy.width / 2, energy.y + energy.height / 2);
-  ctx.fillStyle = 'rgba(255, 238, 149, .35)';
-  ctx.beginPath(); ctx.arc(0, 0, energy.width / 2 + 5 + pulse, 0, Math.PI * 2); ctx.fill();
-  const crystal = ctx.createLinearGradient(0, -energy.height / 2, 0, energy.height / 2);
-  crystal.addColorStop(0, '#fff1a0'); crystal.addColorStop(.5, '#ff8e93'); crystal.addColorStop(1, '#cc4f83');
-  ctx.fillStyle = crystal;
+  ctx.fillStyle = 'rgba(255, 238, 149, .22)';
   ctx.beginPath();
-  ctx.moveTo(0, -energy.height / 2); ctx.lineTo(energy.width / 2 - 2, 0); ctx.lineTo(0, energy.height / 2); ctx.lineTo(-energy.width / 2 + 2, 0); ctx.closePath();
+  ctx.arc(energy.x + energy.width / 2, energy.y + energy.height / 2, energy.width / 2 + 4 + pulse, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  drawAtlasProp('energy', energy.x - 8, energy.y - 8, energy.width + 16, energy.height + 16);
+}
+
+function drawHeart(heart, elapsedMs) {
+  const pulse = Math.sin((elapsedMs + heart.x) / 170) * 2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 121, 127, .2)';
+  ctx.beginPath();
+  ctx.arc(heart.x + heart.width / 2, heart.y + heart.height / 2, heart.width / 2 + 5 + pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  drawAtlasProp('heart', heart.x - 8, heart.y - 8, heart.width + 16, heart.height + 16);
 }
 
 function drawCoin(coin, elapsedMs) {
-  if (drawAtlasProp('coin', coin.x - 5, coin.y - 5, coin.width + 10, coin.height + 10)) return;
-  const radius = coin.width / 2;
   const shine = Math.sin((elapsedMs + coin.x) / 120) * 2;
-  ctx.save();
-  ctx.translate(coin.x + radius, coin.y + coin.height / 2);
-  ctx.scale(1 + shine * .04, 1);
-  const metal = ctx.createRadialGradient(-3, -5, 1, 0, 0, radius);
-  metal.addColorStop(0, '#fff6ba'); metal.addColorStop(.42, '#ffd75e'); metal.addColorStop(1, '#b96d28');
-  ctx.fillStyle = metal;
-  ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#fff4ce'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, radius - 3, 0, Math.PI * 2); ctx.stroke();
-  ctx.restore();
+  drawAtlasProp('coin', coin.x - 5 - shine / 2, coin.y - 5, coin.width + 10 + shine, coin.height + 10);
 }
 
 function drawCheckpoint(checkpoint) {
-  if (drawAtlasProp('checkpoint', checkpoint.x - 14, 416, 58, 94)) return;
-  ctx.fillStyle = '#fff9e9';
-  ctx.fillRect(checkpoint.x, 426, 6, 84);
-  ctx.fillStyle = '#ff797f';
-  ctx.fillRect(checkpoint.x + 6, 430, 32, 22);
+  drawAtlasProp('checkpoint', checkpoint.x - 28, 410, 66, 100);
 }
 
 function drawDistanceBubble() {
@@ -447,6 +386,15 @@ function drawDistanceBubble() {
   ctx.font = '16px monospace';
   const label = state.speedPadTimerMs > 0 ? '加速带！高速前进' : state.platformBoostTimerMs > 0 ? '高路加速！保持节奏' : '贝贝能量！冲刺中';
   ctx.fillText(label, 370, 75);
+}
+
+function updateHeartHud() {
+  heartIcons.forEach((heart, index) => {
+    const alive = index < state.hearts;
+    heart.classList.toggle('empty', !alive);
+    heart.setAttribute('aria-hidden', 'true');
+  });
+  document.querySelector('#heart-icons')?.setAttribute('aria-label', `生命：${state.hearts}颗心`);
 }
 
 function render() {
@@ -468,14 +416,28 @@ function render() {
   drawBackground(cameraX);
   ctx.save();
   ctx.translate(-cameraX, 0);
-  platforms.forEach((platform) => drawPlatform(platform, state.elapsedMs));
-  level.checkpoints.forEach(drawCheckpoint);
-  level.energy.filter((energy) => !state.collectedEnergyIds.includes(energy.id)).forEach((energy) => drawEnergy(energy, state.elapsedMs));
-  level.coins.filter((coin) => !state.collectedCoinIds.includes(coin.id)).forEach((coin) => drawCoin(coin, state.elapsedMs));
-  level.obstacles.filter((obstacle) => !state.collectedObstacleIds.includes(obstacle.id)).forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
-  state.hazards?.forEach((hazard) => drawHazard(hazard, state.elapsedMs));
+  const visibleStart = cameraX - 180;
+  const visibleEnd = cameraX + VIEWPORT_WIDTH + 180;
+  platforms.filter((platform) => platform.x + platform.width >= visibleStart && platform.x <= visibleEnd)
+    .forEach((platform) => drawPlatform(platform, state.elapsedMs));
+  level.checkpoints.filter((checkpoint) => checkpoint.x >= visibleStart && checkpoint.x <= visibleEnd).forEach(drawCheckpoint);
+  level.energy.filter((energy) => !state.collectedEnergyIds.includes(energy.id) && energy.x >= visibleStart && energy.x <= visibleEnd)
+    .forEach((energy) => drawEnergy(energy, state.elapsedMs));
+  level.coins.filter((coin) => !state.collectedCoinIds.includes(coin.id) && coin.x >= visibleStart && coin.x <= visibleEnd)
+    .forEach((coin) => drawCoin(coin, state.elapsedMs));
+  level.heartPickups.filter((heart) => !state.collectedHeartIds.includes(heart.id) && heart.x >= visibleStart && heart.x <= visibleEnd)
+    .forEach((heart) => drawHeart(heart, state.elapsedMs));
+  level.obstacles.filter((obstacle) => !state.collectedObstacleIds.includes(obstacle.id) && obstacle.x + obstacle.width >= visibleStart && obstacle.x <= visibleEnd)
+    .forEach((obstacle) => drawObstacle(obstacle, state.elapsedMs));
+  state.hazards?.filter((hazard) => hazard.x + hazard.width >= visibleStart && hazard.x <= visibleEnd)
+    .forEach((hazard) => drawHazard(hazard, state.elapsedMs));
 
-  const beibei = { ...state.player, mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined };
+  const beibei = {
+    ...state.player,
+    invulnerabilityMs: state.invulnerabilityMs,
+    flashTimeMs: state.elapsedMs,
+    mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined,
+  };
   const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
   drawPursuerMotion(meng);
   drawCharacter(ctx, beibei, beibeiPortrait);
@@ -510,25 +472,29 @@ function render() {
   const remaining = Math.max(0, Math.round(((state.maxDistance - state.distance) / state.maxDistance) * 100));
   distanceFill.style.width = `${remaining}%`;
   energyFill.style.width = `${Math.round(state.energyMeter ?? 0)}%`;
+  updateHeartHud();
   const district = currentDistrict();
   const progress = Math.min(100, Math.round((state.player.x / level.finishX) * 100));
-  levelName.textContent = `${district?.name ?? level.name} · 路程 ${progress}% · 硬币 ${state.coins}`;
+  levelName.textContent = `${district?.name ?? level.name} · 路程 ${progress}% · 硬币 ${state.coins} · 生命 ${state.hearts}/3`;
 }
 
 function updateLiveText() {
   if (!state) return;
   const messages = {
-    hit: '撞到书包了，孟培杰拉开了距离。',
-    fell: '掉下去了，回到检查点，距离拉开。',
+    hit: `撞到危险物，失去一颗心（剩余 ${state.hearts} 颗）。`,
+    fell: `掉进陷阱，失去一颗心并回到检查点（剩余 ${state.hearts} 颗）。`,
     energy: '拿到贝贝能量，正在冲刺！',
     energyEmpty: '能量耗尽，冲刺结束！',
     coin: '收集到硬币，距离缩短！',
     surprise: '惊喜方块！硬币和冲刺都拿到了。',
     spring: '弹簧台！跳得更高了。',
     collapseWarning: '平台在塌陷，快跳！',
-    constructionHit: '施工箱砸中了，孟培杰拉开距离。',
-    blockerHit: '移动挡板把贝贝推开了。',
-    patrolHit: '巡逻障碍拦住了贝贝。',
+    constructionHit: `施工箱砸中贝贝，失去一颗心（剩余 ${state.hearts} 颗）。`,
+    blockerHit: `移动挡板撞到贝贝，失去一颗心（剩余 ${state.hearts} 颗）。`,
+    patrolHit: `巡逻车撞到贝贝，失去一颗心（剩余 ${state.hearts} 颗）。`,
+    spikesHit: `碰到尖刺，失去一颗心（剩余 ${state.hearts} 颗）。`,
+    heart: `捡到一颗爱心，恢复到 ${state.hearts} 颗。`,
+    dropThrough: '下落中：已穿过这一层平台。',
     wind: '天桥横风来了，注意节奏！',
     checkpoint: '到达检查点。',
     catchWindowOpened: '追上窗口开启！冲刺追上孟培杰！',
@@ -642,10 +608,13 @@ function drawDust(player) {
   if (!player.dustTimerMs) return;
   const alpha = Math.min(1, player.dustTimerMs / 180);
   ctx.save();
-  ctx.fillStyle = `rgba(255, 241, 199, ${alpha * .72})`;
-  for (let index = 0; index < 4; index += 1) {
-    const offset = index * 8;
-    ctx.fillRect(player.x - 10 - offset, player.y + player.height - 5 - index % 2 * 3, 5 - index % 2, 3);
+  ctx.fillStyle = `rgba(255, 241, 199, ${alpha * .54})`;
+  for (let index = 0; index < 3; index += 1) {
+    const offset = index * 12;
+    const radius = 2.5 + (2 - index) * .7;
+    ctx.beginPath();
+    ctx.ellipse(player.x - 9 - offset, player.y + player.height - 3 - index % 2 * 4, radius * 1.7, radius, -.2, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -718,6 +687,13 @@ function startLevel(levelId) {
   stopGame();
   closeDialogs();
   currentLevel = levelId;
+  input.left = false;
+  input.right = false;
+  input.down = false;
+  input.sprint = false;
+  input.jumpPressed = false;
+  input.jumpReleased = false;
+  input.jumpHeld = false;
   state = createGame(levelId);
   sprintAudioActive = false;
   runRecorded = false;
@@ -783,21 +759,51 @@ function releaseJump(event) {
   input.jumpHeld = false;
 }
 
+function clearInput() {
+  input.left = false;
+  input.right = false;
+  input.down = false;
+  input.sprint = false;
+  input.jumpPressed = false;
+  input.jumpReleased = false;
+  input.jumpHeld = false;
+}
+
 window.addEventListener('keydown', (event) => {
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) { input.left = true; event.preventDefault(); }
   if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = true; input.sprint = true; event.preventDefault(); }
+  if (['ArrowDown', 's', 'S'].includes(event.key)) { input.down = true; event.preventDefault(); }
   if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) queueJump(event);
 });
 
 window.addEventListener('keyup', (event) => {
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) input.left = false;
   if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = false; input.sprint = false; }
+  if (['ArrowDown', 's', 'S'].includes(event.key)) input.down = false;
   if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) releaseJump(event);
+});
+
+window.addEventListener('blur', clearInput);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearInput();
 });
 
 canvas.addEventListener('pointerdown', queueJump);
 canvas.addEventListener('pointerup', releaseJump);
 canvas.addEventListener('pointercancel', releaseJump);
+dropButton.addEventListener('pointerdown', (event) => {
+  input.down = true;
+  queueJump(event);
+  dropButton.setPointerCapture(event.pointerId);
+});
+dropButton.addEventListener('pointerup', (event) => {
+  input.down = false;
+  releaseJump(event);
+});
+dropButton.addEventListener('pointercancel', (event) => {
+  input.down = false;
+  releaseJump(event);
+});
 startButton.addEventListener('click', () => requestLevelStart(1));
 chapterButtons.forEach((button) => button.addEventListener('click', () => requestLevelStart(Number(button.dataset.levelId))));
 retryButton.addEventListener('click', () => requestLevelStart(currentLevel));

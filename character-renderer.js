@@ -1,6 +1,6 @@
 const DISPLAY_WIDTH = 66;
 const DISPLAY_HEIGHT = 88;
-export const RUN_CYCLE_DISTANCE_PX = 96;
+export const RUN_CYCLE_DISTANCE_PX = 128;
 export const RUN_FRAME_DISTANCE_PX = RUN_CYCLE_DISTANCE_PX / 12;
 
 // Both replacement atlases are 960 x 960: twelve 240 x 320 frames in a
@@ -41,7 +41,7 @@ export function getCharacterPose(character) {
 }
 
 export function getRunFrameIndex(distanceTravelled = 0) {
-  return Math.floor(Math.abs(distanceTravelled) / RUN_FRAME_DISTANCE_PX) % RUN_FRAME_LAYOUT.length;
+  return Math.floor(Math.abs(distanceTravelled) / RUN_FRAME_DISTANCE_PX + 1e-9) % RUN_FRAME_LAYOUT.length;
 }
 
 export function getRunFrameRect(runnerId, frameIndex) {
@@ -130,6 +130,9 @@ export function drawCharacter(ctx, character, portrait) {
   const landScaleY = 1 - landingEase * 0.03;
 
   ctx.save();
+  if ((character.invulnerabilityMs ?? 0) > 0 && Math.floor((character.flashTimeMs ?? 0) / 110) % 2 === 0) {
+    ctx.globalAlpha = 0.62;
+  }
   ctx.translate(centreX, baselineY);
   ctx.scale(facing * landScaleX, landScaleY);
   if (portrait?.runnerId === 'meng') {
@@ -142,8 +145,13 @@ export function drawCharacter(ctx, character, portrait) {
   } else if (pose === 'cry') {
     drawCurrentOutfit(ctx, portrait, pose, distanceTravelled);
     ctx.fillStyle = '#74d7ee';
-    ctx.fillRect(4, -27, 3, 12);
-    ctx.fillRect(14, -24, 3, 9);
+    for (const [x, y] of [[5, -28], [16, -24]]) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x - 4, y + 5, x - 4, y + 10, x, y + 12);
+      ctx.bezierCurveTo(x + 4, y + 10, x + 4, y + 5, x, y);
+      ctx.fill();
+    }
   } else {
     if (pose === 'run' && !drawRunCycle(ctx, portrait, distanceTravelled)) {
       drawCurrentOutfit(ctx, portrait, pose, distanceTravelled);

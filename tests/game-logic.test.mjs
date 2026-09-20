@@ -50,11 +50,17 @@ test('journey supplies dense elevated routes and varied hazards without stale pu
 
 test('five hand-authored high routes stay within the jump reach budget', () => {
   assert.deepEqual(getHighRouteViolations(JOURNEY.platforms), []);
-  assert.equal(new Set(JOURNEY.platforms.filter((platform) => platform.route && platform.route !== 'bridge-upper-route').map((platform) => platform.route)).size, 5);
-  assert.equal(JOURNEY.platforms.filter((platform) => platform.boost).length, 35);
+  const routes = [...new Set(JOURNEY.platforms.filter((platform) => platform.route && platform.route !== 'bridge-upper-route').map((platform) => platform.route))];
+  assert.equal(routes.length, 5);
+  assert.equal(JOURNEY.platforms.filter((platform) => platform.boost).length, 48);
   assert.ok(JOURNEY.platforms.filter((platform) => platform.route).every((platform) => !platform.slope));
-  assert.ok(JOURNEY.platforms.filter((platform) => platform.route).some((platform) => platform.y === 414));
-  assert.equal(JOURNEY.platforms.filter((platform) => platform.route === 'bridge-upper-route').length, 5);
+  assert.ok(JOURNEY.platforms.filter((platform) => platform.route).some((platform) => platform.y === 410));
+  const routeShapes = routes.map((route) => {
+    const platforms = JOURNEY.platforms.filter((platform) => platform.route === route).sort((a, b) => a.x - b.x);
+    return JSON.stringify(platforms.map((platform) => [platform.x - platforms[0].x, platform.y, platform.width]));
+  });
+  assert.equal(new Set(routeShapes).size, 5, 'each district should use its own platform rhythm');
+  assert.equal(JOURNEY.platforms.filter((platform) => platform.route === 'bridge-upper-route').length, 8);
 });
 
 test('high routes hold coins while sprint energy stays reachable on the ground', () => {
@@ -64,7 +70,16 @@ test('high routes hold coins while sprint energy stays reachable on the ground',
       && coin.x < platform.x + platform.width
       && coin.y + coin.height === platform.y));
   }
-  assert.equal(JOURNEY.energy.filter((energy) => energy.y === 468).length, JOURNEY.energy.length - 1);
+  assert.equal(JOURNEY.energy.filter((energy) => energy.y === 468).length, 11);
+  const routeEnergy = JOURNEY.energy.filter((energy) => energy.id.startsWith('energy-route-'));
+  assert.equal(routeEnergy.length, 5);
+  for (const energy of routeEnergy) {
+    assert.ok(JOURNEY.platforms.some((platform) => platform.route === energy.route
+      && energy.x + energy.width > platform.x
+      && energy.x < platform.x + platform.width
+      && energy.y < platform.y
+      && energy.y + energy.height >= platform.y - 20));
+  }
   assert.ok(JOURNEY.energy.some((energy) => energy.y + energy.height === 400));
   assert.equal(new Set(JOURNEY.energy.map((energy) => energy.id)).size, JOURNEY.energy.length);
 });
@@ -112,11 +127,42 @@ test('a high route requires a jump instead of automatically lifting Beibei', () 
 
   state = {
     ...state,
-    player: { ...state.player, x: 2920, y: 444, velocityY: 80, grounded: false, jumpsUsed: 1 },
+    player: { ...state.player, x: 2920, y: 376, velocityY: 80, grounded: false, jumpsUsed: 1 },
   };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
-  assert.equal(state.player.y, 446);
+  assert.equal(state.player.y, 378);
   assert.ok(state.platformBoostTimerMs > 0);
+});
+
+test('down plus jump drops through only the current one-way platform and lands below', () => {
+  const platform = JOURNEY.platforms.find((item) => item.id === 'gate-route-lower-1');
+  let state = createGame(1);
+  state = {
+    ...state,
+    player: { ...state.player, x: platform.x + 24, y: platform.y - 32, grounded: true, groundedPlatformId: platform.id },
+    pursuer: { ...state.pursuer, x: platform.x + 300 },
+  };
+  state = updateGame(state, { left: false, right: false, down: true, jumpPressed: true }, 16);
+
+  assert.equal(state.event, 'dropThrough');
+  assert.equal(state.player.grounded, false);
+  assert.equal(state.player.jumpsUsed, 2);
+  assert.equal(state.player.dropThroughGroup, platform.oneWayGroup);
+  assert.ok(state.player.y > platform.y - 32);
+
+  for (let frame = 0; frame < 30 && !state.player.grounded; frame += 1) {
+    state = updateGame(state, { left: false, right: false, down: true, jumpPressed: false }, 16);
+  }
+  assert.equal(state.player.grounded, true);
+  assert.equal(JOURNEY.platforms.find((item) => item.id === state.player.groundedPlatformId)?.y, 510);
+});
+
+test('down plus jump on solid ground remains a normal jump', () => {
+  const state = updateGame(createGame(1), { left: false, right: false, down: true, jumpPressed: true }, 16);
+
+  assert.equal(state.event, 'none');
+  assert.equal(state.player.jumpsUsed, 1);
+  assert.ok(state.player.velocityY < 0);
 });
 
 test('allows exactly one air jump after a grounded jump', () => {
@@ -196,6 +242,53 @@ test('a hard obstacle collision briefly freezes the simulation without shaking t
   assert.equal(state.hitStopMs, 34);
 });
 
+test('a fresh run starts with three hearts and a hazard collision costs one heart', () => {
+  let state = createGame(1);
+  assert.equal(state.hearts, 3);
+  state = { ...state, player: { ...state.player, x: 8200 }, pursuer: { ...state.pursuer, x: 8450 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.hearts, 2);
+  assert.equal(state.event, 'hit');
+  assert.ok(state.invulnerabilityMs > 0);
+  assert.equal(state.damageCount, 1);
+});
+
+test('zero hearts ends the run and repeated overlap does not drain more hearts', () => {
+  let state = createGame(1);
+  state = { ...state, hearts: 1, player: { ...state.player, x: 8200 }, pursuer: { ...state.pursuer, x: 8450 } };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.hearts, 0);
+  assert.equal(state.phase, 'lost');
+  assert.equal(state.event, 'lost');
+
+  let protectedState = createGame(1);
+  protectedState = { ...protectedState, player: { ...protectedState.player, x: 8200 }, pursuer: { ...protectedState.pursuer, x: 8450 } };
+  protectedState = updateGame(protectedState, { left: false, right: false, jumpPressed: false }, 16);
+  for (let frame = 0; frame < 20; frame += 1) {
+    protectedState = updateGame(protectedState, { left: false, right: false, jumpPressed: false }, 50);
+  }
+  assert.equal(protectedState.hearts, 2);
+});
+
+test('an upper-route heart pickup restores one missing heart only once', () => {
+  let state = createGame(1);
+  const platform = JOURNEY.platforms.find((item) => item.id === 'gate-route-upper-exit');
+  const heart = JOURNEY.heartPickups.find((item) => item.id === 'heart-gate');
+  state = {
+    ...state,
+    hearts: 2,
+    player: { ...state.player, x: heart.x, y: platform.y - 32, grounded: true, groundedPlatformId: platform.id },
+    pursuer: { ...state.pursuer, x: heart.x + 260 },
+  };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.equal(state.hearts, 3);
+  assert.equal(state.event, 'heart');
+  assert.deepEqual(state.collectedHeartIds, ['heart-gate']);
+});
+
 test('the long journey keeps Beibei moving forward without a held keyboard key', () => {
   const before = createGame(1);
   const after = updateGame(before, { left: false, right: false, jumpPressed: false }, 50);
@@ -265,7 +358,8 @@ test('before the final fifteen percent, close contact restores a safe gap withou
 
 test('collecting a coin closes the gap and records Beibei coin progress', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 3420, y: 382 } };
+  const coin = JOURNEY.coins[0];
+  state = { ...state, player: { ...state.player, x: coin.x, y: coin.y } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'coin');
@@ -330,10 +424,10 @@ test('bridge spring launches Beibei onto the upper route while Meng chooses it i
     state = updateGame(state, { left: false, right: false, sprint: false, jumpPressed: false }, 50);
   }
 
-  assert.equal(state.player.y, 368);
+  assert.equal(state.player.y, 378);
   assert.equal(state.player.grounded, true);
   assert.ok(state.platformBoostTimerMs > 0);
-  assert.equal(state.pursuer.y, 368);
+  assert.equal(state.pursuer.y, 378);
   assert.equal(state.pursuer.targetRoute, 'bridge-upper-route');
 });
 
@@ -356,6 +450,19 @@ test('a close approach after the 85 percent window opens catches Meng', () => {
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'caught');
+});
+
+test('a close approach on a different vertical layer is not a catch', () => {
+  let state = createGame(1);
+  state = {
+    ...state,
+    player: { ...state.player, x: 20000, y: 278, grounded: false, velocityY: 0, jumpsUsed: 1 },
+    pursuer: { ...state.pursuer, x: 20030, y: 478, grounded: true },
+  };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+
+  assert.ok(state.distance <= 56);
+  assert.equal(state.phase, 'playing');
 });
 
 test('the catch window does not use injected randomness', () => {

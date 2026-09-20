@@ -16,7 +16,15 @@ const beatKinds = ['tutorial', 'regular', 'pressure', 'breather', 'climax'];
 const groundBeats = beatPlans.flatMap((plan) => {
   let x = plan.start;
   return plan.lengths.map((width, index) => {
-    const beat = { id: `${plan.id}-${beatKinds[index]}`, x, width, y: GROUND_Y, height: 30 };
+    const beat = {
+      id: `${plan.id}-${beatKinds[index]}`,
+      kind: 'ground',
+      material: plan.id === 'lake' ? 'lakeside' : plan.id,
+      x,
+      width,
+      y: GROUND_Y,
+      height: 30,
+    };
     x += width + (plan.gaps[index] ?? 0);
     return beat;
   });
@@ -26,29 +34,117 @@ function getBreatherStart(plan) {
   return plan.start + plan.lengths[0] + plan.gaps[0] + plan.lengths[1] + plan.gaps[1] + plan.lengths[2] + plan.gaps[2];
 }
 
-// Five optional technical routes live entirely above each district's safe
-// breather.  They are deliberately not slopes: Beibei must jump onto them,
-// then earns the 190px/s boost and high-route coin line.
-const highRoutes = beatPlans.flatMap((plan) => {
-  const route = `${plan.id}-route`;
-  const prefix = route;
-  const x = getBreatherStart(plan) + 100;
-  return [
-    { id: `${prefix}-s1`, route, x, y: 478, width: 90, height: 18, boost: 190 },
-    { id: `${prefix}-s2`, route, x: x + 140, y: 446, width: 90, height: 18, boost: 190 },
-    { id: `${prefix}-s3`, route, x: x + 280, y: 414, width: 90, height: 22, boost: 190 },
-    { id: `${prefix}-d1`, route, x: x + 420, y: 414, width: 170, height: 22, boost: 190 },
-    { id: `${prefix}-d2`, route, x: x + 670, y: 414, width: 170, height: 22, boost: 190 },
-    { id: `${prefix}-d3`, route, x: x + 960, y: 414, width: 170, height: 22, boost: 190 },
-  ];
-});
+// Each district has a hand-shaped two-tier route. The jump pattern, height,
+// moving platforms, rewards and upper-route threat change with its theme.
+const highRoutePlans = [
+  {
+    district: 'gate', route: 'gate-route', material: 'gate',
+    start: getBreatherStart(beatPlans[0]) + 100, lowerY: 410, upperY: 310,
+    energyOffset: 690, heartOffset: 1030, coinOffsets: [500, 700, 870],
+    platforms: [
+      { id: 'lower-1', offset: 0, y: 410, width: 210, tier: 'lower' },
+      { id: 'lower-moving', offset: 230, y: 410, width: 200, tier: 'lower', motion: { axis: 'x', range: 14, period: 2600 } },
+      { id: 'upper-1', offset: 440, y: 310, width: 170, tier: 'upper' },
+      { id: 'lower-2', offset: 455, y: 410, width: 220, tier: 'lower' },
+      { id: 'upper-moving', offset: 625, y: 310, width: 180, tier: 'upper', motion: { axis: 'x', range: 18, period: 2200 } },
+      { id: 'upper-crumble', offset: 810, y: 310, width: 170, tier: 'upper', collapse: true },
+      { id: 'upper-exit', offset: 985, y: 310, width: 190, tier: 'upper' },
+      { id: 'lower-3', offset: 960, y: 410, width: 235, tier: 'lower' },
+    ],
+    hazard: { id: 'spikes-gate-upper', type: 'spikes', offset: 755, y: 280, width: 72, height: 30 },
+  },
+  {
+    district: 'court', route: 'court-route', material: 'court',
+    start: getBreatherStart(beatPlans[1]) + 100, lowerY: 425, upperY: 320,
+    energyOffset: 720, heartOffset: 1030, coinOffsets: [500, 710, 875],
+    platforms: [
+      { id: 'lower-1', offset: 0, y: 425, width: 205, tier: 'lower' },
+      { id: 'lower-moving', offset: 230, y: 425, width: 205, tier: 'lower', motion: { axis: 'x', range: 22, period: 2200 } },
+      { id: 'upper-1', offset: 455, y: 320, width: 160, tier: 'upper' },
+      { id: 'lower-2', offset: 470, y: 425, width: 210, tier: 'lower' },
+      { id: 'upper-moving', offset: 620, y: 320, width: 200, tier: 'upper', motion: { axis: 'x', range: 20, period: 1900 } },
+      { id: 'upper-crumble', offset: 825, y: 320, width: 160, tier: 'upper', collapse: true },
+      { id: 'upper-exit', offset: 990, y: 320, width: 210, tier: 'upper' },
+      { id: 'lower-3', offset: 965, y: 425, width: 235, tier: 'lower' },
+    ],
+    hazard: { id: 'patrol-court-upper', type: 'patrol', offset: 780, y: 284, width: 30, height: 36, motion: { range: 38, period: 1500 } },
+  },
+  {
+    district: 'ginkgo', route: 'ginkgo-route', material: 'ginkgo',
+    start: getBreatherStart(beatPlans[2]) + 100, lowerY: 405, upperY: 305,
+    energyOffset: 710, heartOffset: 1040, coinOffsets: [505, 720, 875],
+    platforms: [
+      { id: 'lower-1', offset: 0, y: 405, width: 235, tier: 'lower' },
+      { id: 'lower-moving', offset: 255, y: 405, width: 185, tier: 'lower', motion: { axis: 'x', range: 16, period: 2400 } },
+      { id: 'upper-1', offset: 450, y: 305, width: 195, tier: 'upper' },
+      { id: 'lower-2', offset: 470, y: 405, width: 220, tier: 'lower' },
+      { id: 'upper-moving', offset: 650, y: 305, width: 180, tier: 'upper', motion: { axis: 'x', range: 24, period: 1800 } },
+      { id: 'upper-crumble', offset: 835, y: 305, width: 185, tier: 'upper', collapse: true },
+      { id: 'upper-exit', offset: 1025, y: 305, width: 180, tier: 'upper' },
+      { id: 'lower-3', offset: 1005, y: 405, width: 225, tier: 'lower' },
+    ],
+    hazard: { id: 'spikes-ginkgo-upper', type: 'spikes', offset: 740, y: 275, width: 76, height: 30 },
+  },
+  {
+    district: 'lakeside', route: 'lakeside-route', material: 'lakeside',
+    start: getBreatherStart(beatPlans[3]) + 100, lowerY: 420, upperY: 315,
+    energyOffset: 730, heartOffset: 1040, coinOffsets: [535, 745, 910],
+    platforms: [
+      { id: 'lower-1', offset: 0, y: 420, width: 220, tier: 'lower' },
+      { id: 'lower-moving', offset: 240, y: 420, width: 230, tier: 'lower', motion: { axis: 'x', range: 26, period: 2100 } },
+      { id: 'upper-1', offset: 480, y: 315, width: 170, tier: 'upper' },
+      { id: 'lower-2', offset: 500, y: 420, width: 200, tier: 'lower' },
+      { id: 'upper-moving', offset: 675, y: 315, width: 180, tier: 'upper', motion: { axis: 'x', range: 28, period: 1700 } },
+      { id: 'upper-crumble', offset: 860, y: 315, width: 160, tier: 'upper', collapse: true },
+      { id: 'upper-exit', offset: 1025, y: 315, width: 200, tier: 'upper' },
+      { id: 'lower-3', offset: 1010, y: 420, width: 220, tier: 'lower' },
+    ],
+    hazard: { id: 'wind-lakeside-upper', type: 'wind', offset: 705, y: 230, width: 190, height: 85 },
+  },
+  {
+    district: 'bridge', route: 'bridge-route', material: 'bridge',
+    start: getBreatherStart(beatPlans[4]) + 100, lowerY: 410, upperY: 310,
+    energyOffset: 700, heartOffset: 1040, coinOffsets: [490, 700, 875],
+    platforms: [
+      { id: 'lower-1', offset: 0, y: 410, width: 200, tier: 'lower' },
+      { id: 'lower-moving', offset: 220, y: 410, width: 200, tier: 'lower', motion: { axis: 'x', range: 24, period: 2000 } },
+      { id: 'upper-1', offset: 430, y: 310, width: 180, tier: 'upper' },
+      { id: 'lower-2', offset: 450, y: 410, width: 200, tier: 'lower' },
+      { id: 'upper-moving', offset: 635, y: 310, width: 180, tier: 'upper', motion: { axis: 'x', range: 30, period: 1600 } },
+      { id: 'upper-crumble', offset: 820, y: 310, width: 175, tier: 'upper', collapse: true },
+      { id: 'upper-exit', offset: 1000, y: 310, width: 190, tier: 'upper' },
+      { id: 'lower-3', offset: 980, y: 410, width: 240, tier: 'lower' },
+    ],
+    hazard: { id: 'barrier-bridge-upper', type: 'blocker', offset: 690, y: 274, width: 36, height: 36 },
+  },
+];
+
+const highRoutes = highRoutePlans.flatMap((plan) => plan.platforms.map((segment) => ({
+  id: segment.collapse ? `collapse-${plan.district}-upper` : `${plan.route}-${segment.id}`,
+  kind: 'oneWay',
+  route: plan.route,
+  oneWay: true,
+  oneWayGroup: `${plan.route}-${segment.tier}`,
+  material: plan.material,
+  x: plan.start + segment.offset,
+  y: segment.y,
+  width: segment.width,
+  height: 22,
+  boost: 190,
+  ...(segment.motion ? { motion: segment.motion } : {}),
+  ...(segment.collapse ? { collapse: true } : {}),
+})));
 
 const bridgeUpperPlatforms = [
-  { id: 'bridge-upper-1', route: 'bridge-upper-route', x: 19570, y: 400, width: 180, height: 20, boost: 190 },
-  { id: 'bridge-upper-2', route: 'bridge-upper-route', x: 19775, y: 400, width: 180, height: 20, boost: 190 },
-  { id: 'bridge-upper-3', route: 'bridge-upper-route', x: 19980, y: 400, width: 180, height: 20, boost: 190 },
-  { id: 'bridge-upper-4', route: 'bridge-upper-route', x: 20185, y: 400, width: 180, height: 20, boost: 190 },
-  { id: 'bridge-upper-5', route: 'bridge-upper-route', x: 20390, y: 400, width: 180, height: 20, boost: 190 },
+  ...[19570, 19775, 19980, 20185, 20390].map((x, index) => ({
+    id: `bridge-upper-lower-${index + 1}`, route: 'bridge-upper-route', kind: 'oneWay', oneWay: true,
+    oneWayGroup: 'bridge-upper-lower', material: 'bridge', x, y: 410, width: 180, height: 22, boost: 190,
+  })),
+  ...[20470, 20660, 20850].map((x, index) => ({
+    id: `bridge-upper-high-${index + 1}`, route: 'bridge-upper-route', kind: 'oneWay', oneWay: true,
+    oneWayGroup: 'bridge-upper-high', material: 'bridge', x, y: 310, width: 170, height: 22, boost: 190,
+    ...(index === 1 ? { motion: { axis: 'x', range: 16, period: 2100 } } : {}),
+  })),
 ];
 
 const regions = [
@@ -59,21 +155,41 @@ const regions = [
   { id: 'bridge', name: '黄昏天桥', start: 19200, end: 24000, palette: 'sunset', landmark: 'city', foreground: 'lamps', interaction: 'wind' },
 ];
 
-const routeCoins = beatPlans.flatMap((plan, routeIndex) => {
-  const x = getBreatherStart(plan) + 100;
-  return [
-    { id: `coin-${routeIndex * 3 + 1}`, type: 'coin', x: x + 485, y: 390, width: 20, height: 24 },
-    { id: `coin-${routeIndex * 3 + 2}`, type: 'coin', x: x + 735, y: 390, width: 20, height: 24 },
-    { id: `coin-${routeIndex * 3 + 3}`, type: 'coin', x: x + 1035, y: 390, width: 20, height: 24 },
-  ];
-});
+const routeCoins = highRoutePlans.flatMap((plan, routeIndex) => plan.coinOffsets.map((offset, coinIndex) => ({
+  id: `coin-${routeIndex * 3 + coinIndex + 1}`,
+  type: 'coin',
+  x: plan.start + offset,
+  y: plan.upperY - 24,
+  width: 20,
+  height: 24,
+})));
 
 const bridgeUpperCoins = [
-  { id: 'bridge-upper-coin-1', type: 'coin', x: 19600, y: 376, width: 20, height: 24 },
-  { id: 'bridge-upper-coin-2', type: 'coin', x: 19820, y: 376, width: 20, height: 24 },
-  { id: 'bridge-upper-coin-3', type: 'coin', x: 20040, y: 376, width: 20, height: 24 },
-  { id: 'bridge-upper-coin-4', type: 'coin', x: 20420, y: 376, width: 20, height: 24 },
+  { id: 'bridge-upper-coin-1', type: 'coin', x: 20490, y: 286, width: 20, height: 24 },
+  { id: 'bridge-upper-coin-2', type: 'coin', x: 20690, y: 286, width: 20, height: 24 },
+  { id: 'bridge-upper-coin-3', type: 'coin', x: 20900, y: 286, width: 20, height: 24 },
 ];
+
+const routeEnergy = highRoutePlans.map((plan, index) => ({
+  id: `energy-route-${index + 1}`,
+  type: 'energy',
+  route: plan.route,
+  x: plan.start + plan.energyOffset,
+  y: plan.upperY - 32,
+  width: 22,
+  height: 22,
+}));
+
+const heartPickups = highRoutePlans.map((plan) => ({
+  id: `heart-${plan.district}`,
+  type: 'heart',
+  route: plan.route,
+  x: plan.start + plan.heartOffset,
+  y: plan.upperY - 24,
+  width: 24,
+  height: 24,
+  district: plan.district,
+}));
 
 // Ground energy supports the ordinary route; the bridge's upper spring path
 // also carries a single bonus crystal for the harder late-game route.
@@ -86,7 +202,7 @@ const groundEnergy = [
 ].map((energy) => ({ ...energy, type: 'energy', y: 468, width: 22, height: 22 }));
 
 const bridgeUpperEnergy = { id: 'energy-11', type: 'energy', x: 20080, y: 378, width: 22, height: 22 };
-const pickups = [...routeCoins, ...bridgeUpperCoins, ...groundEnergy, bridgeUpperEnergy];
+const pickups = [...routeCoins, ...bridgeUpperCoins, ...groundEnergy, bridgeUpperEnergy, ...routeEnergy, ...heartPickups];
 
 const checkpoints = beatPlans.flatMap((plan) => {
   const regularStart = plan.start + plan.lengths[0] + plan.gaps[0];
@@ -110,12 +226,21 @@ export const JOURNEY = {
     ...groundBeats,
     ...highRoutes,
     ...bridgeUpperPlatforms,
-    { id: 'collapse-gate', x: 1560, y: 448, width: 96, height: 18, collapse: true },
-    { id: 'collapse-ginkgo', x: 11620, y: 448, width: 100, height: 18, collapse: true },
+    { id: 'collapse-gate', kind: 'oneWay', oneWay: true, oneWayGroup: 'collapse-gate', material: 'gate', x: 1560, y: 448, width: 96, height: 18, collapse: true },
+    { id: 'collapse-court', kind: 'oneWay', oneWay: true, oneWayGroup: 'collapse-court', material: 'court', x: 8780, y: 448, width: 96, height: 18, collapse: true },
+    { id: 'collapse-ginkgo', kind: 'oneWay', oneWay: true, oneWayGroup: 'collapse-ginkgo', material: 'ginkgo', x: 11620, y: 448, width: 100, height: 18, collapse: true },
+    { id: 'collapse-bridge', kind: 'oneWay', oneWay: true, oneWayGroup: 'collapse-bridge', material: 'bridge', x: 22980, y: 448, width: 100, height: 18, collapse: true },
   ],
   // Meng independently takes the bridge spring route; it is driven by his own
   // position and is not coupled to Beibei's jump input.
-  shortcutNodes: [{ start: 19500, end: 20590, route: 'bridge-upper-route' }],
+  shortcutNodes: [
+    ...highRoutePlans.map((plan) => ({
+      start: plan.start - 70,
+      end: plan.start + Math.max(...plan.platforms.map((segment) => segment.offset + segment.width)),
+      route: plan.route,
+    })),
+    { start: 19500, end: 21060, route: 'bridge-upper-route' },
+  ],
   hazards: [
     { id: 'collapse-gate', type: 'collapse', district: 'gate', x: 1560, y: 448, width: 96, height: 18 },
     { id: 'box-gate', type: 'constructionBox', district: 'gate', x: 3180, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2800, warningMs: 760 },
@@ -133,6 +258,31 @@ export const JOURNEY = {
     { id: 'patrol-bridge', type: 'patrol', district: 'bridge', x: 22320, y: 474, width: 30, height: 36, motion: { range: 72, period: 1200 } },
     { id: 'collapse-bridge', type: 'collapse', district: 'bridge', x: 22980, y: 448, width: 100, height: 18 },
     { id: 'box-bridge', type: 'constructionBox', district: 'bridge', x: 23360, y: 210, startY: 210, groundY: 466, width: 38, height: 44, period: 2200, warningMs: 580 },
+    ...highRoutePlans.flatMap((plan) => [
+      ...plan.platforms.filter((segment) => segment.collapse).map((segment) => ({
+        id: `collapse-${plan.district}-upper`,
+        type: 'collapse',
+        district: plan.district,
+        x: plan.start + segment.offset,
+        y: segment.y,
+        width: segment.width,
+        height: 22,
+      })),
+      ...(plan.hazard ? [{
+        ...plan.hazard,
+        district: plan.district,
+        x: plan.start + plan.hazard.offset,
+      }] : []),
+    ]),
+    ...beatPlans.map((plan) => ({
+      id: `spikes-${plan.id}-ground`,
+      type: 'spikes',
+      district: plan.id === 'lake' ? 'lakeside' : plan.id,
+      x: plan.start + 2100,
+      y: 482,
+      width: 128,
+      height: 28,
+    })),
   ],
   obstacles: [
     { id: 'surprise-1', type: 'surprise', x: 2700, y: 400, width: 30, height: 30 },
@@ -165,6 +315,7 @@ export const JOURNEY = {
   pickups,
   energy: pickups.filter((pickup) => pickup.type === 'energy'),
   coins: pickups.filter((pickup) => pickup.type === 'coin'),
+  heartPickups: pickups.filter((pickup) => pickup.type === 'heart'),
   checkpoints,
 };
 
@@ -184,7 +335,7 @@ export function getHighRouteViolations(platforms) {
     const previous = route[index - 1];
     const gap = platform.x - (previous.x + previous.width);
     const rise = Math.abs(platform.y - previous.y);
-    return gap > 150 || rise > 60 ? [{ route: platform.route, from: previous.id, to: platform.id, gap, rise }] : [];
+    return gap > 150 || rise > 120 ? [{ route: platform.route, from: previous.id, to: platform.id, gap, rise }] : [];
   }));
 }
 
@@ -205,12 +356,20 @@ export const CHAPTERS = Object.fromEntries(regions.map((region, index) => {
     districts: [chapterRegion],
     regions: [chapterRegion],
     platforms: chapterPlatforms,
-    shortcutNodes: region.id === 'bridge' ? [{ start: 19500 - start, end: 20590 - start, route: 'bridge-upper-route' }] : [],
+    shortcutNodes: [
+      ...(highRoutePlans.filter((plan) => plan.district === region.id).map((plan) => ({
+        start: plan.start - 70 - start,
+        end: plan.start + Math.max(...plan.platforms.map((segment) => segment.offset + segment.width)) - start,
+        route: plan.route,
+      }))),
+      ...(region.id === 'bridge' ? [{ start: 19500 - start, end: 21060 - start, route: 'bridge-upper-route' }] : []),
+    ],
     hazards: JOURNEY.hazards.filter((hazard) => hazard.district === region.id).map(localize),
     obstacles: JOURNEY.obstacles.filter(includesX).map(localize),
     pickups: chapterPickups,
     energy: chapterPickups.filter((pickup) => pickup.type === 'energy'),
     coins: chapterPickups.filter((pickup) => pickup.type === 'coin'),
+    heartPickups: chapterPickups.filter((pickup) => pickup.type === 'heart'),
     checkpoints: JOURNEY.checkpoints.filter(includesX).map((checkpoint) => ({
       ...localize(checkpoint),
       respawnX: checkpoint.respawnX - start,

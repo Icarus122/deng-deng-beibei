@@ -15,8 +15,8 @@ test('character pose comes from each character state rather than the other runne
 
 test('running animation advances through twelve distance-driven full-body frames', () => {
   assert.equal(getRunFrameIndex(0), 0);
-  assert.equal(RUN_CYCLE_DISTANCE_PX, 96);
-  assert.equal(RUN_FRAME_DISTANCE_PX, 8);
+  assert.equal(RUN_CYCLE_DISTANCE_PX, 128);
+  assert.equal(RUN_FRAME_DISTANCE_PX, 128 / 12);
   for (let index = 0; index < 12; index += 1) assert.equal(getRunFrameIndex(index * RUN_FRAME_DISTANCE_PX), index);
   assert.equal(getRunFrameIndex(RUN_CYCLE_DISTANCE_PX), 0);
   assert.equal(getRunFrameIndex(-RUN_FRAME_DISTANCE_PX), 1);
@@ -28,11 +28,33 @@ test('running animation advances through twelve distance-driven full-body frames
 
 test('replacement atlases use the shared 4 by 3 transparent-HD frame specification', async () => {
   for (const runner of ['beibei', 'meng']) {
-    const bytes = await readFile(new URL(`../assets/${runner}-run-cycle-v3.png`, import.meta.url));
+    const bytes = await readFile(new URL(`../assets/${runner}-run-cycle-v4.png`, import.meta.url));
 
     assert.equal(bytes.readUInt32BE(16), 960);
     assert.equal(bytes.readUInt32BE(20), 960);
     assert.equal(bytes[25], 6, 'the PNG must retain an RGBA alpha channel');
+  }
+});
+
+test('Meng uses a matching three-pose jump sheet instead of freezing his run cycle', async () => {
+  const bytes = await readFile(new URL('../assets/meng-jump-v1.png', import.meta.url));
+  assert.equal(bytes.readUInt32BE(16), 1881);
+  assert.equal(bytes.readUInt32BE(20), 836);
+  assert.equal(bytes[25], 6, 'the jump sheet keeps an RGBA alpha channel');
+
+  const drawCalls = [];
+  const ctx = {
+    save() {}, translate() {}, scale() {}, rotate() {}, restore() {}, fillRect() {},
+    drawImage(...args) { drawCalls.push(args); },
+    set filter(value) {}, set fillStyle(value) {},
+  };
+  const jumpSheet = { naturalWidth: 1881, naturalHeight: 836 };
+  const portrait = { runnerId: 'meng', runCycle: { naturalWidth: 960, naturalHeight: 960 }, poses: { jump: jumpSheet } };
+  for (const [velocityY, frameIndex] of [[-160, 0], [0, 1], [160, 2]]) {
+    drawCalls.length = 0;
+    drawCharacter(ctx, { x: 120, y: 200, grounded: false, velocityY, facing: 1, distanceTravelled: 28 }, portrait);
+    assert.equal(drawCalls.length, 1);
+    assert.deepEqual(drawCalls[0].slice(1, 5), [frameIndex * 627, 0, 627, 836]);
   }
 });
 
@@ -56,7 +78,7 @@ test('running character draws without relying on a browser global', () => {
   drawCharacter(ctx, { x: 120, y: 200, grounded: true, facing: 1, slipTimerMs: 0, runDistanceTravelled: 24 }, { still: image, runnerId: 'beibei', runCycle: image });
 
   assert.equal(drawCalls.length, 1);
-  assert.deepEqual(drawCalls[0].slice(1, 5), [720, 0, 240, 320]);
+  assert.deepEqual(drawCalls[0].slice(1, 5), [480, 0, 240, 320]);
   assert.deepEqual(drawCalls[0].slice(5, 9), [-33, -88, 66, 88]);
 });
 

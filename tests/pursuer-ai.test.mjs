@@ -80,3 +80,28 @@ test('Meng autonomously rides the bridge spring route without player input', () 
   assert.ok(pursuer.y < 380);
   assert.ok(pursuer.x > 19570);
 });
+
+test('Meng plans an independent double jump across a 160px pit despite a midair speed change', () => {
+  const level = {
+    finishX: 5000,
+    platforms: [
+      { id: 'near-bank', x: 2265, y: 510, width: 440, height: 22 },
+      { id: 'far-bank', x: 2865, y: 510, width: 600, height: 22 },
+    ],
+  };
+  for (const frameMs of [1000 / 60, 1000 / 30]) {
+    let pursuer = { ...createPursuer(2484), groundedPlatformId: 'near-bank', cycleElapsedMs: 13800 };
+    let sawDoubleJump = false;
+    let fellBelowWorld = false;
+    for (let time = 0; time < 3500; time += frameMs) {
+      pursuer = updatePursuer(pursuer, { x: 0 }, frameMs, level);
+      sawDoubleJump ||= pursuer.jumpsUsed === 2;
+      fellBelowWorld ||= pursuer.y > 600;
+    }
+
+    assert.equal(sawDoubleJump, true, `${Math.round(1000 / frameMs)} FPS: use the planned second jump`);
+    assert.equal(fellBelowWorld, false, `${Math.round(1000 / frameMs)} FPS: do not fall into the pit`);
+    assert.equal(pursuer.grounded, true, `${Math.round(1000 / frameMs)} FPS: land on the far bank`);
+    assert.equal(pursuer.groundedPlatformId, 'far-bank');
+  }
+});

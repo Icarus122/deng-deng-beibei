@@ -1,4 +1,4 @@
-import { drawCharacter, getRunFrameIndex, RUN_CYCLE_DISTANCE_PX, RUN_FRAME_DISTANCE_PX } from './character-renderer.js?v=20260920f';
+import { drawCharacter, getRunFrameIndex, RUN_CYCLE_DISTANCE_PX, RUN_FRAME_DISTANCE_PX } from './character-renderer.js?v=20260920g';
 
 const DISPLAY_WIDTH = 66;
 const DISPLAY_HEIGHT = 88;
@@ -32,9 +32,9 @@ const runners = {
 };
 
 runners.beibei.old.src = 'assets/beibei-run-v2.png';
-runners.beibei.next.src = 'assets/beibei-run-cycle-v4.png?v=20260920f';
+runners.beibei.next.src = 'assets/beibei-run-cycle-v5.png?v=20260920g';
 runners.meng.old.src = 'assets/meng-run-v2.png?v=20260920d';
-runners.meng.next.src = 'assets/meng-run-cycle-v4.png?v=20260920f';
+runners.meng.next.src = 'assets/meng-run-cycle-v5.png?v=20260920g';
 
 function prepareCanvas(canvas) {
   const ratio = Math.min(window.devicePixelRatio || 1, 2);

@@ -6,6 +6,7 @@ import { getDynamicHazards } from '../hazard-logic.js';
 
 const STEP_MS = 1000 / 60;
 const PLAYER_WIDTH = 24;
+const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
 const BOT_TIMEOUT_MS = 180000;
 
@@ -134,7 +135,7 @@ export function jumpInput(state, sprint = false, takeHighRoute = false, lookAhea
     const intersectsHeight = hazardY + hazardHeight + 10 > state.player.y
       && hazardY - 10 < state.player.y + state.player.height;
     const distanceAhead = hazard.x - front;
-    const jumpLead = hazard.type === 'banana' ? 76 : 90;
+    const jumpLead = hazard.type === 'spikes' ? 24 : hazard.type === 'banana' ? 76 : 90;
     return intersectsHeight && distanceAhead >= -PLAYER_WIDTH && distanceAhead <= jumpLead;
   });
   const canGroundJump = state.player.grounded;

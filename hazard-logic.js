@@ -1,4 +1,4 @@
-import { overlaps } from './entities.js';
+import { overlaps, sweptOverlaps } from './entities.js';
 
 const COLLAPSE_WARNING_MS = 500;
 
@@ -30,29 +30,43 @@ export function getDynamicHazards(level, elapsedMs, collapseStarts = {}) {
   });
 }
 
-export function resolveHazardContact(state, hazards, elapsedMs) {
+export function resolveHazardContact(state, hazards, elapsedMs, { previousPlayer = state.player, previousHazards = hazards } = {}) {
   const collapseStarts = { ...(state.collapseStarts ?? {}) };
+  const contacts = [];
+  const damagingContacts = [];
+  let event = 'none';
+  let hazardSlowTimerMs = state.hazardSlowTimerMs ?? 0;
   for (const hazard of hazards) {
+    const oldHazard = previousHazards.find((item) => item.id === hazard.id) ?? hazard;
     const isStandingOnCollapse = hazard.type === 'collapse'
+      && state.player.grounded
       && state.player.x < hazard.x + hazard.width
       && state.player.x + state.player.width > hazard.x
       && state.player.y + state.player.height >= hazard.y - 4
       && state.player.y + state.player.height <= hazard.y + 10;
-    if (!overlaps(state.player, hazard) && !isStandingOnCollapse) continue;
+    const touched = hazard.type === 'collapse'
+      ? isStandingOnCollapse || state.player.groundedPlatformId === hazard.id
+      : sweptOverlaps(previousPlayer, state.player, oldHazard, hazard);
+    if (!touched) continue;
+    contacts.push(hazard);
     if (hazard.type === 'collapse') {
-      if (collapseStarts[hazard.id] === undefined) collapseStarts[hazard.id] = elapsedMs;
-      return { collapseStarts, event: 'collapseWarning', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
+      if (collapseStarts[hazard.id] === undefined) {
+        collapseStarts[hazard.id] = elapsedMs;
+        if (event === 'none') event = 'collapseWarning';
+      }
+      continue;
     }
     if (hazard.type === 'constructionBox' && !hazard.warning) {
-      return { collapseStarts, event: 'constructionHit', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
+      damagingContacts.push(hazard);
+      if (event === 'none') event = 'constructionHit';
+      continue;
     }
     if (hazard.type === 'blocker' || hazard.type === 'patrol' || hazard.type === 'spikes') {
-      return {
-        collapseStarts,
-        event: hazard.type === 'blocker' ? 'blockerHit' : hazard.type === 'patrol' ? 'patrolHit' : 'spikesHit',
-        hazardSlowTimerMs: hazard.type === 'spikes' ? state.hazardSlowTimerMs ?? 0 : 700,
-      };
+      damagingContacts.push(hazard);
+      if (hazard.type !== 'spikes') hazardSlowTimerMs = Math.max(hazardSlowTimerMs, 700);
+      if (event === 'none') event = hazard.type === 'blocker' ? 'blockerHit'
+        : hazard.type === 'patrol' ? 'patrolHit' : 'spikesHit';
     }
   }
-  return { collapseStarts, event: 'none', hazardSlowTimerMs: state.hazardSlowTimerMs ?? 0 };
+  return { collapseStarts, contacts, damagingContacts, event, hazardSlowTimerMs };
 }

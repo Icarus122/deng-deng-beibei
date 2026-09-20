@@ -1,4 +1,5 @@
-import { overlaps } from './entities.js';
+import { sweptOverlaps } from './entities.js';
+import { createBasketball, updateBasketball } from './basketball-logic.js';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
 import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920f';
 import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920f';
@@ -40,8 +41,8 @@ function movingPlatform(platform, elapsedMs) {
   };
 }
 
-function placeOnSurface(player, platforms, previousBottom, ignoredOneWayGroup = null) {
-  const platform = findLandingPlatform(player, platforms, previousBottom, ignoredOneWayGroup);
+function placeOnSurface(player, platforms, previousBottom, ignoredOneWayGroup = null, previousPlayer = null, previousPlatforms = platforms) {
+  const platform = findLandingPlatform(player, platforms, previousBottom, ignoredOneWayGroup, previousPlayer, previousPlatforms);
   if (platform) {
     return {
       ...player,
@@ -210,7 +211,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   const collapseStarts = { ...(state.collapseStarts ?? {}) };
   const previousPlatforms = getRenderPlatforms(state.levelId, state.elapsedMs, collapseStarts);
   const platforms = getRenderPlatforms(state.levelId, nextElapsedMs, collapseStarts);
+  const previousHazards = getDynamicHazards(level, state.elapsedMs, collapseStarts);
   let hazards = getDynamicHazards(level, nextElapsedMs, collapseStarts);
+  let previousPlayer = clonePlayer(state.player);
   const player = clonePlayer(state.player);
   let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.player.x + state.initialDistance);
   let mistakes = state.mistakes ?? 0;
@@ -309,11 +312,11 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   player.horizontalSpeed = direction * movementSpeed;
   const horizontalDistance = Math.abs(player.x - previousX);
   player.distanceTravelled = (player.distanceTravelled ?? 0) + horizontalDistance;
-  const previousBottom = player.y + player.height;
+  const previousBottom = previousPlayer.y + player.height;
   player.velocityY += (player.velocityY > 0 ? FALL_GRAVITY : GRAVITY) * seconds;
   player.y += player.velocityY * seconds;
   const ignoredOneWayGroup = player.dropThroughMs > 0 ? player.dropThroughGroup : null;
-  Object.assign(player, placeOnSurface(player, platforms, previousBottom, ignoredOneWayGroup));
+  Object.assign(player, placeOnSurface(player, platforms, previousBottom, ignoredOneWayGroup, previousPlayer, previousPlatforms));
   if (player.dropThroughGroup) {
     const groupPlatform = platforms.find((platform) => platform.oneWay
       && (platform.oneWayGroup ?? platform.id) === player.dropThroughGroup);
@@ -339,7 +342,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     && Math.abs(player.y + player.height - platform.y) < 2);
   if (boostPlatform) platformBoostTimerMs = 180;
 
-  const hazardResult = resolveHazardContact({ player, collapseStarts, hazardSlowTimerMs }, hazards, nextElapsedMs);
+  const hazardResult = resolveHazardContact({ player, collapseStarts, hazardSlowTimerMs }, hazards, nextElapsedMs, {
+    previousPlayer,
+    previousHazards,
+  });
   Object.assign(collapseStarts, hazardResult.collapseStarts);
   if (hazardResult.event !== 'none') {
     hazardSlowTimerMs = hazardResult.hazardSlowTimerMs;
@@ -349,8 +355,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
 
   const playerBox = player;
   for (const energy of level.energy ?? []) {
-    if (!collectedEnergy.has(energy.id) && overlaps(playerBox, energy)) {
-      energyMeter = clamp(energyMeter + 80, 0, 100);
+    if (!collectedEnergy.has(energy.id) && sweptOverlaps(previousPlayer, playerBox, energy)) {
+      energyMeter = clamp(energyMeter + 40, 0, 100);
       energyTimerMs = 900;
       pursuer.x -= 38;
       event = 'energy';
@@ -359,7 +365,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   for (const coin of level.coins ?? []) {
-    if (!collectedCoins.has(coin.id) && overlaps(playerBox, coin)) {
+    if (!collectedCoins.has(coin.id) && sweptOverlaps(previousPlayer, playerBox, coin)) {
       collectedCoins.add(coin.id);
       coins += 1;
       pursuer.x -= 14;
@@ -368,7 +374,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   for (const heart of level.heartPickups ?? []) {
-    if (!collectedHearts.has(heart.id) && hearts < (state.maxHearts ?? 3) && overlaps(playerBox, heart)) {
+    if (!collectedHearts.has(heart.id) && hearts < (state.maxHearts ?? 3) && sweptOverlaps(previousPlayer, playerBox, heart)) {
       collectedHearts.add(heart.id);
       hearts = Math.min(state.maxHearts ?? 3, hearts + 1);
       event = 'heart';
@@ -376,11 +382,11 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   for (const obstacle of level.obstacles ?? []) {
-    if (!collectedObstacle.has(obstacle.id) && !overlaps(playerBox, obstacle)) continue;
+    if (collectedObstacle.has(obstacle.id) || !sweptOverlaps(previousPlayer, playerBox, obstacle)) continue;
     if (obstacle.type === 'surprise' && player.velocityY < 0) {
       collectedObstacle.add(obstacle.id);
       coins += 1;
-      energyMeter = clamp(energyMeter + 34, 0, 100);
+      energyMeter = clamp(energyMeter + 20, 0, 100);
       energyTimerMs = 600;
       pursuer.x -= 28;
       event = 'surprise';
@@ -392,7 +398,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       event = 'spring';
     }
     if (obstacle.type === 'basketball') {
-      basketball = { x: obstacle.x, y: obstacle.y, width: obstacle.width, height: obstacle.height, velocityX: 520, active: true };
+      basketball = createBasketball(player, pursuer);
       collectedObstacle.add(obstacle.id);
       event = 'basketball';
     }
@@ -413,12 +419,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     }
   }
 
-  const damagingHazards = hazards.filter((hazard) => (
-    ['blocker', 'patrol', 'spikes'].includes(hazard.type)
-    || (hazard.type === 'constructionBox' && !hazard.warning)
-  ) && overlaps(playerBox, hazard));
+  const damagingHazards = hazardResult.damagingContacts;
   const damagingObstacles = (level.obstacles ?? []).filter((obstacle) => (
-    ['bookbag', 'barrier'].includes(obstacle.type) && overlaps(playerBox, obstacle)
+    ['bookbag', 'barrier'].includes(obstacle.type) && sweptOverlaps(previousPlayer, playerBox, obstacle)
   ));
   const damageCandidates = [...damagingHazards, ...damagingObstacles];
   damageCandidates.forEach((hazard) => currentDamageContacts.add(hazard.id));
@@ -452,6 +455,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     const distanceBeforeFall = pursuer.x - player.x;
     player.x = checkpointX;
     player.y = GROUND_Y - PLAYER_HEIGHT;
+    previousPlayer = { ...player };
     player.velocityY = 0;
     player.grounded = true;
     player.groundedPlatformId = checkpointPlatformId;
@@ -475,6 +479,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hitStopMs = HIT_STOP_MS;
   }
 
+  const previousPursuer = { ...pursuer };
   pursuer = updatePursuer(pursuer, player, stepMs, {
     ...level,
     previousPlatforms,
@@ -483,14 +488,10 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hazards,
   });
   if (basketball?.active) {
-    basketball.x += basketball.velocityX * seconds;
-    const pursuerBox = { x: pursuer.x, y: pursuer.y ?? GROUND_Y - PLAYER_HEIGHT, width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
-    if (overlaps(basketball, pursuerBox)) {
-      const downed = random() < 0.25;
-      pursuer = { ...pursuer, mode: downed ? 'downed' : 'slowed', modeTimerMs: downed ? 900 : 2000 };
-      basketball = null;
-      event = downed ? 'pursuerDowned' : 'pursuerSlowed';
-    }
+    const result = updateBasketball(basketball, previousPursuer, pursuer, stepMs, level.worldEnd, random);
+    basketball = result.ball;
+    pursuer = result.pursuer;
+    if (result.event !== 'none') event = result.event;
   }
 
   const progress = level.finishX ? player.x / level.finishX : 1;

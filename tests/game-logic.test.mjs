@@ -329,7 +329,11 @@ test('sprint exhaustion produces a gameplay cue', () => {
 
 test('touching a basketball launches it forward automatically', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 6800 } };
+  state = {
+    ...state,
+    player: { ...state.player, x: 6800 },
+    pursuer: { ...state.pursuer, x: 7060 },
+  };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16, { random: () => 0.9 });
 
   assert.equal(state.basketball.active, true);
@@ -520,8 +524,24 @@ test('collecting Beibei energy starts a sprint and closes the gap', () => {
   state = updateGame(state, { left: false, right: true, jumpPressed: false }, 16);
 
   assert.equal(state.event, 'energy');
+  assert.equal(state.energyMeter, 40);
   assert.ok(state.energyTimerMs > 0);
   assert.ok(state.distance < state.initialDistance);
+});
+
+test('jumping alone does not create energy and an airborne pickup grants only its listed amount', () => {
+  let state = createGame(1);
+  state = updateGame(state, { left: false, right: false, jumpPressed: true }, 16);
+  assert.equal(state.energyMeter, 0);
+
+  state = {
+    ...createGame(1),
+    energyMeter: 20,
+    player: { ...createGame(1).player, x: 1880, y: 450, grounded: false, velocityY: 80, jumpsUsed: 1 },
+  };
+  state = updateGame(state, { left: false, right: false, jumpPressed: false }, 16);
+  assert.equal(state.event, 'energy');
+  assert.equal(state.energyMeter, 60);
 });
 
 test('a collected Beibei energy stays collected on later frames', () => {

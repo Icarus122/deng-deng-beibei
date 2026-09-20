@@ -3,22 +3,22 @@ const DISPLAY_HEIGHT = 88;
 export const RUN_CYCLE_DISTANCE_PX = 128;
 export const RUN_FRAME_DISTANCE_PX = RUN_CYCLE_DISTANCE_PX / 12;
 
-// Both replacement atlases are 960 x 960: twelve 240 x 320 frames in a
+// Both replacement atlases are 1152 x 1152: twelve 288 x 384 frames in a
 // 4-column by 3-row layout. Pivots are source-space coordinates at the same
 // horizontal center and ground baseline for every pose.
 const RUN_FRAME_LAYOUT = [
-  { x: 0, y: 0, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 240, y: 0, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 480, y: 0, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 720, y: 0, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 0, y: 320, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 240, y: 320, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 480, y: 320, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 720, y: 320, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 0, y: 640, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 240, y: 640, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 480, y: 640, w: 240, h: 320, originX: 120, originY: 320 },
-  { x: 720, y: 640, w: 240, h: 320, originX: 120, originY: 320 },
+  { x: 0, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 288, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 576, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 864, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 0, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 288, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 576, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 864, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 0, y: 768, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 288, y: 768, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 576, y: 768, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 864, y: 768, w: 288, h: 384, originX: 144, originY: 384 },
 ];
 
 const RUN_FRAMES = { beibei: RUN_FRAME_LAYOUT, meng: RUN_FRAME_LAYOUT };
@@ -66,7 +66,7 @@ function drawStillPortrait(ctx, portrait, x, y, width = DISPLAY_WIDTH, height = 
 function drawRunCycle(ctx, portrait, distanceTravelled) {
   const runCycle = portrait?.runCycle;
   const frame = getRunFrameRect(portrait?.runnerId, getRunFrameIndex(distanceTravelled));
-  if (!runCycle?.naturalWidth || runCycle.naturalWidth < 960 || runCycle.naturalHeight < 960 || !frame) return false;
+  if (!runCycle?.naturalWidth || runCycle.naturalWidth < 1152 || runCycle.naturalHeight < 1152 || !frame) return false;
   const scaleX = DISPLAY_WIDTH / frame.w;
   const scaleY = DISPLAY_HEIGHT / frame.h;
   ctx.drawImage(

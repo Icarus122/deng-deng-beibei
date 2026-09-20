@@ -1,6 +1,6 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920f';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920g';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260920f';
+import { drawCharacter } from './character-renderer.js?v=20260920g';
 import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
@@ -28,6 +28,8 @@ const energyFill = document.querySelector('#energy-fill');
 const heartIcons = document.querySelectorAll('#heart-icons span');
 const gameStatus = document.querySelector('#game-status');
 const hudNotice = document.querySelector('#hud-notice');
+const turnButton = document.querySelector('#turn-button');
+const sprintButton = document.querySelector('#sprint-button');
 const dropButton = document.querySelector('#drop-button');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
@@ -63,8 +65,8 @@ let runnerAssetsFailed = false;
 let runnerAssetRetry = 0;
 
 const runnerAssets = [
-  { image: beibeiPortrait.runCycle, url: 'assets/beibei-run-cycle-v4.png?v=20260920f' },
-  { image: mengPortrait.runCycle, url: 'assets/meng-run-cycle-v4.png?v=20260920f' },
+  { image: beibeiPortrait.runCycle, url: 'assets/beibei-run-cycle-v5.png?v=20260920g' },
+  { image: mengPortrait.runCycle, url: 'assets/meng-run-cycle-v5.png?v=20260920g' },
   { image: beibeiPortrait.poses.cry, url: 'assets/beibei-cry-v2.png?v=20260920d' },
   { image: beibeiPortrait.poses.jump, url: 'assets/beibei-jump-v1.png?v=20260920d' },
   { image: mengPortrait.poses.jump, url: 'assets/meng-jump-v1.png?v=20260920f' },
@@ -74,10 +76,10 @@ const runnerAssets = [
 
 function runnersReady() {
   return Boolean(
-    beibeiPortrait.runCycle.naturalWidth === 960
-    && beibeiPortrait.runCycle.naturalHeight === 960
-    && mengPortrait.runCycle.naturalWidth === 960
-    && mengPortrait.runCycle.naturalHeight === 960
+    beibeiPortrait.runCycle.naturalWidth === 1152
+    && beibeiPortrait.runCycle.naturalHeight === 1152
+    && mengPortrait.runCycle.naturalWidth === 1152
+    && mengPortrait.runCycle.naturalHeight === 1152
     && beibeiPortrait.poses.cry.naturalWidth
     && beibeiPortrait.poses.jump.naturalWidth
     && mengPortrait.poses.jump.naturalWidth === 1881
@@ -344,7 +346,12 @@ function drawObstacle(obstacle, elapsedMs) {
 }
 
 function drawBasketball(ball) {
-  drawAtlasProp('basketball', ball.x - 8, ball.y - 8, ball.width + 16, ball.height + 16);
+  const size = Math.max(ball.width, ball.height) + 16;
+  ctx.save();
+  ctx.translate(ball.x + ball.width / 2, ball.y + ball.height / 2);
+  ctx.rotate(ball.rotation ?? 0);
+  drawAtlasProp('basketball', -size / 2, -size / 2, size, size);
+  ctx.restore();
 }
 
 function drawEnergy(energy, elapsedMs) {
@@ -483,10 +490,10 @@ function updateLiveText() {
   const messages = {
     hit: `撞到危险物，失去一颗心（剩余 ${state.hearts} 颗）。`,
     fell: `掉进陷阱，失去一颗心并回到检查点（剩余 ${state.hearts} 颗）。`,
-    energy: '拿到贝贝能量，正在冲刺！',
+    energy: '能量 +40！按住手机冲刺键继续加速。',
     energyEmpty: '能量耗尽，冲刺结束！',
     coin: '收集到硬币，距离缩短！',
-    surprise: '惊喜方块！硬币和冲刺都拿到了。',
+    surprise: '惊喜方块！硬币和 +20 能量到手。',
     spring: '弹簧台！跳得更高了。',
     collapseWarning: '平台在塌陷，快跳！',
     constructionHit: `施工箱砸中贝贝，失去一颗心（剩余 ${state.hearts} 颗）。`,
@@ -687,13 +694,7 @@ function startLevel(levelId) {
   stopGame();
   closeDialogs();
   currentLevel = levelId;
-  input.left = false;
-  input.right = false;
-  input.down = false;
-  input.sprint = false;
-  input.jumpPressed = false;
-  input.jumpReleased = false;
-  input.jumpHeld = false;
+  clearInput();
   state = createGame(levelId);
   sprintAudioActive = false;
   runRecorded = false;
@@ -734,6 +735,7 @@ function requestLevelStart(levelId) {
 function returnHome() {
   stopGame();
   closeDialogs();
+  clearInput();
   state = null;
   cameraX = 0;
   lastRenderElapsedMs = 0;
@@ -769,6 +771,21 @@ function clearInput() {
   input.jumpHeld = false;
 }
 
+function bindHoldButton(button, onPress, onRelease) {
+  const release = (event) => {
+    if (event) event.preventDefault();
+    onRelease();
+  };
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    onPress(event);
+    button.setPointerCapture(event.pointerId);
+  });
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+}
+
 window.addEventListener('keydown', (event) => {
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) { input.left = true; event.preventDefault(); }
   if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = true; input.sprint = true; event.preventDefault(); }
@@ -791,16 +808,12 @@ document.addEventListener('visibilitychange', () => {
 canvas.addEventListener('pointerdown', queueJump);
 canvas.addEventListener('pointerup', releaseJump);
 canvas.addEventListener('pointercancel', releaseJump);
-dropButton.addEventListener('pointerdown', (event) => {
+bindHoldButton(turnButton, () => { input.left = true; }, () => { input.left = false; });
+bindHoldButton(sprintButton, () => { input.sprint = true; }, () => { input.sprint = false; });
+bindHoldButton(dropButton, (event) => {
   input.down = true;
   queueJump(event);
-  dropButton.setPointerCapture(event.pointerId);
-});
-dropButton.addEventListener('pointerup', (event) => {
-  input.down = false;
-  releaseJump(event);
-});
-dropButton.addEventListener('pointercancel', (event) => {
+}, (event) => {
   input.down = false;
   releaseJump(event);
 });

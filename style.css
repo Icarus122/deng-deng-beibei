@@ -82,10 +82,15 @@ h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 
 .game-stage { position: relative; }
 canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; background: #a7d9ee; image-rendering: auto; touch-action: none; }
 .hud-notice { position: absolute; top: 14px; left: 50%; max-width: calc(100% - 24px); margin: 0; transform: translateX(-50%); border: 2px solid #2c2540; padding: 7px 12px; background: #fff9e9; color: #2c2540; box-shadow: 3px 3px 0 rgb(23 20 34 / .45); font-size: clamp(.72rem, 1.5vw, .9rem); font-weight: 900; text-align: center; pointer-events: none; }
-.touch-controls { position: absolute; right: 16px; bottom: 16px; z-index: 2; display: none; align-items: end; gap: 8px; }
-.touch-control { min-width: 50px; min-height: 50px; border-color: #31415c; padding: 6px 10px; background: rgb(255 249 233 / .94); box-shadow: 3px 3px 0 rgb(23 20 34 / .45); touch-action: none; user-select: none; -webkit-user-select: none; }
+.touch-controls { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 14px clamp(4px, 2vw, 18px) 2px; }
+.touch-dpad { display: grid; grid-template-areas: ". up ." "left down right"; grid-template-columns: repeat(3, minmax(54px, 68px)); grid-template-rows: repeat(2, 56px); gap: 4px; }
+.touch-control { min-width: 54px; min-height: 54px; border-color: #31415c; padding: 6px 10px; background: #fff9e9; box-shadow: 3px 3px 0 rgb(23 20 34 / .45); touch-action: none; user-select: none; -webkit-user-select: none; }
 .touch-control:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #2c2540; }
-.touch-control:last-child { min-width: 72px; }
+.dpad-up { grid-area: up; }
+.dpad-left { grid-area: left; }
+.dpad-down { grid-area: down; }
+.dpad-right { grid-area: right; }
+.touch-jump { width: clamp(74px, 23vw, 100px); height: clamp(74px, 23vw, 100px); border-radius: 50%; font-size: 1.2rem; font-weight: 900; }
 .touch-tip { text-align: center; }
 
 .result-dialog { width: min(90vw, 390px); border: 5px solid #2c2540; padding: 30px; text-align: center; color: #2c2540; background: #fff9e9; box-shadow: 10px 10px 0 #171422; }
@@ -106,7 +111,6 @@ canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; b
   .hud { position: relative; padding-right: 82px; }
   .heart-icons { position: absolute; top: 2px; right: 4px; }
   .distance-track { width: 44vw; }
-  .touch-controls { right: 10px; bottom: 10px; gap: 6px; }
   .controls { line-height: 1.7; }
   .chapter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chapter-button:last-child { grid-column: 1 / -1; }
@@ -114,4 +118,11 @@ canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; b
 
 @media (pointer: coarse) and (hover: none) and (max-width: 900px) {
   .touch-controls { display: flex; }
+}
+
+@media (pointer: coarse) and (max-height: 520px) {
+  .touch-controls { padding-top: 7px; }
+  .touch-dpad { grid-template-rows: repeat(2, 48px); }
+  .touch-control { min-width: 48px; min-height: 48px; }
+  .touch-jump { width: 66px; height: 66px; }
 }

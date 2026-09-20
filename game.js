@@ -1,4 +1,4 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920g';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260920h';
 import { advanceCamera } from './camera.js';
 import { drawCharacter } from './character-renderer.js?v=20260920g';
 import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
@@ -28,9 +28,11 @@ const energyFill = document.querySelector('#energy-fill');
 const heartIcons = document.querySelectorAll('#heart-icons span');
 const gameStatus = document.querySelector('#game-status');
 const hudNotice = document.querySelector('#hud-notice');
-const turnButton = document.querySelector('#turn-button');
-const sprintButton = document.querySelector('#sprint-button');
-const dropButton = document.querySelector('#drop-button');
+const upButton = document.querySelector('#up-button');
+const leftButton = document.querySelector('#left-button');
+const downButton = document.querySelector('#down-button');
+const rightButton = document.querySelector('#right-button');
+const jumpButton = document.querySelector('#jump-button');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 const chapterButtons = document.querySelectorAll('[data-level-id]');
@@ -44,6 +46,8 @@ const backgroundImages = createLazyBackgrounds();
 const gameAudio = createGameAudio();
 
 const input = { left: false, right: false, down: false, sprint: false, jumpPressed: false, jumpReleased: false, jumpHeld: false };
+const heldInputs = { left: new Set(), right: new Set(), down: new Set() };
+const jumpHoldSources = new Set();
 let currentLevel = 1;
 let state = null;
 let animationFrame = 0;
@@ -748,20 +752,39 @@ function returnHome() {
   gameStatus.textContent = '';
 }
 
-function queueJump(event) {
+function jumpSource(event, source) {
+  return event?.pointerId === undefined ? source : `${source}:pointer:${event.pointerId}`;
+}
+
+function queueJump(event, source = 'jump') {
   event?.preventDefault();
   if (state?.phase !== 'playing') return;
-  if (!input.jumpHeld) input.jumpPressed = true;
+  const holdSource = jumpSource(event, source);
+  if (jumpHoldSources.has(holdSource)) return;
+  if (jumpHoldSources.size === 0) input.jumpPressed = true;
+  jumpHoldSources.add(holdSource);
   input.jumpHeld = true;
 }
 
-function releaseJump(event) {
+function releaseJump(event, source = 'jump') {
   event?.preventDefault();
-  if (input.jumpHeld && state?.phase === 'playing') input.jumpReleased = true;
-  input.jumpHeld = false;
+  const holdSource = jumpSource(event, source);
+  if (!jumpHoldSources.delete(holdSource)) return;
+  input.jumpHeld = jumpHoldSources.size > 0;
+  if (!input.jumpHeld && state?.phase === 'playing') input.jumpReleased = true;
+}
+
+function setHeldInput(action, source, held) {
+  const sources = heldInputs[action];
+  if (held) sources.add(source);
+  else sources.delete(source);
+  input[action] = sources.size > 0;
+  if (action === 'right') input.sprint = input.right;
 }
 
 function clearInput() {
+  Object.values(heldInputs).forEach((sources) => sources.clear());
+  jumpHoldSources.clear();
   input.left = false;
   input.right = false;
   input.down = false;
@@ -774,7 +797,7 @@ function clearInput() {
 function bindHoldButton(button, onPress, onRelease) {
   const release = (event) => {
     if (event) event.preventDefault();
-    onRelease();
+    onRelease(event);
   };
   button.addEventListener('pointerdown', (event) => {
     event.preventDefault();
@@ -787,17 +810,19 @@ function bindHoldButton(button, onPress, onRelease) {
 }
 
 window.addEventListener('keydown', (event) => {
-  if (['ArrowLeft', 'a', 'A'].includes(event.key)) { input.left = true; event.preventDefault(); }
-  if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = true; input.sprint = true; event.preventDefault(); }
-  if (['ArrowDown', 's', 'S'].includes(event.key)) { input.down = true; event.preventDefault(); }
-  if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) queueJump(event);
+  const source = `keyboard:${event.code || event.key}`;
+  if (['ArrowLeft', 'a', 'A'].includes(event.key)) { setHeldInput('left', source, true); event.preventDefault(); }
+  if (['ArrowRight', 'd', 'D'].includes(event.key)) { setHeldInput('right', source, true); event.preventDefault(); }
+  if (['ArrowDown', 's', 'S'].includes(event.key)) { setHeldInput('down', source, true); event.preventDefault(); }
+  if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) queueJump(event, source);
 });
 
 window.addEventListener('keyup', (event) => {
-  if (['ArrowLeft', 'a', 'A'].includes(event.key)) input.left = false;
-  if (['ArrowRight', 'd', 'D'].includes(event.key)) { input.right = false; input.sprint = false; }
-  if (['ArrowDown', 's', 'S'].includes(event.key)) input.down = false;
-  if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) releaseJump(event);
+  const source = `keyboard:${event.code || event.key}`;
+  if (['ArrowLeft', 'a', 'A'].includes(event.key)) setHeldInput('left', source, false);
+  if (['ArrowRight', 'd', 'D'].includes(event.key)) setHeldInput('right', source, false);
+  if (['ArrowDown', 's', 'S'].includes(event.key)) setHeldInput('down', source, false);
+  if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) releaseJump(event, source);
 });
 
 window.addEventListener('blur', clearInput);
@@ -805,18 +830,26 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) clearInput();
 });
 
-canvas.addEventListener('pointerdown', queueJump);
-canvas.addEventListener('pointerup', releaseJump);
-canvas.addEventListener('pointercancel', releaseJump);
-bindHoldButton(turnButton, () => { input.left = true; }, () => { input.left = false; });
-bindHoldButton(sprintButton, () => { input.sprint = true; }, () => { input.sprint = false; });
-bindHoldButton(dropButton, (event) => {
-  input.down = true;
-  queueJump(event);
-}, (event) => {
-  input.down = false;
-  releaseJump(event);
+canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType !== 'touch') queueJump(event, 'canvas');
 });
+canvas.addEventListener('pointerup', (event) => {
+  if (event.pointerType !== 'touch') releaseJump(event, 'canvas');
+});
+canvas.addEventListener('pointercancel', (event) => {
+  if (event.pointerType !== 'touch') releaseJump(event, 'canvas');
+});
+bindHoldButton(upButton, (event) => queueJump(event, 'touch-up'), (event) => releaseJump(event, 'touch-up'));
+bindHoldButton(leftButton,
+  (event) => setHeldInput('left', `touch:left:${event.pointerId}`, true),
+  (event) => setHeldInput('left', `touch:left:${event.pointerId}`, false));
+bindHoldButton(downButton,
+  (event) => setHeldInput('down', `touch:down:${event.pointerId}`, true),
+  (event) => setHeldInput('down', `touch:down:${event.pointerId}`, false));
+bindHoldButton(rightButton,
+  (event) => setHeldInput('right', `touch:right:${event.pointerId}`, true),
+  (event) => setHeldInput('right', `touch:right:${event.pointerId}`, false));
+bindHoldButton(jumpButton, (event) => queueJump(event, 'touch-jump'), (event) => releaseJump(event, 'touch-jump'));
 startButton.addEventListener('click', () => requestLevelStart(1));
 chapterButtons.forEach((button) => button.addEventListener('click', () => requestLevelStart(Number(button.dataset.levelId))));
 retryButton.addEventListener('click', () => requestLevelStart(currentLevel));

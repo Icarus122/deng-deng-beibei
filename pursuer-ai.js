@@ -8,7 +8,11 @@ const GROUND_Y = 510;
 const RUNNER_WIDTH = 24;
 const RUNNER_HEIGHT = 32;
 const GRAVITY = 1400;
-const JUMP_SPEED = 690;
+const JUMP_SPEED = 560;
+const DOUBLE_JUMP_SPEED = 450;
+const ROUTE_HOP_SPEED = 420;
+const SHORT_GAP_JUMP_SPEED = 450;
+const HAZARD_JUMP_SPEED = 450;
 const CRUISE_MS = 12000;
 const EVADE_MS = 3000;
 const RHYTHM_MS = CRUISE_MS + EVADE_MS;
@@ -37,39 +41,59 @@ export function createPursuer(startX) {
     cycleElapsedMs: 0,
     jumpsUsed: 0,
     doubleJumpQueued: false,
+    dropThroughGroup: null,
     distanceTravelled: 0,
     runDistanceTravelled: 0,
   };
 }
 
 function getActiveSurface(pursuer, platforms) {
-  return platforms.find((platform) => platform.id === pursuer.groundedPlatformId)
-    ?? (pursuer.grounded ? platforms.find((platform) => platform.y === GROUND_Y
-      && pursuer.x + RUNNER_WIDTH > platform.x
-      && pursuer.x < platform.x + platform.width) : null);
+  if (!pursuer.grounded) return null;
+  const supports = (platform) => pursuer.x + RUNNER_WIDTH > platform.x
+    && pursuer.x < platform.x + platform.width
+    && Math.abs(pursuer.y + RUNNER_HEIGHT - platform.y) <= 3;
+  const current = platforms.find((platform) => platform.id === pursuer.groundedPlatformId);
+  if (current && supports(current)) return current;
+  return platforms.find(supports) ?? null;
 }
 
-function landingTime(startY, targetY) {
-  const discriminant = JUMP_SPEED ** 2 + 2 * GRAVITY * (targetY - startY);
+function landingTime(startY, targetY, jumpSpeed = JUMP_SPEED) {
+  const discriminant = jumpSpeed ** 2 + 2 * GRAVITY * (targetY - startY);
   if (discriminant < 0) return null;
-  return (JUMP_SPEED + Math.sqrt(discriminant)) / GRAVITY;
+  return (jumpSpeed + Math.sqrt(discriminant)) / GRAVITY;
 }
 
-function getJumpPlan(startY, targetY, horizontalDistance, speed) {
-  const singleTime = landingTime(startY, targetY);
-  if (singleTime !== null && horizontalDistance <= speed * singleTime - JUMP_SAFETY_PX) {
+function singleJumpReach(startY, targetY, speed, jumpSpeed = JUMP_SPEED, safetyPx = JUMP_SAFETY_PX) {
+  const airtime = landingTime(startY, targetY, jumpSpeed);
+  return airtime === null ? -Infinity : speed * airtime - safetyPx;
+}
+
+function getJumpPlan(startY, targetY, horizontalDistance, speed, jumpSpeed = JUMP_SPEED, safetyPx = JUMP_SAFETY_PX) {
+  if (horizontalDistance <= singleJumpReach(startY, targetY, speed, jumpSpeed, safetyPx)) {
     return { double: false };
   }
 
-  const apexY = startY - JUMP_SPEED ** 2 / (2 * GRAVITY);
-  const secondTime = landingTime(apexY, targetY);
+  const apexY = startY - jumpSpeed ** 2 / (2 * GRAVITY);
+  const secondTime = landingTime(apexY, targetY, DOUBLE_JUMP_SPEED);
   if (secondTime === null) return null;
-  const doubleReach = speed * (JUMP_SPEED / GRAVITY + secondTime);
-  return horizontalDistance <= doubleReach - JUMP_SAFETY_PX ? { double: true } : null;
+  const doubleReach = speed * (jumpSpeed / GRAVITY + secondTime);
+  return horizontalDistance <= doubleReach - safetyPx ? { double: true } : null;
 }
 
-function canLandAfterShortJump(x, surface, speed, platforms) {
-  const airtime = landingTime(surface.y, surface.y);
+function canLandOnRoutePlatform(x, startY, platform, speed) {
+  const horizontalGap = Math.max(0, platform.x - (x + RUNNER_WIDTH));
+  const jumpSpeed = startY - platform.y <= 12 ? ROUTE_HOP_SPEED : JUMP_SPEED;
+  const plan = getJumpPlan(startY, platform.y, horizontalGap, speed, jumpSpeed);
+  if (!plan || plan.double) return false;
+  const flightTime = landingTime(startY, platform.y, jumpSpeed);
+  if (flightTime === null) return false;
+  const landingX = x + speed * flightTime;
+  return landingX + RUNNER_WIDTH > platform.x + 4
+    && landingX < platform.x + platform.width - 4;
+}
+
+function canLandAfterShortJump(x, surface, speed, platforms, jumpSpeed) {
+  const airtime = landingTime(surface.y, surface.y, jumpSpeed);
   if (airtime === null) return false;
   const landingX = x + speed * airtime;
   return platforms.some((platform) => platform.y === surface.y
@@ -116,6 +140,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   let groundedPlatformId = pursuer.groundedPlatformId ?? null;
   let jumpsUsed = pursuer.jumpsUsed ?? 0;
   let doubleJumpQueued = Boolean(pursuer.doubleJumpQueued);
+  let dropThroughGroup = pursuer.dropThroughGroup ?? null;
 
   if (grounded && groundedPlatformId) {
     const previous = previousPlatforms.find((platform) => platform.id === groundedPlatformId);
@@ -129,15 +154,57 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     }
   }
 
+  let activeSurface = getActiveSurface({ x, y, grounded, groundedPlatformId }, platforms);
+  const hasGroundPlane = platforms.some((platform) => platform.y === GROUND_Y);
+  if (grounded && !activeSurface && hasGroundPlane) {
+    grounded = false;
+    groundedPlatformId = null;
+  } else if (activeSurface) {
+    groundedPlatformId = activeSurface.id;
+  }
   const routePursuer = { ...pursuer, x, y, grounded, groundedPlatformId };
   const { routeNode, legacyTarget } = routeFor(routePursuer, progress, level);
   const routePlatforms = routeNode
     ? platforms.filter((platform) => platform.route === routeNode.route).sort((a, b) => a.x - b.x)
     : [];
-  const activeSurface = getActiveSurface(routePursuer, platforms);
-  const targetSurface = routePlatforms.find((platform) => platform.id !== groundedPlatformId
-    && platform.y <= (activeSurface?.y ?? GROUND_Y) + 1
+  const supportY = activeSurface?.y ?? GROUND_Y;
+  const routeEdgeDistance = activeSurface && routeNode
+    ? activeSurface.x + activeSurface.width - (x + RUNNER_WIDTH)
+    : Infinity;
+  const lowerExitSurface = activeSurface?.route && routeNode
+    ? routePlatforms.filter((platform) => platform.y > activeSurface.y + 1
+      && platform.x < x + RUNNER_WIDTH
+      && platform.x + platform.width > x)
+      .sort((a, b) => a.y - b.y)[0]
+    : null;
+  const lowerExitFallTime = lowerExitSurface
+    ? Math.sqrt(2 * (lowerExitSurface.y - activeSurface.y) / GRAVITY)
+    : 0;
+  const lowerExitLandingX = x + velocity * lowerExitFallTime;
+  const lowerExitLandingFits = lowerExitSurface
+    && lowerExitLandingX + RUNNER_WIDTH > lowerExitSurface.x + 8
+    && lowerExitLandingX < lowerExitSurface.x + lowerExitSurface.width - 8;
+  const shouldDropToLower = mode !== 'downed'
+    && grounded
+    && routeNode
+    && activeSurface?.route === routeNode.route
+    && routeNode.end - (activeSurface.x + activeSurface.width) <= 40
+    && routeEdgeDistance <= 90
+    && routeEdgeDistance >= 0
+    && lowerExitLandingFits;
+  const routeCandidates = routePlatforms.filter((platform) => platform.id !== groundedPlatformId
+    && platform.y <= supportY + 1
     && platform.x + platform.width > x + RUNNER_WIDTH);
+  const singleReachableRoute = routeCandidates.find((platform) => {
+    const gap = Math.max(0, platform.x - (x + RUNNER_WIDTH));
+    const jumpSpeed = supportY - platform.y <= 12 ? ROUTE_HOP_SPEED : JUMP_SPEED;
+    return getJumpPlan(supportY, platform.y, gap, planningSpeed, jumpSpeed)?.double === false
+      && canLandOnRoutePlatform(x, supportY, platform, planningSpeed);
+  });
+  const sameHeightRoute = routeCandidates.find((platform) => platform.y === supportY
+    && canLandOnRoutePlatform(x, supportY, platform, planningSpeed));
+  const reachableRoute = routeCandidates.find((platform) => canLandOnRoutePlatform(x, supportY, platform, planningSpeed));
+  const targetSurface = singleReachableRoute ?? sameHeightRoute ?? reachableRoute ?? null;
   const legacyPlatform = legacyTarget ? platforms.find((platform) => platform.id === legacyTarget.platformId) : null;
   const routeEntry = Boolean(routeNode && grounded && !activeSurface?.route
     && routePlatforms.some((platform) => platform.x <= x + RUNNER_WIDTH + 70
@@ -148,16 +215,18 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
 
   let shouldJump = false;
   let shouldDoubleJump = false;
+  let jumpSpeed = JUMP_SPEED;
   if (grounded && nextRoutePlatform) {
     const horizontalGap = Math.max(0, nextRoutePlatform.x - (x + RUNNER_WIDTH));
     const rise = (activeSurface?.y ?? GROUND_Y) - nextRoutePlatform.y;
     const sameRoute = Boolean(activeSurface?.route && activeSurface.route === nextRoutePlatform.route);
+    const plannedJumpSpeed = sameRoute && rise <= 12 ? ROUTE_HOP_SPEED : JUMP_SPEED;
     const wantsRouteJump = routeEntry || Boolean(legacyTarget)
-      || (sameRoute && (rise > 12 || (horizontalGap > 30 && horizontalGap <= 85)));
-    const plan = getJumpPlan(activeSurface?.y ?? GROUND_Y, nextRoutePlatform.y, horizontalGap, planningSpeed);
-    if (wantsRouteJump && plan) {
+      || (sameRoute && (rise > 12 || horizontalGap > RUNNER_WIDTH));
+    const plan = getJumpPlan(activeSurface?.y ?? GROUND_Y, nextRoutePlatform.y, horizontalGap, planningSpeed, plannedJumpSpeed);
+    if (wantsRouteJump && plan && !plan.double) {
       shouldJump = true;
-      shouldDoubleJump = plan.double;
+      jumpSpeed = plannedJumpSpeed;
     }
   }
 
@@ -168,12 +237,15 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     const gap = nextGround ? nextGround.x - (activeSurface.x + activeSurface.width) : Infinity;
     const distanceToEdge = activeSurface.x + activeSurface.width - (x + RUNNER_WIDTH);
     const distanceToNext = nextGround ? Math.max(0, nextGround.x - (x + RUNNER_WIDTH)) : Infinity;
+    const gapJumpSpeed = gap <= 80 ? SHORT_GAP_JUMP_SPEED : JUMP_SPEED;
+    const jumpSafety = gap <= 80 ? 4 : JUMP_SAFETY_PX;
     const gapPlan = nextGround && gap > 6
-      ? getJumpPlan(activeSurface.y, nextGround.y, distanceToNext, planningSpeed)
+      ? getJumpPlan(activeSurface.y, nextGround.y, distanceToNext, planningSpeed, gapJumpSpeed, jumpSafety)
       : null;
     if (!activeSurface.route && gapPlan && distanceToEdge <= 260 && distanceToEdge >= -RUNNER_WIDTH) {
       shouldJump = true;
       shouldDoubleJump = gapPlan.double;
+      jumpSpeed = gapPlan.double ? JUMP_SPEED : gapJumpSpeed;
     }
   }
 
@@ -181,26 +253,46 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     ['spikes', 'blocker', 'patrol', 'constructionBox', 'bookbag', 'barrier'].includes(hazard.type)
     && (hazard.warning !== true)
   ));
-  if (grounded && activeSurface && canLandAfterShortJump(x, activeSurface, velocity, platforms)
+  if (grounded && activeSurface && canLandAfterShortJump(x, activeSurface, velocity, platforms, HAZARD_JUMP_SPEED)
     && damagingHazards.some((hazard) => {
     const isOnPath = hazard.y + hazard.height > y && hazard.y < y + RUNNER_HEIGHT;
     const distanceAhead = hazard.x - (x + RUNNER_WIDTH);
     return isOnPath && distanceAhead >= -RUNNER_WIDTH && distanceAhead <= 78;
-  })) shouldJump = true;
+  })) {
+    shouldJump = true;
+    shouldDoubleJump = false;
+    jumpSpeed = HAZARD_JUMP_SPEED;
+  }
 
   let velocityY = pursuer.velocityY ?? 0;
+  let ignoredOneWayGroup = dropThroughGroup;
   if (mode === 'downed') {
     velocityY = 0;
+  } else if (grounded && shouldDropToLower) {
+    grounded = false;
+    groundedPlatformId = null;
+    dropThroughGroup = activeSurface.oneWayGroup ?? activeSurface.id;
+    ignoredOneWayGroup = dropThroughGroup;
   } else if (grounded && shouldJump) {
-    velocityY = -JUMP_SPEED;
+    velocityY = -jumpSpeed;
     grounded = false;
     groundedPlatformId = null;
     jumpsUsed = 1;
     doubleJumpQueued = shouldDoubleJump;
   } else if (!grounded && doubleJumpQueued && velocityY >= -24) {
-    velocityY = -JUMP_SPEED;
+    velocityY = -DOUBLE_JUMP_SPEED;
     jumpsUsed = 2;
     doubleJumpQueued = false;
+  }
+
+  const nextX = x + velocity * seconds;
+  if (grounded) {
+    const nextSupport = getActiveSurface({ x: nextX, y, grounded: true, groundedPlatformId }, platforms);
+    if (nextSupport) groundedPlatformId = nextSupport.id;
+    else if (activeSurface || hasGroundPlane) {
+      grounded = false;
+      groundedPlatformId = null;
+    }
   }
 
   const previousBottom = previousCharacter.y + RUNNER_HEIGHT;
@@ -210,7 +302,6 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     velocityY += GRAVITY * seconds;
     y += velocityY * seconds;
   }
-  const nextX = x + velocity * seconds;
   if (!grounded) {
     const landing = findLandingPlatform({
       x: nextX,
@@ -219,15 +310,28 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
       height: RUNNER_HEIGHT,
       velocityY,
       grounded: false,
-    }, platforms, previousBottom, null, previousMotionCharacter, previousMotionPlatforms);
+    }, platforms, previousBottom, ignoredOneWayGroup, previousMotionCharacter, previousMotionPlatforms);
     if (landing) {
       y = landing.y - RUNNER_HEIGHT;
       velocityY = 0;
-      grounded = true;
-      groundedPlatformId = landing.id;
-      jumpsUsed = 0;
-      doubleJumpQueued = false;
+      const landedSurface = getActiveSurface({
+        x: nextX,
+        y,
+        grounded: true,
+        groundedPlatformId: landing.id,
+      }, platforms);
+      grounded = Boolean(landedSurface);
+      groundedPlatformId = landedSurface?.id ?? null;
+      if (grounded) {
+        jumpsUsed = 0;
+        doubleJumpQueued = false;
+        dropThroughGroup = null;
+      }
     }
+  }
+  if (!grounded && dropThroughGroup) {
+    const ignoredSurface = platforms.find((platform) => (platform.oneWayGroup ?? platform.id) === dropThroughGroup);
+    if (!ignoredSurface || y + RUNNER_HEIGHT > ignoredSurface.y + 3) dropThroughGroup = null;
   }
   if (y > GROUND_Y - RUNNER_HEIGHT && level.platforms === undefined) {
     y = GROUND_Y - RUNNER_HEIGHT;
@@ -240,6 +344,8 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     velocityY = 0;
     grounded = true;
     groundedPlatformId = null;
+    jumpsUsed = 0;
+    doubleJumpQueued = false;
   }
 
   const runDistanceTravelled = (pursuer.runDistanceTravelled ?? 0)
@@ -253,6 +359,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     groundedPlatformId,
     jumpsUsed,
     doubleJumpQueued,
+    dropThroughGroup,
     targetPlatformId: nextRoutePlatform?.id ?? groundedPlatformId,
     targetRoute: routeNode && nextX < routeNode.end ? routeNode.route : null,
     velocity,

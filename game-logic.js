@@ -2,7 +2,7 @@ import { sweptOverlaps } from './entities.js';
 import { createBasketball, updateBasketball } from './basketball-logic.js';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
 import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920f';
-import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920f';
+import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920h';
 import { findLandingPlatform } from './platform-physics.js';
 
 const PLAYER_WIDTH = 24;

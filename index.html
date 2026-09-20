@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7c76b" />
     <title>等等贝贝吧</title>
-      <link rel="stylesheet" href="style.css?v=20260920g" />
+      <link rel="stylesheet" href="style.css?v=20260920h" />
   </head>
   <body>
     <main class="game-shell">
@@ -51,14 +51,18 @@
         <div class="game-stage">
           <canvas id="game-canvas" width="1280" height="540" aria-label="董贝贝追赶孟培杰的高清横版追逐游戏"></canvas>
           <p id="hud-notice" class="hud-notice" hidden></p>
-          <div class="touch-controls" aria-label="手机操作按键">
-            <button id="turn-button" class="touch-control" type="button" aria-label="按住向左回头">↶</button>
-            <button id="sprint-button" class="touch-control" type="button" aria-label="按住冲刺">⚡</button>
-            <button id="drop-button" class="touch-control" type="button" aria-label="下落穿过当前平台并跳跃">↓ + 跳</button>
+        </div>
+        <div class="touch-controls" aria-label="手机操作按键">
+          <div class="touch-dpad" role="group" aria-label="方向控制">
+            <button id="up-button" class="touch-control dpad-up" type="button" aria-label="跳跃">↑</button>
+            <button id="left-button" class="touch-control dpad-left" type="button" aria-label="按住向左回头">←</button>
+            <button id="down-button" class="touch-control dpad-down" type="button" aria-label="按住下落">↓</button>
+            <button id="right-button" class="touch-control dpad-right" type="button" aria-label="按住向右加速">→</button>
           </div>
+          <button id="jump-button" class="touch-control touch-jump" type="button" aria-label="按住跳跃">跳</button>
         </div>
         <p id="game-status" class="sr-only" aria-live="polite"></p>
-        <p class="touch-tip">自动前进 · 点击画面跳跃 · 按住“下落 + 跳”穿过高台 · 碰篮球自动踢向前方</p>
+        <p class="touch-tip">自动前进 · 电脑：← 回头，→ 加速，空格跳跃 · 手机：左侧方向键、右侧跳跃；↓ + 跳穿过高台 · 碰篮球自动踢向前方</p>
       </section>
     </main>
 
@@ -86,6 +90,6 @@
       </div>
     </dialog>
 
-    <script type="module" src="game.js?v=20260920g"></script>
+    <script type="module" src="game.js?v=20260920h"></script>
   </body>
 </html>

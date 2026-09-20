@@ -421,7 +421,7 @@ test('five standalone chapter levels contain localized playable data', () => {
   assert.ok(LEVELS[6].shortcutNodes.some((node) => node.route === 'bridge-upper-route'));
 });
 
-test('bridge spring launches Beibei onto the upper route while Meng chooses it independently', () => {
+test('bridge spring launches Beibei while Meng independently hops along the upper route', () => {
   let state = createGame(6);
   state = { ...state, player: { ...state.player, x: 290 } };
   for (let frame = 0; frame < 15; frame += 1) {
@@ -431,7 +431,8 @@ test('bridge spring launches Beibei onto the upper route while Meng chooses it i
   assert.equal(state.player.y, 378);
   assert.equal(state.player.grounded, true);
   assert.ok(state.platformBoostTimerMs > 0);
-  assert.equal(state.pursuer.y, 378);
+  assert.ok(state.pursuer.y < 378);
+  assert.ok(state.pursuer.targetPlatformId.startsWith('bridge-upper-'));
   assert.equal(state.pursuer.targetRoute, 'bridge-upper-route');
 });
 

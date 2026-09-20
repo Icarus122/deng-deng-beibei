@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { createPursuer, getPursuitRhythm, updatePursuer } from '../pursuer-ai.js';
 import { JOURNEY } from '../level-data.js';
+import { getRenderPlatforms } from '../game-logic.js';
 
 test('pursuer follows a learnable twelve-second cruise then three-second burst rhythm', () => {
   const pursuer = createPursuer(500);
@@ -103,5 +104,66 @@ test('Meng plans an independent double jump across a 160px pit despite a midair 
     assert.equal(fellBelowWorld, false, `${Math.round(1000 / frameMs)} FPS: do not fall into the pit`);
     assert.equal(pursuer.grounded, true, `${Math.round(1000 / frameMs)} FPS: land on the far bank`);
     assert.equal(pursuer.groundedPlatformId, 'far-bank');
+  }
+});
+
+test('Meng keeps valid platform footing, descends from every upper route, and clears pits at 30 and 60 FPS', () => {
+  const routeNodes = JOURNEY.shortcutNodes.filter((node) => node.route);
+
+  for (const fps of [30, 60]) {
+    const stepMs = 1000 / fps;
+    let pursuer = createPursuer(0);
+    let previousPlatforms = getRenderPlatforms(1, 0, {});
+    let highestJumpFromGround = 0;
+    let fellOutOfWorld = false;
+    const routeResults = Object.fromEntries(routeNodes.map((node) => [node.route, {
+      reached: false,
+      returnedToGround: false,
+      stayedHighAfterExit: false,
+    }]));
+
+    for (let timeMs = stepMs; timeMs < 190000 && pursuer.x < JOURNEY.finishX; timeMs += stepMs) {
+      const platforms = getRenderPlatforms(1, timeMs, {});
+      pursuer = updatePursuer(pursuer, { x: pursuer.x - 260, facing: 1 }, stepMs, {
+        ...JOURNEY,
+        platforms,
+        previousPlatforms,
+      });
+      previousPlatforms = platforms;
+
+      const support = platforms.find((platform) => platform.id === pursuer.groundedPlatformId);
+      if (pursuer.grounded) {
+        assert.ok(support, `${fps} FPS at x=${pursuer.x}: grounded state has no platform`);
+        assert.ok(pursuer.x + 24 > support.x && pursuer.x < support.x + support.width,
+          `${fps} FPS at x=${pursuer.x}: grounded state is outside platform ${support.id}`);
+        assert.ok(Math.abs(pursuer.y + 32 - support.y) <= 3,
+          `${fps} FPS at x=${pursuer.x}: feet are not on platform ${support.id}`);
+      }
+      if (pursuer.y > 600) fellOutOfWorld = true;
+      highestJumpFromGround = Math.max(highestJumpFromGround, 478 - pursuer.y);
+
+      for (const route of routeNodes) {
+        const result = routeResults[route.route];
+        if (support?.route === route.route) result.reached = true;
+        if (pursuer.x > route.end + 20 && pursuer.x < route.end + 120 && support?.route === route.route) {
+          result.stayedHighAfterExit = true;
+        }
+        if (route.route !== 'bridge-route'
+          && pursuer.x > route.end + 20
+          && pursuer.x < route.end + 260
+          && support?.kind === 'ground') result.returnedToGround = true;
+      }
+    }
+
+    assert.equal(fellOutOfWorld, false, `${fps} FPS: Meng must not fall into a pit`);
+    assert.ok(highestJumpFromGround <= 285, `${fps} FPS: route/avoidance jump grew to ${highestJumpFromGround}px`);
+    for (const route of routeNodes) {
+      const result = routeResults[route.route];
+      assert.equal(result.reached, true, `${fps} FPS: did not ride ${route.route}`);
+      assert.equal(result.stayedHighAfterExit, false, `${fps} FPS: remained on ${route.route} after its exit`);
+      if (route.route !== 'bridge-route') {
+        assert.equal(result.returnedToGround, true, `${fps} FPS: did not descend from ${route.route}`);
+      }
+    }
   }
 });

@@ -5,7 +5,7 @@ import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { createTaunt, isTauntActive } from './taunt.js';
 import { createLazyBackgrounds, preloadBackground } from './assets.js';
-import { createGameAudio } from './audio.js';
+import { createGameAudio } from './audio.js?v=20260921a';
 import { loadProgress, recordLevelResult, saveProgress } from './level-progress.js';
 
 const canvas = document.querySelector('#game-canvas');
@@ -22,12 +22,17 @@ const replayButton = document.querySelector('#replay-button');
 const homeButtons = document.querySelectorAll('.home-button');
 const loseDialog = document.querySelector('#lose-dialog');
 const winDialog = document.querySelector('#win-dialog');
+const pauseDialog = document.querySelector('#pause-dialog');
 const levelName = document.querySelector('#level-name');
 const distanceFill = document.querySelector('#distance-fill');
 const energyFill = document.querySelector('#energy-fill');
 const heartIcons = document.querySelectorAll('#heart-icons span');
 const gameStatus = document.querySelector('#game-status');
 const hudNotice = document.querySelector('#hud-notice');
+const pauseButton = document.querySelector('#pause-button');
+const resumeButton = document.querySelector('#resume-button');
+const pauseRestartButton = document.querySelector('#pause-restart-button');
+const pauseHomeButton = document.querySelector('#pause-home-button');
 const upButton = document.querySelector('#up-button');
 const leftButton = document.querySelector('#left-button');
 const downButton = document.querySelector('#down-button');
@@ -51,6 +56,7 @@ const jumpHoldSources = new Set();
 let currentLevel = 1;
 let state = null;
 let animationFrame = 0;
+let isPaused = false;
 let lastFrame = 0;
 let lastRenderElapsedMs = 0;
 let cameraX = 0;
@@ -153,7 +159,7 @@ ctx.imageSmoothingEnabled = true;
 ctx.imageSmoothingQuality = 'high';
 
 function closeDialogs() {
-  [loseDialog, winDialog].forEach((dialog) => {
+  [loseDialog, winDialog, pauseDialog].forEach((dialog) => {
     if (dialog.open) dialog.close();
   });
 }
@@ -526,6 +532,34 @@ function stopGame() {
   clearTimeout(endTimer);
 }
 
+function pauseGame() {
+  if (state?.phase !== 'playing' || isPaused) return false;
+  isPaused = true;
+  stopGame();
+  clearInput();
+  sprintAudioActive = false;
+  simulationClock = { ...simulationClock, accumulatorMs: 0, fastFrames: 0, slowFrames: 0 };
+  pauseButton.setAttribute('aria-pressed', 'true');
+  gameStatus.textContent = '游戏已暂停。点击继续游戏，或按 P / Esc 恢复。';
+  void gameAudio.suspend();
+  if (!pauseDialog.open) pauseDialog.showModal();
+  return true;
+}
+
+function resumeGame() {
+  if (!isPaused || state?.phase !== 'playing') return false;
+  isPaused = false;
+  if (pauseDialog.open) pauseDialog.close();
+  pauseButton.setAttribute('aria-pressed', 'false');
+  clearInput();
+  lastFrame = 0;
+  simulationClock = { ...simulationClock, accumulatorMs: 0, fastFrames: 0, slowFrames: 0 };
+  gameStatus.textContent = `${LEVELS[currentLevel].name}追逐继续。`;
+  void gameAudio.resume();
+  animationFrame = requestAnimationFrame(frame);
+  return true;
+}
+
 function showLoseDialog() {
   gameStatus.textContent = '贝贝跟丢了。';
   if (!loseDialog.open) loseDialog.showModal();
@@ -671,6 +705,7 @@ function playStepSounds(previous, next, jumpPressed) {
 }
 
 function frame(timestamp) {
+  if (isPaused || !state || state.phase !== 'playing') return;
   if (!lastFrame) lastFrame = timestamp;
   const elapsedMs = Math.min(50, timestamp - lastFrame);
   lastFrame = timestamp;
@@ -697,6 +732,8 @@ function frame(timestamp) {
 function startLevel(levelId) {
   stopGame();
   closeDialogs();
+  isPaused = false;
+  pauseButton.setAttribute('aria-pressed', 'false');
   currentLevel = levelId;
   clearInput();
   state = createGame(levelId);
@@ -739,6 +776,8 @@ function requestLevelStart(levelId) {
 function returnHome() {
   stopGame();
   closeDialogs();
+  isPaused = false;
+  pauseButton.setAttribute('aria-pressed', 'false');
   clearInput();
   state = null;
   cameraX = 0;
@@ -810,6 +849,20 @@ function bindHoldButton(button, onPress, onRelease) {
 }
 
 window.addEventListener('keydown', (event) => {
+  const pauseKey = event.key === 'Escape' || event.key.toLowerCase() === 'p';
+  if (pauseKey && !event.repeat) {
+    if (isPaused) {
+      event.preventDefault();
+      resumeGame();
+      return;
+    }
+    if (state?.phase === 'playing') {
+      event.preventDefault();
+      pauseGame();
+      return;
+    }
+  }
+  if (isPaused) return;
   const source = `keyboard:${event.code || event.key}`;
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) { setHeldInput('left', source, true); event.preventDefault(); }
   if (['ArrowRight', 'd', 'D'].includes(event.key)) { setHeldInput('right', source, true); event.preventDefault(); }
@@ -818,6 +871,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keyup', (event) => {
+  if (isPaused) return;
   const source = `keyboard:${event.code || event.key}`;
   if (['ArrowLeft', 'a', 'A'].includes(event.key)) setHeldInput('left', source, false);
   if (['ArrowRight', 'd', 'D'].includes(event.key)) setHeldInput('right', source, false);
@@ -825,9 +879,24 @@ window.addEventListener('keyup', (event) => {
   if ([' ', 'ArrowUp', 'w', 'W'].includes(event.key)) releaseJump(event, source);
 });
 
-window.addEventListener('blur', clearInput);
+window.addEventListener('blur', () => {
+  clearInput();
+  pauseGame();
+});
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) clearInput();
+  if (document.hidden) {
+    clearInput();
+    pauseGame();
+  }
+});
+
+pauseButton.addEventListener('click', pauseGame);
+resumeButton.addEventListener('click', resumeGame);
+pauseRestartButton.addEventListener('click', () => requestLevelStart(currentLevel));
+pauseHomeButton.addEventListener('click', returnHome);
+pauseDialog.addEventListener('cancel', (event) => {
+  event.preventDefault();
+  resumeGame();
 });
 
 canvas.addEventListener('pointerdown', (event) => {

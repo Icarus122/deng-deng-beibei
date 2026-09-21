@@ -78,6 +78,8 @@ h1 { margin: 0; font-size: clamp(42px, 9vw, 76px); line-height: 1; text-shadow: 
 .energy-track i { display: block; width: 0%; height: 100%; background: linear-gradient(90deg, #ffcb5b, #ff7f87); transition: width .1s linear; }
 .heart-icons { display: flex; align-items: center; gap: 2px; min-width: 76px; font-size: 1.5rem; line-height: 1; color: #e94e67; text-shadow: 0 1px 0 #fff9e9; }
 .heart-icons .empty { color: #8c8795; opacity: .42; }
+.hud-actions { display: flex; align-items: center; gap: 8px; }
+.pause-button { min-width: 40px; min-height: 38px; padding: 4px 8px; font-size: 1rem; line-height: 1; }
 
 .game-stage { position: relative; }
 canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; background: #a7d9ee; image-rendering: auto; touch-action: none; }
@@ -100,16 +102,21 @@ canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; b
 .dialog-pixels { color: #ff797f; font-size: 1.5rem; font-weight: 900; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 22px; }
 .dialog-actions button { flex: 1 1 120px; }
+.pause-dialog { width: min(90vw, 360px); padding: 22px; }
+.pause-dialog .dialog-actions { flex-direction: column; gap: 10px; margin-top: 16px; }
+.pause-dialog .dialog-actions button { width: 100%; flex: 0 0 auto; }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (max-width: 600px) {
   .game-shell { width: 100vw; border-left: 0; border-right: 0; box-shadow: none; }
-  .screen { min-height: 100svh; }
+  .screen { min-height: calc(100svh - 10px); }
   .game-screen { padding: 10px; }
   .hud { align-items: flex-start; flex-direction: column; gap: 5px; }
-  .hud { position: relative; padding-right: 82px; }
-  .heart-icons { position: absolute; top: 2px; right: 4px; }
+  .hud { position: relative; padding-right: 132px; }
+  .hud-actions { position: absolute; top: 2px; right: 4px; gap: 5px; }
+  .heart-icons { min-width: 76px; font-size: 1.35rem; }
+  .pause-button { min-width: 36px; min-height: 36px; padding: 3px 6px; }
   .distance-track { width: 44vw; }
   .controls { line-height: 1.7; }
   .chapter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -125,4 +132,34 @@ canvas { display: block; width: 100%; height: auto; border: 4px solid #2c2540; b
   .touch-dpad { grid-template-rows: repeat(2, 48px); }
   .touch-control { min-width: 48px; min-height: 48px; }
   .touch-jump { width: 66px; height: 66px; }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  body { display: block; min-height: 100svh; }
+  .game-shell { width: 100vw; border: 0; box-shadow: none; }
+  .game-screen { min-height: 0; padding: 6px 12px; }
+  .hud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 0 0 4px;
+    font-size: .7rem;
+  }
+  .hud > p { min-width: 0; overflow: hidden; font-size: clamp(.62rem, 1.6vw, .76rem); text-overflow: ellipsis; white-space: nowrap; }
+  .hud-actions { position: static; gap: 5px; }
+  .heart-icons { min-width: 0; gap: 0; font-size: 1rem; }
+  .pause-button { min-width: 36px; min-height: 34px; padding: 3px 5px; font-size: .9rem; }
+  .distance-wrap { gap: 4px; font-size: .65rem; white-space: nowrap; }
+  .distance-track { width: clamp(48px, 11vw, 92px); height: 10px; }
+  .energy-track { width: clamp(40px, 8vw, 68px); height: 8px; }
+  .game-stage { display: flex; justify-content: center; }
+  #game-canvas { width: auto; height: min(49svh, 220px); max-width: 100%; border-width: 3px; }
+  .touch-controls { gap: 8px; padding: 4px clamp(4px, 2vw, 18px) 0; }
+  .touch-dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(2, 40px); gap: 2px; }
+  .touch-control { min-width: 42px; min-height: 40px; padding: 3px 6px; }
+  .touch-jump { width: 58px; height: 58px; font-size: .95rem; }
+  .touch-tip { display: none; }
+  .pause-dialog { padding: 14px; }
+  .pause-dialog .dialog-actions { gap: 8px; margin-top: 12px; }
 }

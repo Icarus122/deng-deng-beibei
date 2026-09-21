@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7c76b" />
     <title>等等贝贝吧</title>
-      <link rel="stylesheet" href="style.css?v=20260920h" />
+      <link rel="stylesheet" href="style.css?v=20260921a" />
   </head>
   <body>
     <main class="game-shell">
@@ -31,7 +31,7 @@
           </div>
           <p id="progress-summary" class="progress-summary" aria-live="polite"></p>
         </section>
-        <p class="controls">自动前进　减速/回头：A / ←　冲刺：D / →　跳跃：空格 / W / ↑　下落：S / ↓ + 跳跃</p>
+        <p class="controls">自动前进　减速/回头：A / ←　冲刺：D / →　跳跃：空格 / W / ↑　下落：S / ↓ + 跳跃　暂停：P / Esc</p>
         <a class="preview-link" href="animation-preview.html">查看角色跑步动作对比预览</a>
       </section>
 
@@ -44,8 +44,11 @@
           <div class="distance-wrap" aria-label="贝贝能量">
             <span>能量</span><div class="energy-track"><i id="energy-fill"></i></div>
           </div>
-          <div id="heart-icons" class="heart-icons" role="img" aria-label="生命：3颗心">
-            <span>♥</span><span>♥</span><span>♥</span>
+          <div class="hud-actions">
+            <div id="heart-icons" class="heart-icons" role="img" aria-label="生命：3颗心">
+              <span>♥</span><span>♥</span><span>♥</span>
+            </div>
+            <button id="pause-button" class="pause-button" type="button" aria-label="暂停游戏（P 或 Esc）" aria-keyshortcuts="P Escape" aria-pressed="false" title="暂停游戏">Ⅱ</button>
           </div>
         </header>
         <div class="game-stage">
@@ -62,7 +65,7 @@
           <button id="jump-button" class="touch-control touch-jump" type="button" aria-label="按住跳跃">跳</button>
         </div>
         <p id="game-status" class="sr-only" aria-live="polite"></p>
-        <p class="touch-tip">自动前进 · 电脑：← 回头，→ 加速，空格跳跃 · 手机：左侧方向键、右侧跳跃；↓ + 跳穿过高台 · 碰篮球自动踢向前方</p>
+        <p class="touch-tip">自动前进 · 电脑：← 回头，→ 加速，空格跳跃，P / Esc 暂停 · 手机：左侧方向键、右侧跳跃；↓ + 跳穿过高台；HUD 暂停键暂停 · 碰篮球自动踢向前方</p>
       </section>
     </main>
 
@@ -90,6 +93,18 @@
       </div>
     </dialog>
 
-    <script type="module" src="game.js?v=20260920h"></script>
+    <dialog id="pause-dialog" class="result-dialog pause-dialog" aria-labelledby="pause-title">
+      <div class="dialog-pixels">Ⅱ</div>
+      <p class="dialog-kicker">追逐暂停</p>
+      <h2 id="pause-title">歇口气再追</h2>
+      <p>贝贝和孟培杰都停在这里了。</p>
+      <div class="dialog-actions">
+        <button id="resume-button" class="primary-button" type="button">继续游戏</button>
+        <button id="pause-restart-button" class="ghost-button" type="button">重新开始</button>
+        <button id="pause-home-button" class="home-button" type="button">返回主页面</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="game.js?v=20260921a"></script>
   </body>
 </html>

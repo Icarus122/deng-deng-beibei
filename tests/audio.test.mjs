@@ -23,6 +23,7 @@ class FakeOscillator {
     this.connections = [];
     this.startTime = null;
     this.stopTime = null;
+    this.stopCalls = 0;
   }
 
   connect(node) {
@@ -36,6 +37,7 @@ class FakeOscillator {
   }
 
   stop(time) {
+    this.stopCalls += 1;
     this.stopTime = time;
   }
 }
@@ -79,6 +81,10 @@ class FakeAudioContext {
 
   async resume() {
     this.state = 'running';
+  }
+
+  async suspend() {
+    this.state = 'suspended';
   }
 
   async close() {
@@ -132,11 +138,28 @@ test('sprint pitch responds gently to the player speed', () => {
   audio.dispose();
 });
 
+test('suspending audio stops active tones and can resume cleanly', async () => {
+  const audio = createGameAudio({ AudioContextCtor: FakeAudioContext });
+  const context = FakeAudioContext.instances.at(-1);
+
+  await audio.resume();
+  audio.play('caught');
+  const voices = [...context.oscillators];
+
+  assert.equal(await audio.suspend(), true);
+  assert.equal(context.state, 'suspended');
+  assert.ok(voices.every((voice) => voice.stopCalls === 2));
+  assert.equal(await audio.resume(), true);
+  assert.equal(context.state, 'running');
+  audio.dispose();
+});
+
 test('audio degrades silently when AudioContext is unavailable', async () => {
   const audio = createGameAudio({ AudioContextCtor: null });
 
   assert.equal(audio.supported, false);
   assert.equal(await audio.resume(), false);
+  assert.equal(await audio.suspend(), false);
   assert.equal(audio.play('jump'), false);
   assert.equal(audio.play('unknown'), false);
   audio.dispose();

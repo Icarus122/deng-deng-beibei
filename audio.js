@@ -45,6 +45,24 @@ export function createGameAudio({ AudioContextCtor = getDefaultAudioContext() } 
     }
   }
 
+  async function suspend() {
+    if (!context || typeof context.suspend !== 'function') return false;
+    for (const { oscillator } of activeVoices) {
+      try {
+        oscillator.stop();
+      } catch {
+        // A voice that already stopped needs no further cleanup.
+      }
+    }
+
+    try {
+      await context.suspend();
+      return context.state === undefined || context.state === 'suspended';
+    } catch {
+      return false;
+    }
+  }
+
   function play(eventName, { speed = 150 } = {}) {
     const tones = EVENT_TONES[eventName];
     if (!context || !tones) return false;
@@ -114,6 +132,7 @@ export function createGameAudio({ AudioContextCtor = getDefaultAudioContext() } 
       return context !== null;
     },
     resume,
+    suspend,
     play,
     dispose,
   };

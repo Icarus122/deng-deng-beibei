@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { getHighRouteViolations, JOURNEY } from '../level-data.js';
-import { createGame, getRenderPlatforms, updateGame } from '../game-logic.js';
+import { LEVELS, createGame, getRenderPlatforms, updateGame } from '../game-logic.js';
 import { getDynamicHazards } from '../hazard-logic.js';
 
 const STEP_MS = 1000 / 60;
@@ -87,14 +87,14 @@ function measureRegions(groundPlatforms) {
 
 function hasSupportAhead(state, lookAhead = 30) {
   const footX = state.player.x + PLAYER_WIDTH + lookAhead;
-  return getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts).some((platform) => (
+  return getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts, state.activatedSwitchIds).some((platform) => (
     footX >= platform.x && footX <= platform.x + platform.width
   ));
 }
 
 function highRouteStartsAhead(state) {
   const playerFront = state.player.x + PLAYER_WIDTH;
-  const platforms = getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts);
+  const platforms = getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts, state.activatedSwitchIds);
   const currentSurface = platforms.find((platform) => platform.id === state.player.groundedPlatformId);
   const targetTier = currentSurface?.route
     ? currentSurface.y
@@ -111,7 +111,7 @@ function highRouteStartsAhead(state) {
 }
 
 function groundGapAhead(state, lookAhead = 30) {
-  const ground = sortByStart(getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts)
+  const ground = sortByStart(getRenderPlatforms(state.levelId, state.elapsedMs, state.collapseStarts, state.activatedSwitchIds)
     .filter((platform) => platform.y === GROUND_Y));
   const front = state.player.x + PLAYER_WIDTH;
   return ground.slice(1).map((platform, index) => ({
@@ -127,8 +127,9 @@ export function jumpInput(state, sprint = false, takeHighRoute = false, lookAhea
   const jumpLead = gap ? Math.min(80, Math.max(30, gap.end - gap.start - 50)) : 0;
   const gapNeedsJump = Boolean(gap) && (front >= gap.start || gap.start - front <= jumpLead);
   const routeJump = takeHighRoute && state.player.grounded && highRouteStartsAhead(state);
-  const currentHazards = getDynamicHazards(JOURNEY, state.elapsedMs, state.collapseStarts);
-  const dangerous = [...currentHazards, ...JOURNEY.obstacles].some((hazard) => {
+  const level = LEVELS[state.levelId];
+  const currentHazards = getDynamicHazards(level, state.elapsedMs, state.collapseStarts);
+  const dangerous = [...currentHazards, ...level.obstacles].some((hazard) => {
     if (!['spikes', 'blocker', 'patrol', 'constructionBox', 'bookbag', 'barrier', 'banana'].includes(hazard.type)) return false;
     const hazardY = hazard.type === 'constructionBox' ? (hazard.warning ? hazard.groundY ?? 466 : hazard.y) : hazard.y;
     const hazardHeight = hazard.type === 'constructionBox' ? 44 : hazard.height;
@@ -155,10 +156,12 @@ export function jumpInput(state, sprint = false, takeHighRoute = false, lookAhea
   };
 }
 
-export function runBot(name, inputForState, { maxMs = BOT_TIMEOUT_MS } = {}) {
-  let state = createGame(1);
+export function runBot(name, inputForState, { maxMs = BOT_TIMEOUT_MS, levelId = 1, stepMs = STEP_MS } = {}) {
+  const level = LEVELS[levelId];
+  let state = createGame(levelId);
   let elapsedMs = 0;
   let maxPlayerX = state.player.x;
+  let minPreWindowGap = Infinity;
   let firstCheckpointReached = false;
   const falls = [];
   let caughtAt = null;
@@ -166,14 +169,15 @@ export function runBot(name, inputForState, { maxMs = BOT_TIMEOUT_MS } = {}) {
 
   while (elapsedMs < maxMs && state.phase === 'playing') {
     const botInput = inputForState(state);
-    const nextState = updateGame(state, botInput, STEP_MS, { random: () => 0.9 });
-    elapsedMs += STEP_MS;
+    const nextState = updateGame(state, botInput, stepMs, { random: () => 0.9 });
+    elapsedMs += stepMs;
     if (nextState.event === 'fell') {
       falls.push({ at: state.player.x, respawn: nextState.player.x });
     }
     state = nextState;
+    if (state.player.x < level.finishX * .85) minPreWindowGap = Math.min(minPreWindowGap, state.distance);
     maxPlayerX = Math.max(maxPlayerX, state.player.x);
-    firstCheckpointReached ||= maxPlayerX >= JOURNEY.checkpoints[0].x;
+    firstCheckpointReached ||= maxPlayerX >= level.checkpoints[0].x;
   }
 
   if (state.phase === 'caught') caughtAt = state.player.x;
@@ -183,12 +187,13 @@ export function runBot(name, inputForState, { maxMs = BOT_TIMEOUT_MS } = {}) {
     phase: state.phase,
     hearts: state.hearts,
     distance: state.distance,
+    minPreWindowGap,
     event: state.event,
     playerY: state.player.y,
     pursuerY: state.pursuer.y,
     elapsedMs,
     maxPlayerX,
-    progress: maxPlayerX / JOURNEY.finishX,
+    progress: maxPlayerX / level.finishX,
     firstCheckpointReached,
     falls,
     caughtAt,

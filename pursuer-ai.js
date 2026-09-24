@@ -2,7 +2,7 @@ import { findLandingPlatform } from './platform-physics.js';
 
 const CRUISE_SPEED = 136;
 const EVADE_SPEED = 205;
-const FINAL_CHASE_SPEED = 170;
+const FINAL_CHASE_SPEED = 132;
 const SLOWED_SPEED = 92;
 const GROUND_Y = 510;
 const RUNNER_WIDTH = 24;
@@ -119,12 +119,19 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   const progress = level.finishX ? player.x / level.finishX : 0;
   const rhythm = getPursuitRhythm(cycleElapsedMs, progress);
   const heldMode = timer > 0 && ['slowed', 'downed'].includes(pursuer.mode);
-  const mode = heldMode ? pursuer.mode : rhythm;
-  const modeTimerMs = heldMode ? timer : rhythm === 'evade' ? RHYTHM_MS - cycleElapsedMs % RHYTHM_MS : 0;
-  const velocity = mode === 'evade' ? EVADE_SPEED
+  const gap = pursuer.x - player.x;
+  const proximityEscape = progress < FINAL_WINDOW_PROGRESS && gap < 220;
+  const mode = proximityEscape ? 'evade' : heldMode ? pursuer.mode : rhythm;
+  const modeTimerMs = proximityEscape ? 0 : heldMode ? timer : rhythm === 'evade' ? RHYTHM_MS - cycleElapsedMs % RHYTHM_MS : 0;
+  const baseVelocity = mode === 'evade' ? EVADE_SPEED
     : mode === 'finalChase' ? FINAL_CHASE_SPEED
       : mode === 'slowed' ? SLOWED_SPEED
         : mode === 'downed' ? 0 : CRUISE_SPEED;
+  // Before the catch window Meng visibly pulls ahead instead of being moved
+  // forward by a post-update clamp. The lead can still be cut with a ball.
+  const velocity = proximityEscape
+    ? Math.max(baseVelocity, 265)
+    : baseVelocity;
   const planningSpeed = Math.min(velocity, CRUISE_SPEED);
   const platforms = level.platforms ?? [];
   const previousPlatforms = level.previousPlatforms ?? platforms;

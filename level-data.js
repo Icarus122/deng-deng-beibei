@@ -9,7 +9,7 @@ const beatPlans = [
   { id: 'court', start: 4800, gaps: [60, 95, 135, 153], lengths: [1700, 420, 440, 1390, 407] },
   { id: 'ginkgo', start: 9600, gaps: [60, 95, 135, 155], lengths: [1700, 420, 440, 1390, 405] },
   { id: 'lake', start: 14400, gaps: [65, 100, 140, 158], lengths: [1700, 420, 440, 1390, 387] },
-  { id: 'bridge', start: 19200, gaps: [65, 100, 140, 160], lengths: [1700, 420, 440, 1390, 385] },
+  { id: 'bridge', start: 19200, gaps: [65, 100, 140, 0], lengths: [1700, 420, 440, 1390, 545] },
 ];
 const beatKinds = ['tutorial', 'regular', 'pressure', 'breather', 'climax'];
 

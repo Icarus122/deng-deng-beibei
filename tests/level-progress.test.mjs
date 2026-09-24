@@ -44,6 +44,6 @@ test('losses keep best progress but do not unlock chapters or grant badges', () 
 });
 
 test('invalid or unavailable storage degrades to fresh local progress', () => {
-  assert.deepEqual(loadProgress({ getItem() { return '{'; } }), { unlockedThrough: 2, records: {} });
+  assert.deepEqual(loadProgress({ getItem() { return '{'; } }), { schemaVersion: 2, unlockedThrough: 2, campaignUnlocked: false, storySeen: [], records: {} });
   assert.equal(saveProgress({ unlockedThrough: 4, records: {} }, null), false);
 });

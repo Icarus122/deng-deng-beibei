@@ -1,9 +1,11 @@
 const BACKGROUND_SOURCES = {
-  gate: ['assets/bg-gate-hd.webp', 'assets/bg-gate-hd.png'],
+  gate: ['assets/bg-gate-story-v2.webp', 'assets/bg-gate-hd.webp'],
   court: ['assets/bg-court-hd.webp', 'assets/bg-court-hd.png'],
   ginkgo: ['assets/bg-ginkgo-hd.webp', 'assets/bg-ginkgo-hd.png'],
   lakeside: ['assets/bg-lakeside-hd.webp', 'assets/bg-lakeside-hd.png'],
-  bridge: ['assets/bg-bridge-hd.webp', 'assets/bg-bridge-hd.png'],
+  bridge: ['assets/bg-bridge-story-v2.webp', 'assets/bg-bridge-hd.webp'],
+  riverside: ['assets/bg-riverside-story-v1.webp'],
+  clocktower: ['assets/bg-clocktower-story-v1.webp'],
 };
 
 function loadCandidate(images, id, sourceIndex = 0) {

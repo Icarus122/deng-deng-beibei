@@ -2,7 +2,7 @@ export const PROGRESS_STORAGE_KEY = 'deng-deng-beibei-progress-v1';
 const MAX_LEVEL_ID = 6;
 
 function emptyProgress() {
-  return { unlockedThrough: 2, records: {} };
+  return { schemaVersion: 2, unlockedThrough: 2, campaignUnlocked: false, storySeen: [], records: {} };
 }
 
 function finiteInteger(value, fallback = 0) {
@@ -22,8 +22,20 @@ function normalizeProgress(value) {
       badges: Array.isArray(record.badges) ? [...new Set(record.badges.filter((badge) => typeof badge === 'string'))] : [],
     };
   }
+  const campaignRecord = value.records?.['journey-02'];
+  if (campaignRecord && typeof campaignRecord === 'object') {
+    records['journey-02'] = {
+      bestProgress: Math.max(0, Math.min(1, Number(campaignRecord.bestProgress) || 0)),
+      bestCoins: finiteInteger(campaignRecord.bestCoins),
+      wins: finiteInteger(campaignRecord.wins),
+      badges: Array.isArray(campaignRecord.badges) ? [...new Set(campaignRecord.badges.filter((badge) => typeof badge === 'string'))] : [],
+    };
+  }
   return {
+    schemaVersion: 2,
     unlockedThrough: Math.max(2, Math.min(MAX_LEVEL_ID, finiteInteger(value.unlockedThrough, 2))),
+    campaignUnlocked: Boolean(value.campaignUnlocked || records[1]?.wins > 0),
+    storySeen: Array.isArray(value.storySeen) ? [...new Set(value.storySeen.filter((key) => typeof key === 'string'))] : [],
     records,
   };
 }
@@ -75,12 +87,24 @@ export function recordLevelResult(progress, levelId, state, level) {
     badges: [...new Set([...previous.badges, ...earnedBadges])],
   };
   const beforeUnlock = nextProgress.unlockedThrough;
-  if (finished && levelId === 1) nextProgress.unlockedThrough = MAX_LEVEL_ID;
-  else if (finished && levelId >= 2 && levelId < MAX_LEVEL_ID) nextProgress.unlockedThrough = Math.max(nextProgress.unlockedThrough, levelId + 1);
+  let unlockedLevel = null;
+  if (finished && levelId === 1) {
+    nextProgress.unlockedThrough = MAX_LEVEL_ID;
+    if (!nextProgress.campaignUnlocked) unlockedLevel = 'journey-02';
+    nextProgress.campaignUnlocked = true;
+  } else if (finished && typeof levelId === 'number' && levelId >= 2 && levelId < MAX_LEVEL_ID) {
+    nextProgress.unlockedThrough = Math.max(nextProgress.unlockedThrough, levelId + 1);
+    if (nextProgress.unlockedThrough > beforeUnlock) unlockedLevel = nextProgress.unlockedThrough;
+  }
 
   return {
     progress: nextProgress,
     earnedBadges,
-    unlockedLevel: nextProgress.unlockedThrough > beforeUnlock ? nextProgress.unlockedThrough : null,
+    unlockedLevel,
   };
+}
+
+export function markStorySeen(progress, sceneKey) {
+  const current = normalizeProgress(progress);
+  return { ...current, storySeen: [...new Set([...current.storySeen, sceneKey])] };
 }

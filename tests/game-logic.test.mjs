@@ -228,6 +228,26 @@ test('releasing jump early creates a short hop and falling uses stronger gravity
   assert.equal(falling.player.velocityY, 187.5);
 });
 
+test('a press and release in the same physics step produces a short hop', () => {
+  const tapped = updateGame(createGame(1), { jumpPressed: true, jumpReleased: true }, 16);
+  const held = updateGame(createGame(1), { jumpPressed: true, jumpHeld: true }, 16);
+  assert.equal(tapped.player.jumpsUsed, 1);
+  assert.ok(tapped.player.velocityY > held.player.velocityY + 250);
+});
+
+test('a buffered tap remains short when the character lands later', () => {
+  const start = createGame(1);
+  const airborne = {
+    ...start,
+    player: { ...start.player, x: 100, y: 465, grounded: false, velocityY: 100, jumpsUsed: 2, coyoteTimerMs: 0 },
+  };
+  const buffered = updateGame(airborne, { jumpPressed: true, jumpReleased: true }, 16);
+  assert.equal(buffered.player.jumpBufferReleased, true);
+  const landed = updateGame(updateGame(buffered, {}, 50), {}, 16);
+  assert.equal(landed.player.jumpsUsed, 1);
+  assert.ok(landed.player.velocityY > -300);
+});
+
 test('a hard obstacle collision briefly freezes the simulation without shaking the camera', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 8200 } };
@@ -350,17 +370,18 @@ test('banana peel records a mistake and temporarily slips Beibei', () => {
   assert.ok(state.player.slipTimerMs > 0);
 });
 
-test('before the final fifteen percent, close contact restores a safe gap without changing Meng rhythm', () => {
+test('before the final fifteen percent, Meng visibly accelerates instead of teleporting', () => {
   let state = createGame(1);
   state = { ...state, player: { ...state.player, x: 18000 }, pursuer: { ...state.pursuer, x: 18040 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0 });
 
   assert.equal(state.phase, 'playing');
-  assert.equal(state.pursuer.mode, 'cruise');
-  assert.ok(state.pursuer.x - state.player.x >= 100);
+  assert.equal(state.pursuer.mode, 'evade');
+  assert.ok(state.pursuer.velocity > 240);
+  assert.ok(state.pursuer.x - state.player.x < 100);
 });
 
-test('collecting a coin closes the gap and records Beibei coin progress', () => {
+test('collecting a coin records progress without teleporting Meng', () => {
   let state = createGame(1);
   const coin = JOURNEY.coins[0];
   state = { ...state, player: { ...state.player, x: coin.x, y: coin.y } };
@@ -368,7 +389,8 @@ test('collecting a coin closes the gap and records Beibei coin progress', () => 
 
   assert.equal(state.event, 'coin');
   assert.equal(state.coins, 1);
-  assert.ok(state.distance < state.initialDistance);
+  assert.ok(state.pursuer.x >= 70 + state.initialDistance);
+  assert.ok(state.pursuer.x - (70 + state.initialDistance) <= 265 * .016 + 0.01);
 });
 
 test('jumping into a surprise block grants a coin and a short sprint', () => {
@@ -488,7 +510,7 @@ test('a close approach after 85 percent catches Meng without a dice roll', () =>
 
 test('inside the 85 percent catch window, Meng switches pace without granting an automatic win', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 19975 }, pursuer: { ...state.pursuer, x: 21000 } };
+  state = { ...state, player: { ...state.player, x: 19975 }, pursuer: { ...state.pursuer, x: 20250 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50, { random: () => 0.99 });
 
   assert.equal(state.phase, 'playing');
@@ -498,16 +520,16 @@ test('inside the 85 percent catch window, Meng switches pace without granting an
   assert.ok(state.distance > 56);
 });
 
-test('opening the 85 percent window creates a contestable gap instead of an automatic win', () => {
+test('opening the 85 percent window preserves the actual gap instead of snapping Meng', () => {
   let state = createGame(1);
-  state = { ...state, player: { ...state.player, x: 19975 }, pursuer: { ...state.pursuer, x: 21000 } };
+  state = { ...state, player: { ...state.player, x: 19975 }, pursuer: { ...state.pursuer, x: 20250 } };
   state = updateGame(state, { left: false, right: false, jumpPressed: false }, 50);
 
   assert.equal(state.phase, 'playing');
   assert.equal(state.finalWindowOpened, true);
   assert.equal(state.event, 'catchWindowOpened');
   assert.ok(state.distance > 56);
-  assert.ok(state.distance <= 100);
+  assert.ok(state.distance > 250);
 });
 
 test('the bridge does not force a catch before the 85 percent window opens', () => {

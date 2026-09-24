@@ -7,9 +7,9 @@ import { getRenderPlatforms } from '../game-logic.js';
 
 test('pursuer follows a learnable twelve-second cruise then three-second burst rhythm', () => {
   const pursuer = createPursuer(500);
-  const close = updatePursuer(pursuer, { x: 360, facing: 1 }, 50);
-  const burst = updatePursuer({ ...pursuer, cycleElapsedMs: 11950 }, { x: 360, facing: 1 }, 50);
-  const reset = updatePursuer({ ...pursuer, cycleElapsedMs: 14950 }, { x: 360, facing: 1 }, 50);
+  const close = updatePursuer(pursuer, { x: 200, facing: 1 }, 50);
+  const burst = updatePursuer({ ...pursuer, cycleElapsedMs: 11950 }, { x: 200, facing: 1 }, 50);
+  const reset = updatePursuer({ ...pursuer, cycleElapsedMs: 14950 }, { x: 200, facing: 1 }, 50);
 
   assert.equal(close.mode, 'cruise');
   assert.equal(burst.mode, 'evade');
@@ -24,20 +24,20 @@ test('pursuer uses the catchable final pace after 85 percent progress', () => {
 
   assert.notEqual(beforeWindow.mode, 'finalChase');
   assert.equal(next.mode, 'finalChase');
-  assert.equal(next.velocity, 170);
+  assert.equal(next.velocity, 132);
 });
 
 test('a downed pursuer does not copy Beibei running movement', () => {
   const pursuer = { ...createPursuer(500), mode: 'downed', modeTimerMs: 800 };
-  const next = updatePursuer(pursuer, { x: 430, facing: 1 }, 50);
+  const next = updatePursuer(pursuer, { x: 200, facing: 1 }, 50);
 
   assert.equal(next.x, 500);
   assert.equal(next.mode, 'downed');
 });
 
 test('Meng keeps an independent ground-running distance and pauses it while airborne', () => {
-  const grounded = updatePursuer(createPursuer(500), { x: 300 }, 50);
-  const airborne = updatePursuer({ ...createPursuer(500), y: 300, grounded: false, velocityY: -20 }, { x: 300 }, 50);
+  const grounded = updatePursuer(createPursuer(500), { x: 200 }, 50);
+  const airborne = updatePursuer({ ...createPursuer(500), y: 300, grounded: false, velocityY: -20 }, { x: 200 }, 50);
 
   assert.ok(Math.abs(grounded.runDistanceTravelled - 6.8) < 1e-9);
   assert.equal(airborne.runDistanceTravelled, 0);

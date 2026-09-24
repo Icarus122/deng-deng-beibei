@@ -5,24 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7c76b" />
     <title>等等贝贝吧</title>
-      <link rel="stylesheet" href="style.css?v=20260921a" />
+      <link rel="stylesheet" href="style.css?v=20260924a" />
   </head>
   <body>
     <main class="game-shell">
       <section id="home-screen" class="screen home-screen" aria-labelledby="game-title">
-        <p class="eyebrow">PIXEL CHASE GAME</p>
+        <p class="eyebrow">校园节 · 双人追逐冒险</p>
         <h1 id="game-title">等等贝贝吧</h1>
-        <p class="intro">操控董贝贝穿过校园和天桥，别让孟培杰跑远啦！</p>
+        <p class="intro">从校园天桥追到河岸钟楼，赶在日落前留下一张合照。</p>
         <div class="portrait-row" aria-hidden="true">
-          <img src="assets/beibei-pixel.png" alt="" />
+          <span class="runner-portrait beibei-portrait"></span>
           <span>VS</span>
-          <img src="assets/meng-peijie-pixel.png" alt="" />
+          <span class="runner-portrait meng-portrait"></span>
         </div>
         <button id="start-button" class="primary-button">开始完整旅程</button>
+        <button class="ghost-button story-review" data-story-level="1" type="button">回看第一关剧情</button>
         <section class="chapter-select" aria-labelledby="chapter-heading">
-          <h2 id="chapter-heading">选择追逐章节</h2>
-          <p>先完成前一章解锁后续路线；完整旅程随时可以开始。</p>
+          <h2 id="chapter-heading">故事与练习</h2>
+          <p>第一关通关后解锁新的沿河旧街。原有五段校园练习仍可单独游玩。</p>
           <div class="chapter-grid">
+            <button class="chapter-button story-level-button" data-level-id="journey-02" type="button">第二关 · 沿河旧街</button>
             <button class="chapter-button" data-level-id="2" type="button">校园入口</button>
             <button class="chapter-button" data-level-id="3" type="button">篮球场</button>
             <button class="chapter-button" data-level-id="4" type="button">银杏林路</button>
@@ -73,7 +75,7 @@
       <div class="dialog-pixels">｡°(°´ᯅ`°)°｡</div>
       <p class="dialog-kicker">追赶失败</p>
       <h2>贝贝跟丢了</h2>
-      <p>孟培杰跑得太快啦……</p>
+      <p id="lose-detail">孟培杰跑得太快啦……</p>
       <div class="dialog-actions">
         <button id="give-up-button" class="ghost-button">放弃</button>
         <button id="retry-button" class="primary-button">再来一遍</button>
@@ -105,6 +107,16 @@
       </div>
     </dialog>
 
-    <script type="module" src="game.js?v=20260921a"></script>
+    <dialog id="story-dialog" class="result-dialog story-dialog" aria-labelledby="story-heading">
+      <p class="dialog-kicker" id="story-chapter"></p>
+      <h2 id="story-heading"></h2>
+      <p id="story-text"></p>
+      <div class="dialog-actions">
+        <button id="story-skip-button" class="ghost-button" type="button">跳过剧情</button>
+        <button id="story-next-button" class="primary-button" type="button">下一句</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="game.js?v=20260924a"></script>
   </body>
 </html>

@@ -1,19 +1,18 @@
 import { sweptOverlaps } from './entities.js';
-import { createBasketball, updateBasketball } from './basketball-logic.js';
+import { createBasketball, updateBasketball } from './basketball-logic.js?v=20260924a';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
-import { CHAPTERS, JOURNEY } from './level-data.js?v=20260920f';
-import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260920h';
+import { CHAPTERS, JOURNEY } from './level-data.js?v=20260924a';
+import { JOURNEY_02 } from './journey-02.js?v=20260924a';
+import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260924a';
 import { findLandingPlatform } from './platform-physics.js';
 
 const PLAYER_WIDTH = 24;
 const PLAYER_HEIGHT = 32;
 const GROUND_Y = 510;
-const SAFE_CHASE_GAP = 100;
 // Rendered bodies are 60px wide.  A catch must now look like a real tap,
 // rather than succeeding with a character-sized empty gap between them.
 const CATCH_CONTACT_GAP = 56;
 const CATCH_WINDOW_PROGRESS = 0.85;
-const FINAL_APPROACH_GAP = 100;
 const GRAVITY = 1400;
 const FALL_GRAVITY = 1750;
 const JUMP_SPEED = 580;
@@ -25,7 +24,7 @@ const HIT_STOP_MS = 50;
 const LAND_SQUASH_MS = 120;
 const DUST_MS = 180;
 
-export const LEVELS = { 1: JOURNEY, ...CHAPTERS };
+export const LEVELS = { 1: JOURNEY, ...CHAPTERS, 'journey-02': JOURNEY_02 };
 
 function clonePlayer(player) {
   return { ...player };
@@ -81,6 +80,7 @@ export function createGame(levelId) {
     runDistanceTravelled: 0,
     coyoteTimerMs: COYOTE_TIME_MS,
     jumpBufferMs: 0,
+    jumpBufferReleased: false,
     landTimerMs: 0,
     dustTimerMs: 0,
   };
@@ -101,6 +101,7 @@ export function createGame(levelId) {
     damageCount: 0,
     sprinted: false,
     basketball: null,
+    activatedSwitchIds: [],
     coins: 0,
     collectedCoinIds: [],
     elapsedMs: 0,
@@ -168,6 +169,20 @@ const REGIONAL_TAUNTS = {
     downed: '孟培杰：在高路上也能追到我？服啦！',
     finalChase: '孟培杰：天桥尽头见！这次你可别松劲！',
   },
+  riverside: {
+    cruise: '孟培杰：沿河走，近路在货台上！',
+    evade: '孟培杰：桥头见，先追上我！',
+    slowed: '孟培杰：这球传得真准！',
+    downed: '孟培杰：好好好，我等一下！',
+    finalChase: '孟培杰：钟楼快到了！',
+  },
+  clocktower: {
+    cruise: '孟培杰：钟楼的灯亮了！',
+    evade: '孟培杰：最后一段可别掉队！',
+    slowed: '孟培杰：这次轮到你带路。',
+    downed: '孟培杰：被你追上了！',
+    finalChase: '孟培杰：我回头等你！',
+  },
 };
 
 export function getPursuerTaunt(progress, mode = 'cruise', regionId = null) {
@@ -180,9 +195,10 @@ export function getPursuerTaunt(progress, mode = 'cruise', regionId = null) {
   return '孟培杰：快追上了？那就来呀！';
 }
 
-export function getRenderPlatforms(levelId, elapsedMs, collapseStarts = {}) {
+export function getRenderPlatforms(levelId, elapsedMs, collapseStarts = {}, activatedSwitchIds = []) {
   return LEVELS[levelId].platforms
-    .filter((platform) => !platform.collapse || !isCollapseGone(platform.id, elapsedMs, collapseStarts))
+    .filter((platform) => (!platform.collapse || !isCollapseGone(platform.id, elapsedMs, collapseStarts))
+      && (!platform.requiresSwitch || activatedSwitchIds.includes(platform.requiresSwitch)))
     .map((platform) => movingPlatform(platform, elapsedMs));
 }
 
@@ -201,6 +217,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       invulnerabilityMs: Math.max(0, (state.invulnerabilityMs ?? 0) - stepMs),
       player: {
         ...state.player,
+        jumpJustLaunched: false,
         landTimerMs: Math.max(0, (state.player.landTimerMs ?? 0) - stepMs),
         dustTimerMs: Math.max(0, (state.player.dustTimerMs ?? 0) - stepMs),
       },
@@ -209,12 +226,14 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
 
   const seconds = stepMs / 1000;
   const collapseStarts = { ...(state.collapseStarts ?? {}) };
-  const previousPlatforms = getRenderPlatforms(state.levelId, state.elapsedMs, collapseStarts);
-  const platforms = getRenderPlatforms(state.levelId, nextElapsedMs, collapseStarts);
+  const activatedSwitchIds = [...(state.activatedSwitchIds ?? [])];
+  const previousPlatforms = getRenderPlatforms(state.levelId, state.elapsedMs, collapseStarts, activatedSwitchIds);
+  const platforms = getRenderPlatforms(state.levelId, nextElapsedMs, collapseStarts, activatedSwitchIds);
   const previousHazards = getDynamicHazards(level, state.elapsedMs, collapseStarts);
   let hazards = getDynamicHazards(level, nextElapsedMs, collapseStarts);
   let previousPlayer = clonePlayer(state.player);
   const player = clonePlayer(state.player);
+  player.jumpJustLaunched = false;
   let pursuer = state.pursuer ? { ...state.pursuer } : createPursuer(state.player.x + state.initialDistance);
   let mistakes = state.mistakes ?? 0;
   let damageCount = state.damageCount ?? 0;
@@ -259,10 +278,17 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     ? COYOTE_TIME_MS
     : Math.max(0, (player.coyoteTimerMs ?? 0) - stepMs);
   let jumpBufferMs = Math.max(0, (player.jumpBufferMs ?? 0) - stepMs);
+  let jumpBufferReleased = jumpBufferMs > 0 && Boolean(player.jumpBufferReleased);
   player.landTimerMs = Math.max(0, (player.landTimerMs ?? 0) - stepMs);
   player.dustTimerMs = Math.max(0, (player.dustTimerMs ?? 0) - stepMs);
-  if (input.jumpPressed) jumpBufferMs = JUMP_BUFFER_MS;
-  if (input.jumpReleased && player.velocityY < 0) player.velocityY *= SHORT_JUMP_FACTOR;
+  if (input.jumpPressed) {
+    jumpBufferMs = JUMP_BUFFER_MS;
+    jumpBufferReleased = false;
+  }
+  if (input.jumpReleased) {
+    if (jumpBufferMs > 0) jumpBufferReleased = true;
+    else if (player.velocityY < 0) player.velocityY *= SHORT_JUMP_FACTOR;
+  }
 
   let droppedThrough = false;
   if (input.jumpPressed && input.down && player.grounded) {
@@ -276,6 +302,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       player.jumpsUsed = 2;
       coyoteTimerMs = 0;
       jumpBufferMs = 0;
+      jumpBufferReleased = false;
       droppedThrough = true;
       event = 'dropThrough';
     }
@@ -285,13 +312,16 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (jumpBufferMs === 0 || player.slipTimerMs > 0) return false;
     if (!player.grounded && coyoteTimerMs === 0 && player.jumpsUsed >= 2) return false;
     player.velocityY = -JUMP_SPEED;
+    if (jumpBufferReleased) player.velocityY *= SHORT_JUMP_FACTOR;
     player.grounded = false;
     player.groundedPlatformId = null;
     player.dropThroughGroup = null;
     player.dropThroughMs = 0;
     player.jumpsUsed += 1;
+    player.jumpJustLaunched = true;
     coyoteTimerMs = 0;
     jumpBufferMs = 0;
+    jumpBufferReleased = false;
     return true;
   };
   if (!droppedThrough) consumeBufferedJump();
@@ -336,6 +366,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
   player.coyoteTimerMs = coyoteTimerMs;
   player.jumpBufferMs = jumpBufferMs;
+  player.jumpBufferReleased = jumpBufferReleased;
   const boostPlatform = player.grounded && platforms.find((platform) => platform.boost
     && player.x + player.width > platform.x
     && player.x < platform.x + platform.width
@@ -358,7 +389,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (!collectedEnergy.has(energy.id) && sweptOverlaps(previousPlayer, playerBox, energy)) {
       energyMeter = clamp(energyMeter + 40, 0, 100);
       energyTimerMs = 900;
-      pursuer.x -= 38;
       event = 'energy';
       collectedEnergy.add(energy.id);
     }
@@ -368,7 +398,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (!collectedCoins.has(coin.id) && sweptOverlaps(previousPlayer, playerBox, coin)) {
       collectedCoins.add(coin.id);
       coins += 1;
-      pursuer.x -= 14;
       event = 'coin';
     }
   }
@@ -388,7 +417,6 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       coins += 1;
       energyMeter = clamp(energyMeter + 20, 0, 100);
       energyTimerMs = 600;
-      pursuer.x -= 28;
       event = 'surprise';
     } else if (obstacle.type === 'spring' && player.velocityY >= 0) {
       player.velocityY = -620;
@@ -398,7 +426,8 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
       event = 'spring';
     }
     if (obstacle.type === 'basketball') {
-      basketball = createBasketball(player, pursuer);
+      const switchTarget = (level.switches ?? []).find((target) => target.id === obstacle.switchId && !activatedSwitchIds.includes(target.id));
+      basketball = createBasketball(player, pursuer, switchTarget);
       collectedObstacle.add(obstacle.id);
       event = 'basketball';
     }
@@ -488,23 +517,19 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hazards,
   });
   if (basketball?.active) {
-    const result = updateBasketball(basketball, previousPursuer, pursuer, stepMs, level.worldEnd, random);
+    const result = updateBasketball(basketball, previousPursuer, pursuer, stepMs, level.worldEnd, random, level.switches ?? []);
     basketball = result.ball;
     pursuer = result.pursuer;
+    if (result.activatedSwitchId && !activatedSwitchIds.includes(result.activatedSwitchId)) activatedSwitchIds.push(result.activatedSwitchId);
     if (result.event !== 'none') event = result.event;
   }
 
   const progress = level.finishX ? player.x / level.finishX : 1;
   let finalWindowOpened = state.finalWindowOpened ?? false;
   if (progress >= CATCH_WINDOW_PROGRESS && !finalWindowOpened) {
-    pursuer = { ...pursuer, x: Math.min(pursuer.x, player.x + FINAL_APPROACH_GAP) };
     finalWindowOpened = true;
     event = 'catchWindowOpened';
   }
-  if (progress < CATCH_WINDOW_PROGRESS && pursuer.x - player.x < SAFE_CHASE_GAP) {
-    pursuer = { ...pursuer, x: player.x + SAFE_CHASE_GAP };
-  }
-  if (level.finishX && player.x < level.finishX) pursuer.x = Math.max(player.x + 30, pursuer.x);
   const distance = pursuer.x - player.x;
   const verticalOverlap = player.y < pursuer.y + PLAYER_HEIGHT
     && player.y + PLAYER_HEIGHT > pursuer.y;
@@ -539,6 +564,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     damageCount,
     sprinted,
     basketball,
+    activatedSwitchIds,
     coins,
     collectedCoinIds: [...collectedCoins],
     elapsedMs: nextElapsedMs,

@@ -30,6 +30,31 @@ test('second story stage is independent, complete, and finishes on stable ground
   assert.equal(createGame('journey-02').phase, 'playing');
 });
 
+test('second stage sustains varied pressure through its four route phrases', () => {
+  const windows = [[0, 4500], [4500, 9000], [9000, 13500], [13500, 18000]];
+  const counts = windows.map(([start, end]) => stage.hazards.filter((hazard) => hazard.x >= start && hazard.x < end).length);
+  assert.ok(counts.every((count) => count >= 3), counts.join('/'));
+  assert.ok(counts.at(-1) > counts[0], counts.join('/'));
+  const upperHazards = stage.hazards.filter((hazard) => hazard.type !== 'collapse'
+    && hazard.y + hazard.height <= 430);
+  assert.ok(upperHazards.length >= 3, `upper hazards: ${upperHazards.length}`);
+  assert.ok(new Set(stage.hazards.map((hazard) => hazard.type)).size >= 4);
+});
+
+test('second stage rewards are not placed inside damage and recovery is scarce', () => {
+  const damaging = stage.hazards.filter((hazard) => hazard.type !== 'collapse');
+  for (const pickup of [...stage.energy, ...stage.heartPickups]) {
+    const collision = damaging.find((hazard) => {
+      const hazardY = hazard.type === 'constructionBox' ? hazard.groundY : hazard.y;
+      return pickup.x < hazard.x + hazard.width && pickup.x + pickup.width > hazard.x
+        && pickup.y < hazardY + hazard.height && pickup.y + pickup.height > hazardY;
+    });
+    assert.equal(collision, undefined, pickup.id);
+  }
+  assert.ok(stage.energy.length <= 11);
+  assert.ok(stage.heartPickups.length <= 2);
+});
+
 test('basketball switch opens only the optional upper connecting platform', () => {
   const switchTarget = stage.switches[0];
   assert.ok(!getRenderPlatforms('journey-02', 0).some((platform) => platform.requiresSwitch));
@@ -85,10 +110,13 @@ test('first-story wins unlock the second stage without converting old practice r
 test('second stage has a controllable ground-route win after the 85 percent window', () => {
   for (const stepMs of [1000 / 60, 1000 / 30]) {
     const result = runBot('second-ground', (state) => jumpInput(state, true, false), { levelId: 'journey-02', stepMs });
+    const upperRoute = runBot('second-upper', (state) => jumpInput(state, true, true), { levelId: 'journey-02', stepMs });
     assert.equal(result.phase, 'caught');
     assert.ok(result.progress >= .85);
     assert.ok(result.minPreWindowGap > 56);
     assert.equal(result.falls.length, 0);
+    assert.equal(upperRoute.phase, 'caught');
+    assert.ok(result.hearts < upperRoute.hearts, `route reward at ${Math.round(1000 / stepMs)} FPS`);
   }
 });
 

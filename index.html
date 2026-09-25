@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7c76b" />
     <title>等等贝贝吧</title>
-      <link rel="stylesheet" href="style.css?v=20260924a" />
+      <link rel="stylesheet" href="style.css?v=20260925b" />
   </head>
   <body>
     <main class="game-shell">
@@ -13,26 +13,11 @@
         <p class="eyebrow">校园节 · 双人追逐冒险</p>
         <h1 id="game-title">等等贝贝吧</h1>
         <p class="intro">从校园天桥追到河岸钟楼，赶在日落前留下一张合照。</p>
-        <div class="portrait-row" aria-hidden="true">
-          <span class="runner-portrait beibei-portrait"></span>
-          <span>VS</span>
-          <span class="runner-portrait meng-portrait"></span>
+        <div class="home-actions">
+          <button id="start-button" class="primary-button" type="button">开始第一关</button>
+          <button id="level-select-button" class="ghost-button" type="button">选择关卡</button>
         </div>
-        <button id="start-button" class="primary-button">开始完整旅程</button>
-        <button class="ghost-button story-review" data-story-level="1" type="button">回看第一关剧情</button>
-        <section class="chapter-select" aria-labelledby="chapter-heading">
-          <h2 id="chapter-heading">故事与练习</h2>
-          <p>第一关通关后解锁新的沿河旧街。原有五段校园练习仍可单独游玩。</p>
-          <div class="chapter-grid">
-            <button class="chapter-button story-level-button" data-level-id="journey-02" type="button">第二关 · 沿河旧街</button>
-            <button class="chapter-button" data-level-id="2" type="button">校园入口</button>
-            <button class="chapter-button" data-level-id="3" type="button">篮球场</button>
-            <button class="chapter-button" data-level-id="4" type="button">银杏林路</button>
-            <button class="chapter-button" data-level-id="5" type="button">湖畔施工区</button>
-            <button class="chapter-button" data-level-id="6" type="button">黄昏天桥</button>
-          </div>
-          <p id="progress-summary" class="progress-summary" aria-live="polite"></p>
-        </section>
+        <p id="progress-summary" class="progress-summary" aria-live="polite"></p>
         <p class="controls">自动前进　减速/回头：A / ←　冲刺：D / →　跳跃：空格 / W / ↑　下落：S / ↓ + 跳跃　暂停：P / Esc</p>
         <a class="preview-link" href="animation-preview.html">查看角色跑步动作对比预览</a>
       </section>
@@ -70,6 +55,39 @@
         <p class="touch-tip">自动前进 · 电脑：← 回头，→ 加速，空格跳跃，P / Esc 暂停 · 手机：左侧方向键、右侧跳跃；↓ + 跳穿过高台；HUD 暂停键暂停 · 碰篮球自动踢向前方</p>
       </section>
     </main>
+
+    <dialog id="level-select-dialog" class="result-dialog level-select-dialog" aria-labelledby="level-select-heading">
+      <div class="level-select-header">
+        <div><p class="dialog-kicker">沿着同一条路，继续追下去</p><h2 id="level-select-heading">选择关卡</h2></div>
+        <button id="level-select-close" class="level-select-close ghost-button" type="button" aria-label="关闭选关">×</button>
+      </div>
+      <div class="story-level-grid">
+        <section class="story-level-card">
+          <span class="level-index">01 / 校园</span>
+          <h3>等到天桥尽头</h3>
+          <p>贝贝沿着校园与湖畔一路追赶，试着在日落前叫住孟培杰。</p>
+          <button class="chapter-button" data-level-id="1" type="button"><span class="chapter-title">第一关 · 完整旅程</span><span class="chapter-progress"></span></button>
+          <button class="text-button" data-story-level="1" type="button">回看开场剧情</button>
+        </section>
+        <section class="story-level-card story-level-card-next">
+          <span class="level-index">02 / 河岸</span>
+          <h3>沿河旧街</h3>
+          <p>追逐穿过旧街与钟楼；高路有奖励，地面也藏着新的险情。</p>
+          <button class="chapter-button" data-level-id="journey-02" type="button"><span class="chapter-title">第二关 · 沿河旧街</span><span class="chapter-progress"></span></button>
+          <button class="text-button" data-story-level="journey-02" type="button">回看开场剧情</button>
+        </section>
+      </div>
+      <details class="practice-levels">
+        <summary>校园分段练习（5 段）</summary>
+        <div class="chapter-grid">
+          <button class="chapter-button" data-level-id="2" type="button">校园入口</button>
+          <button class="chapter-button" data-level-id="3" type="button">篮球场</button>
+          <button class="chapter-button" data-level-id="4" type="button">银杏林路</button>
+          <button class="chapter-button" data-level-id="5" type="button">湖畔施工区</button>
+          <button class="chapter-button" data-level-id="6" type="button">黄昏天桥</button>
+        </div>
+      </details>
+    </dialog>
 
     <dialog id="lose-dialog" class="result-dialog">
       <div class="dialog-pixels">｡°(°´ᯅ`°)°｡</div>
@@ -117,6 +135,6 @@
       </div>
     </dialog>
 
-    <script type="module" src="game.js?v=20260924a"></script>
+    <script type="module" src="game.js?v=20260925b"></script>
   </body>
 </html>

@@ -5,16 +5,18 @@ export const RUN_FRAME_DISTANCE_PX = RUN_CYCLE_DISTANCE_PX / 12;
 
 // Both replacement atlases are 1152 x 1152: twelve 288 x 384 frames in a
 // 4-column by 3-row layout. Pivots are source-space coordinates at the same
-// horizontal center and ground baseline for every pose.
+// horizontal center. The four airborne cells have 24 source pixels more
+// bottom padding; their pivots keep that art padding from becoming a visible
+// hop while preserving a small amount of flight.
 const RUN_FRAME_LAYOUT = [
   { x: 0, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
   { x: 288, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
   { x: 576, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
   { x: 864, y: 0, w: 288, h: 384, originX: 144, originY: 384 },
-  { x: 0, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
-  { x: 288, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
-  { x: 576, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
-  { x: 864, y: 384, w: 288, h: 384, originX: 144, originY: 384 },
+  { x: 0, y: 384, w: 288, h: 384, originX: 144, originY: 368 },
+  { x: 288, y: 384, w: 288, h: 384, originX: 144, originY: 368 },
+  { x: 576, y: 384, w: 288, h: 384, originX: 144, originY: 368 },
+  { x: 864, y: 384, w: 288, h: 384, originX: 144, originY: 368 },
   { x: 0, y: 768, w: 288, h: 384, originX: 144, originY: 384 },
   { x: 288, y: 768, w: 288, h: 384, originX: 144, originY: 384 },
   { x: 576, y: 768, w: 288, h: 384, originX: 144, originY: 384 },

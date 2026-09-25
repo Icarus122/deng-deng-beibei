@@ -35,7 +35,7 @@ const regions = [
   { id: 'clocktower', name: '钟楼街区', start: 9000, end: 18500, palette: 'sunset', landmark: 'city', foreground: 'lamps' },
 ];
 
-const energyPositions = [420, 1650, 3150, 4930, 5540, 7040, 8410, 10080, 11370, 12440, 14390, 15380, 16280, 17080];
+const energyPositions = [420, 1650, 4930, 5540, 8410, 10080, 12440, 14390, 16280, 17080];
 const energy = energyPositions.map((x, index) => ({
   id: `river-energy-${index + 1}`, type: 'energy', x,
   y: [4930, 5540, 10080, 12440, 14390].includes(x) ? (x === 10080 ? 373 : x === 14390 ? 388 : 378) : 468,
@@ -52,8 +52,7 @@ const coins = coinPositions.map((x, index) => ({
   width: 20, height: 24,
 }));
 const heartPickups = [
-  { id: 'river-heart-1', x: 7670, y: 470 },
-  { id: 'river-heart-2', x: 10820, y: 379 },
+  { id: 'river-heart-2', x: 10820, y: 470 },
   { id: 'river-heart-3', x: 14600, y: 394 },
 ].map((heart) => ({ ...heart, type: 'heart', width: 24, height: 24 }));
 
@@ -71,13 +70,25 @@ export const JOURNEY_02 = {
   ],
   switches: [{ id: 'river-switch-1', x: 5500, y: 438, width: 44, height: 62 }],
   hazards: [
+    { id: 'river-spikes-bridgehead', type: 'spikes', x: 2350, y: 482, width: 80, height: 28 },
     { id: 'river-patrol-1', type: 'patrol', x: 3560, y: 474, width: 30, height: 36, motion: { range: 46, period: 1800 } },
+    { id: 'river-blocker-cargo', type: 'blocker', x: 4300, y: 448, width: 36, height: 62, motion: { range: 36, period: 2100 } },
+    { id: 'river-spikes-terrace', type: 'spikes', x: 4970, y: 380, width: 60, height: 30 },
     { id: 'river-blocker-1', type: 'blocker', x: 6100, y: 448, width: 36, height: 62, motion: { range: 65, period: 1950 } },
+    { id: 'river-patrol-square', type: 'patrol', x: 7350, y: 474, width: 30, height: 36, motion: { range: 45, period: 1650 } },
     { id: 'river-spikes-1', type: 'spikes', x: 7900, y: 482, width: 100, height: 28 },
+    { id: 'river-spikes-square-exit', type: 'spikes', x: 8780, y: 482, width: 60, height: 28 },
+    { id: 'river-blocker-tower-upper', type: 'blocker', x: 9740, y: 349, width: 36, height: 56 },
     { id: 'river-tower-crumble', type: 'collapse', x: 10280, y: 405, width: 330, height: 22 },
     { id: 'river-box-1', type: 'constructionBox', x: 11650, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2800, warningMs: 850 },
+    { id: 'river-spikes-loading', type: 'spikes', x: 12100, y: 482, width: 90, height: 28 },
     { id: 'river-blocker-2', type: 'blocker', x: 12780, y: 448, width: 36, height: 62, motion: { range: 48, period: 2050 } },
+    { id: 'river-patrol-loading-upper', type: 'patrol', x: 12840, y: 374, width: 30, height: 36, motion: { range: 34, period: 1500 } },
+    { id: 'river-blocker-approach', type: 'blocker', x: 13800, y: 448, width: 36, height: 62, motion: { range: 45, period: 1800 } },
     { id: 'river-patrol-2', type: 'patrol', x: 14520, y: 474, width: 30, height: 36, motion: { range: 50, period: 1750 } },
+    { id: 'river-box-final', type: 'constructionBox', x: 15450, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2500, warningMs: 780 },
+    { id: 'river-spikes-final', type: 'spikes', x: 16400, y: 482, width: 52, height: 28 },
+    { id: 'river-blocker-final', type: 'blocker', x: 17400, y: 448, width: 36, height: 62, motion: { range: 54, period: 1650 } },
   ],
   obstacles: [
     { id: 'river-spring-1', type: 'spring', x: 1870, y: 486, width: 34, height: 24 },
@@ -87,7 +98,9 @@ export const JOURNEY_02 = {
     { id: 'river-bookbag-1', type: 'bookbag', x: 9810, y: 478, width: 28, height: 32 },
     { id: 'river-spring-2', type: 'spring', x: 11610, y: 486, width: 34, height: 24 },
     { id: 'river-ball-2', type: 'basketball', x: 13380, y: 482, width: 22, height: 22 },
+    { id: 'river-wind-final-1', type: 'wind', x: 15280, y: 420, width: 240, height: 90 },
     { id: 'river-speed-final', type: 'speedPad', x: 15840, y: 492, width: 96, height: 18 },
+    { id: 'river-wind-final-2', type: 'wind', x: 16100, y: 420, width: 240, height: 90 },
     { id: 'river-ball-final', type: 'basketball', x: 16900, y: 482, width: 22, height: 22 },
   ],
   pickups: [...energy, ...coins, ...heartPickups], energy, coins, heartPickups,

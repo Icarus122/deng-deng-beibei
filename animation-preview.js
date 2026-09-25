@@ -1,4 +1,4 @@
-import { drawCharacter, getRunFrameIndex, RUN_CYCLE_DISTANCE_PX, RUN_FRAME_DISTANCE_PX } from './character-renderer.js?v=20260920g';
+import { drawCharacter, getRunFrameIndex, RUN_CYCLE_DISTANCE_PX, RUN_FRAME_DISTANCE_PX } from './character-renderer.js?v=20260925b';
 
 const DISPLAY_WIDTH = 66;
 const DISPLAY_HEIGHT = 88;

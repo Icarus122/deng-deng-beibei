@@ -1,13 +1,13 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260924a';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260925b';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260920g';
+import { drawCharacter } from './character-renderer.js?v=20260925b';
 import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
-import { createTaunt, isTauntActive } from './taunt.js';
+import { advanceTauntCue, createTaunt, createTauntTracker, isTauntActive } from './taunt.js?v=20260925a';
 import { createLazyBackgrounds, preloadBackground } from './assets.js?v=20260924a';
 import { createGameAudio } from './audio.js?v=20260921a';
 import { loadProgress, markStorySeen, recordLevelResult, saveProgress } from './level-progress.js?v=20260924a';
-import { getStoryScene } from './story-scenes.js?v=20260924a';
+import { getStoryScene } from './story-scenes.js?v=20260925b';
 
 const canvas = document.querySelector('#game-canvas');
 const ctx = canvas.getContext('2d');
@@ -16,6 +16,9 @@ const VIEWPORT_HEIGHT = 540;
 const homeScreen = document.querySelector('#home-screen');
 const gameScreen = document.querySelector('#game-screen');
 const startButton = document.querySelector('#start-button');
+const levelSelectButton = document.querySelector('#level-select-button');
+const levelSelectDialog = document.querySelector('#level-select-dialog');
+const levelSelectClose = document.querySelector('#level-select-close');
 const retryButton = document.querySelector('#retry-button');
 const giveUpButton = document.querySelector('#give-up-button');
 const nextLevelButton = document.querySelector('#next-level-button');
@@ -73,8 +76,7 @@ let resultPose = 'running';
 let queuedLevelId = null;
 let simulationClock = createSimulationClock();
 let taunt = null;
-let lastTauntDistrictId = null;
-let lastTauntMode = null;
+let tauntTracker = createTauntTracker();
 let savedProgress = loadProgress();
 let runRecorded = false;
 let lastRunResult = null;
@@ -139,7 +141,7 @@ function resumeQueuedLevel() {
   const levelId = queuedLevelId;
   queuedLevelId = null;
   startButton.disabled = false;
-  startButton.textContent = '开始完整旅程';
+  startButton.textContent = '开始第一关';
   startLevel(levelId);
 }
 
@@ -169,7 +171,7 @@ ctx.imageSmoothingQuality = 'high';
 
 function closeDialogs() {
   activeStory = null;
-  [loseDialog, winDialog, pauseDialog, storyDialog].forEach((dialog) => {
+  [loseDialog, winDialog, pauseDialog, storyDialog, levelSelectDialog].forEach((dialog) => {
     if (dialog.open) dialog.close();
   });
 }
@@ -197,13 +199,19 @@ function refreshChapterButtons() {
     const level = LEVELS[levelId];
     const record = savedProgress.records[levelId];
     button.disabled = levelId === 'journey-02' ? !savedProgress.campaignUnlocked : levelId > savedProgress.unlockedThrough;
-    const chapterLabel = button.dataset.chapterLabel ?? level?.name ?? button.textContent;
+    const chapterLabel = button.dataset.chapterLabel ?? button.querySelector('.chapter-title')?.textContent ?? level?.name ?? button.textContent;
     button.dataset.chapterLabel = chapterLabel;
     const stats = record ? ` · ${Math.round(record.bestProgress * 100)}% · ${record.bestCoins}枚` : '';
-    button.textContent = `${button.disabled ? '🔒 ' : ''}${chapterLabel}${stats}`;
+    const title = button.querySelector('.chapter-title');
+    const progress = button.querySelector('.chapter-progress');
+    if (title && progress) {
+      title.textContent = `${button.disabled ? '🔒 ' : ''}${chapterLabel}`;
+      progress.textContent = record ? `${Math.round(record.bestProgress * 100)}% · ${record.bestCoins} 枚硬币${record.wins ? ` · 胜利 ${record.wins} 次` : ''}` : button.disabled ? '通关第一关后解锁' : '尚未挑战';
+    } else button.textContent = `${button.disabled ? '🔒 ' : ''}${chapterLabel}${stats}`;
   });
+  document.querySelector('[data-story-level="journey-02"]').disabled = !savedProgress.campaignUnlocked;
   const unlocked = Math.max(1, savedProgress.unlockedThrough - 1);
-  progressSummary.textContent = `校园练习已开放 ${unlocked}/5 段 · ${savedProgress.campaignUnlocked ? '第二关已解锁' : '通关完整旅程可解锁第二关'}`;
+  progressSummary.textContent = `校园练习已开放 ${unlocked}/5 段 · ${savedProgress.campaignUnlocked ? '第二关已解锁' : '追上孟培杰，解锁第二关'}`;
 }
 
 function showStoryLine() {
@@ -528,15 +536,29 @@ function render() {
   drawSpeedLines();
   if (state.basketball?.active) drawBasketball(state.basketball);
 
-  if (state.phase === 'playing' && isTauntActive(taunt, state.elapsedMs)) {
-    const tauntY = Math.max(110, state.pursuer.y - 160);
-    ctx.font = '16px "Microsoft YaHei", sans-serif';
-    const boxWidth = Math.min(440, Math.ceil(ctx.measureText(taunt.text).width + 24));
-    const boxX = Math.max(cameraX + 12, Math.min(state.pursuer.x - boxWidth / 2, cameraX + VIEWPORT_WIDTH - boxWidth - 12));
+  if (state.phase === 'playing' && isTauntActive(taunt, state.elapsedMs)
+    && meng.x > cameraX + 28 && meng.x < cameraX + VIEWPORT_WIDTH - 28) {
+    const visualTop = meng.y - 56;
+    const boxY = Math.max(20, visualTop - 50);
+    ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
+    const boxWidth = Math.min(300, Math.ceil(ctx.measureText(taunt.text).width + 28));
+    const boxX = Math.max(cameraX + 12, Math.min(meng.x + 12 - boxWidth / 2, cameraX + VIEWPORT_WIDTH - boxWidth - 12));
+    const pointerX = Math.max(boxX + 16, Math.min(meng.x + 12, boxX + boxWidth - 16));
     ctx.fillStyle = '#fff9e9';
-    ctx.fillRect(boxX, tauntY, boxWidth, 34);
+    ctx.strokeStyle = '#39435d';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxWidth, 36, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pointerX - 7, boxY + 35);
+    ctx.lineTo(pointerX, boxY + 44);
+    ctx.lineTo(pointerX + 7, boxY + 35);
+    ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = '#2c2540';
-    ctx.fillText(taunt.text, boxX + 12, tauntY + 24);
+    ctx.fillText(taunt.text, boxX + 14, boxY + 24);
   }
 
   if (state.phase === 'caught') {
@@ -756,11 +778,13 @@ function updateTaunt() {
   const level = LEVELS[currentLevel];
   const district = currentDistrict();
   if (state.phase !== 'playing' || state.player.x <= level.finishX * 0.08 || !district) return;
-  if (district.id !== lastTauntDistrictId || state.pursuer.mode !== lastTauntMode) {
-    taunt = createTaunt(getPursuerTaunt(state.player.x / level.finishX, state.pursuer.mode, district.id), state.elapsedMs);
-    lastTauntDistrictId = district.id;
-    lastTauntMode = state.pursuer.mode;
-  }
+  const result = advanceTauntCue(tauntTracker, {
+    elapsedMs: state.elapsedMs,
+    regionId: district.id,
+    mode: state.pursuer.mode,
+  });
+  tauntTracker = result.tracker;
+  if (result.cue) taunt = createTaunt(getPursuerTaunt(state.player.x / level.finishX, result.cue.mode, district.id), state.elapsedMs);
 }
 
 function playStepSounds(previous, next) {
@@ -820,8 +844,7 @@ function startLevel(levelId) {
   cameraX = 0;
   simulationClock = createSimulationClock();
   taunt = null;
-  lastTauntDistrictId = null;
-  lastTauntMode = null;
+  tauntTracker = createTauntTracker();
   hudNotice.hidden = true;
   levelName.textContent = `${LEVELS[currentLevel].name} · 路程 0%`;
   gameStatus.textContent = `${LEVELS[currentLevel].name}追逐开始，追上孟培杰！`;
@@ -839,6 +862,7 @@ function startLevel(levelId) {
 
 function requestLevelStart(levelId) {
   void gameAudio.resume();
+  if (levelSelectDialog.open) levelSelectDialog.close();
   if (runnersReady()) {
     startLevel(levelId);
     return;
@@ -863,8 +887,7 @@ function returnHome() {
   cameraX = 0;
   lastRenderElapsedMs = 0;
   taunt = null;
-  lastTauntDistrictId = null;
-  lastTauntMode = null;
+  tauntTracker = createTauntTracker();
   hudNotice.hidden = true;
   homeScreen.hidden = false;
   gameScreen.hidden = true;
@@ -1013,9 +1036,14 @@ bindHoldButton(rightButton,
   (event) => setHeldInput('right', `touch:right:${event.pointerId}`, true),
   (event) => setHeldInput('right', `touch:right:${event.pointerId}`, false));
 bindHoldButton(jumpButton, (event) => queueJump(event, 'touch-jump'), (event) => releaseJump(event, 'touch-jump'));
-startButton.addEventListener('click', () => requestLevelStart(1));
+startButton.addEventListener('click', () => requestLevelStart(queuedLevelId ?? 1));
+levelSelectButton.addEventListener('click', () => levelSelectDialog.showModal());
+levelSelectClose.addEventListener('click', () => levelSelectDialog.close());
 chapterButtons.forEach((button) => button.addEventListener('click', () => requestLevelStart(button.dataset.levelId === 'journey-02' ? 'journey-02' : Number(button.dataset.levelId))));
-document.querySelectorAll('[data-story-level]').forEach((button) => button.addEventListener('click', () => playStory(Number(button.dataset.storyLevel), 'intro', null, { replay: true })));
+document.querySelectorAll('[data-story-level]').forEach((button) => button.addEventListener('click', () => {
+  levelSelectDialog.close();
+  playStory(button.dataset.storyLevel === 'journey-02' ? 'journey-02' : Number(button.dataset.storyLevel), 'intro', null, { replay: true });
+}));
 retryButton.addEventListener('click', () => requestLevelStart(currentLevel));
 giveUpButton.addEventListener('click', returnHome);
 nextLevelButton.addEventListener('click', () => requestLevelStart(nextLevelButton.dataset.nextLevel === 'journey-02' ? 'journey-02' : Number(nextLevelButton.dataset.nextLevel)));

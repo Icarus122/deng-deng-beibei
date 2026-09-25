@@ -1,8 +1,8 @@
 import { sweptOverlaps } from './entities.js';
 import { createBasketball, updateBasketball } from './basketball-logic.js?v=20260924a';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
-import { CHAPTERS, JOURNEY } from './level-data.js?v=20260924a';
-import { JOURNEY_02 } from './journey-02.js?v=20260924a';
+import { CHAPTERS, JOURNEY } from './level-data.js?v=20260925b';
+import { JOURNEY_02 } from './journey-02.js?v=20260925b';
 import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260924a';
 import { findLandingPlatform } from './platform-physics.js';
 
@@ -135,64 +135,64 @@ export function getPursuerRenderState(pursuer) {
 
 const REGIONAL_TAUNTS = {
   gate: {
-    cruise: '孟培杰：校门口有弹簧台，敢不敢借它跳一段？',
-    evade: '孟培杰：我要加速啦，别被香蕉皮绊住！',
-    slowed: '孟培杰：哎，球场那边的篮球还挺有劲！',
-    downed: '孟培杰：等等，我刚才是不是被球砸倒了？',
-    finalChase: '孟培杰：校门这段最后冲刺，看谁先到！',
+    cruise: '小心脚下，别只看我！',
+    evade: '咦，怎么又快追上了？',
+    slowed: '先别笑，我只是歇一下。',
+    downed: '这球有点私人恩怨吧？',
+    finalChase: '哎？这次真要追上啦？',
   },
   court: {
-    cruise: '孟培杰：篮球场的球可不是摆设，小心我把它踢走！',
-    evade: '孟培杰：球场直道，我要冲刺咯！',
-    slowed: '孟培杰：糟了，篮球把我绊住了！',
-    downed: '孟培杰：你这球传得也太准了吧！',
-    finalChase: '孟培杰：穿过球场就到下一段啦！',
+    cruise: '球在那边，敢踢吗？',
+    evade: '我可没加速，是你慢啦！',
+    slowed: '这球……你故意的吧？',
+    downed: '传得真准，下次别传我！',
+    finalChase: '球场终点，来比一比！',
   },
   ginkgo: {
-    cruise: '孟培杰：银杏叶下面藏着硬币，眼睛放亮点！',
-    evade: '孟培杰：落叶路有点滑，我还是跑快点吧！',
-    slowed: '孟培杰：我慢下来啦，趁现在追上来！',
-    downed: '孟培杰：哎哟，刚才那一下可真重！',
-    finalChase: '孟培杰：穿过银杏林，我们再比一段！',
+    cruise: '银杏叶里藏着好东西。',
+    evade: '抓不到吧？我又快一点。',
+    slowed: '别趁我数叶子时偷跑！',
+    downed: '连落叶都在笑我……',
+    finalChase: '这段路你还挺会跑。',
   },
   lakeside: {
-    cruise: '孟培杰：看施工箱的影子，预判它要落在哪儿！',
-    evade: '孟培杰：施工区不等人，我先冲过去啦！',
-    slowed: '孟培杰：挡板把我拦住了，快追！',
-    downed: '孟培杰：等会儿，我先缓一下……',
-    finalChase: '孟培杰：湖畔尽头见，别被箱子砸到！',
+    cruise: '箱子的影子看见了吗？',
+    evade: '我先过去，慢慢来哦。',
+    slowed: '挡板帮你，算我输一半。',
+    downed: '等会儿，这不算近路！',
+    finalChase: '湖畔尽头，别眨眼！',
   },
   bridge: {
-    cruise: '孟培杰：横风变强了，弹簧能送你上天桥高路！',
-    evade: '孟培杰：桥上风大，我先加速啦！',
-    slowed: '孟培杰：风把我吹慢了，你快跟上！',
-    downed: '孟培杰：在高路上也能追到我？服啦！',
-    finalChase: '孟培杰：天桥尽头见！这次你可别松劲！',
+    cruise: '弹簧在那儿，敢上吗？',
+    evade: '风大？我怎么跑更快啦？',
+    slowed: '好吧，风这次帮了你。',
+    downed: '高路上也能砸到我？',
+    finalChase: '天桥尽头，等你一下。',
   },
   riverside: {
-    cruise: '孟培杰：沿河走，近路在货台上！',
-    evade: '孟培杰：桥头见，先追上我！',
-    slowed: '孟培杰：这球传得真准！',
-    downed: '孟培杰：好好好，我等一下！',
-    finalChase: '孟培杰：钟楼快到了！',
+    cruise: '货台是近路，我先试试。',
+    evade: '我在前面替你探路呀。',
+    slowed: '球踢得挺准，偷练了？',
+    downed: '好好好，我等一下！',
+    finalChase: '钟楼快到了，跟上！',
   },
   clocktower: {
-    cruise: '孟培杰：钟楼的灯亮了！',
-    evade: '孟培杰：最后一段可别掉队！',
-    slowed: '孟培杰：这次轮到你带路。',
-    downed: '孟培杰：被你追上了！',
-    finalChase: '孟培杰：我回头等你！',
+    cruise: '灯都亮了，你还没追到？',
+    evade: '钟声之前，再快一点！',
+    slowed: '这次轮到你带路。',
+    downed: '行啦，算你厉害。',
+    finalChase: '我回头啦，别摔倒！',
   },
 };
 
 export function getPursuerTaunt(progress, mode = 'cruise', regionId = null) {
   const regional = REGIONAL_TAUNTS[regionId];
   if (regional) return regional[mode] ?? regional.cruise;
-  if (mode === 'evade') return '孟培杰：三秒爆发，跟得上吗？';
-  if (mode === 'finalChase') return '孟培杰：天桥尽头见！';
-  if (progress < 0.3) return '孟培杰：等等？你也太慢啦！';
-  if (progress < 0.7) return '孟培杰：前面有惊喜方块，敢不敢顶？';
-  return '孟培杰：快追上了？那就来呀！';
+  if (mode === 'evade') return '追不上吧？我慢点？';
+  if (mode === 'finalChase') return '最后一段，追我呀！';
+  if (progress < 0.3) return '等等？你也太慢啦！';
+  if (progress < 0.7) return '惊喜方块，敢不敢顶？';
+  return '快追上了？那就来呀！';
 }
 
 export function getRenderPlatforms(levelId, elapsedMs, collapseStarts = {}, activatedSwitchIds = []) {

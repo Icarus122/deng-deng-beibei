@@ -115,7 +115,7 @@ const highRoutePlans = [
       { id: 'upper-exit', offset: 1000, y: 310, width: 190, tier: 'upper' },
       { id: 'lower-3', offset: 980, y: 410, width: 240, tier: 'lower' },
     ],
-    hazard: { id: 'barrier-bridge-upper', type: 'blocker', offset: 690, y: 274, width: 36, height: 36 },
+    hazard: { id: 'barrier-bridge-upper', type: 'blocker', offset: 765, y: 274, width: 36, height: 36 },
   },
 ];
 
@@ -194,11 +194,11 @@ const heartPickups = highRoutePlans.map((plan) => ({
 // Ground energy supports the ordinary route; the bridge's upper spring path
 // also carries a single bonus crystal for the harder late-game route.
 const groundEnergy = [
-  { id: 'energy-0', x: 1880 }, { id: 'energy-1', x: 4010 },
+  { id: 'energy-0', x: 1880 }, { id: 'energy-1', x: 3850 },
   { id: 'energy-2', x: 6750 }, { id: 'energy-3', x: 8800 },
-  { id: 'energy-4', x: 12200 }, { id: 'energy-5', x: 13600 },
-  { id: 'energy-6', x: 18400 }, { id: 'energy-7', x: 19900 }, { id: 'energy-8', x: 21800 }, { id: 'energy-9', x: 22900 },
-  { id: 'energy-10', x: 21060 },
+  { id: 'energy-4', x: 12200 }, { id: 'energy-5', x: 13460 },
+  { id: 'energy-6', x: 18400 }, { id: 'energy-7', x: 19720 }, { id: 'energy-8', x: 21800 }, { id: 'energy-9', x: 22900 },
+  { id: 'energy-10', x: 21250 },
 ].map((energy) => ({ ...energy, type: 'energy', y: 468, width: 22, height: 22 }));
 
 const bridgeUpperEnergy = { id: 'energy-11', type: 'energy', x: 20080, y: 378, width: 22, height: 22 };
@@ -278,9 +278,9 @@ export const JOURNEY = {
       id: `spikes-${plan.id}-ground`,
       type: 'spikes',
       district: plan.id === 'lake' ? 'lakeside' : plan.id,
-      x: plan.start + 2100,
+      x: plan.start + ({ gate: 4000, court: 3600, ginkgo: 3700, lake: 3750, bridge: 3550 }[plan.id]),
       y: 482,
-      width: 128,
+      width: 96,
       height: 28,
     })),
   ],

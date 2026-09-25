@@ -136,7 +136,7 @@ export function jumpInput(state, sprint = false, takeHighRoute = false, lookAhea
     const intersectsHeight = hazardY + hazardHeight + 10 > state.player.y
       && hazardY - 10 < state.player.y + state.player.height;
     const distanceAhead = hazard.x - front;
-    const jumpLead = hazard.type === 'spikes' ? 24 : hazard.type === 'banana' ? 76 : 90;
+    const jumpLead = hazard.type === 'spikes' ? (hazard.y < 470 ? 45 : 24) : hazard.type === 'banana' ? 76 : 90;
     return intersectsHeight && distanceAhead >= -PLAYER_WIDTH && distanceAhead <= jumpLead;
   });
   const canGroundJump = state.player.grounded;

@@ -26,6 +26,18 @@ test('running animation advances through twelve distance-driven full-body frames
   assert.equal(getRunFrameRect('unknown', 0), null);
 });
 
+test('run poses keep the ink baseline steady without flattening airborne poses', () => {
+  for (const runner of ['beibei', 'meng']) {
+    const groundedFrame = getRunFrameRect(runner, 3);
+    const airborneFrame = getRunFrameRect(runner, 4);
+    const landingFrame = getRunFrameRect(runner, 8);
+    assert.equal(groundedFrame.originY, 384);
+    assert.equal(airborneFrame.originY, 368);
+    assert.equal(landingFrame.originY, 384);
+    assert.equal(groundedFrame.originX, airborneFrame.originX);
+  }
+});
+
 test('replacement atlases use the shared 4 by 3 transparent-HD frame specification', async () => {
   for (const runner of ['beibei', 'meng']) {
     const bytes = await readFile(new URL(`../assets/${runner}-run-cycle-v5.png`, import.meta.url));

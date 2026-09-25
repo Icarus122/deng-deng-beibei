@@ -420,13 +420,18 @@ test('Meng render state stays on the ground when Beibei is in the air', () => {
 });
 
 test('Meng has playful taunts that change across the chase', () => {
-  assert.equal(getPursuerTaunt(0.12), '孟培杰：等等？你也太慢啦！');
-  assert.equal(getPursuerTaunt(0.55), '孟培杰：前面有惊喜方块，敢不敢顶？');
-  assert.equal(getPursuerTaunt(0.9), '孟培杰：快追上了？那就来呀！');
-  assert.equal(getPursuerTaunt(0.5, 'evade'), '孟培杰：三秒爆发，跟得上吗？');
-  assert.equal(getPursuerTaunt(0.99, 'finalChase'), '孟培杰：天桥尽头见！');
-  assert.match(getPursuerTaunt(0.5, 'cruise', 'court'), /篮球场/);
-  assert.match(getPursuerTaunt(0.5, 'cruise', 'bridge'), /弹簧/);
+  const samples = [
+    getPursuerTaunt(0.12), getPursuerTaunt(0.55), getPursuerTaunt(0.9),
+    getPursuerTaunt(0.5, 'evade'), getPursuerTaunt(0.99, 'finalChase'),
+    getPursuerTaunt(0.5, 'cruise', 'court'), getPursuerTaunt(0.5, 'cruise', 'bridge'),
+  ];
+  for (const line of samples) {
+    assert.ok(line.length <= 16, line);
+    assert.ok(!line.includes('孟培杰：'), line);
+  }
+  assert.notEqual(samples[0], samples[2]);
+  assert.match(samples[5], /球/);
+  assert.match(samples[6], /弹簧/);
 });
 
 test('five standalone chapter levels contain localized playable data', () => {

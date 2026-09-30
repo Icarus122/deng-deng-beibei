@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 
 import { advanceTauntCue, createTaunt, createTauntTracker, isTauntActive } from '../taunt.js';
 
-test('Meng taunt expires after one point two seconds', () => {
+test('Meng taunt allows enough time to read before expiring', () => {
   const taunt = createTaunt('孟培杰：追不上吧？', 5000);
 
-  assert.equal(isTauntActive(taunt, 6199), true);
-  assert.equal(isTauntActive(taunt, 6200), false);
+  assert.equal(isTauntActive(taunt, 7199), true);
+  assert.equal(isTauntActive(taunt, 7200), false);
 });
 
 test('rapid cruise and evade switches do not repeatedly restart a taunt', () => {

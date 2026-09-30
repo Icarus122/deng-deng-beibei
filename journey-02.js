@@ -4,7 +4,8 @@
 const ground = [
   [0, 2600, 'bridgehead'], [2680, 1900, 'cargo'], [4690, 1800, 'terraces'],
   [6580, 2550, 'square'], [9240, 1800, 'clock-entry'],
-  [11170, 2060, 'loading'], [13350, 5150, 'finish'],
+  [11170, 2060, 'loading'], [13350, 2040, 'approach'],
+  [15550, 2010, 'final-run'], [17720, 780, 'finish'],
 ].map(([x, width, name]) => ({
   id: `river-ground-${name}`, kind: 'ground', material: x < 9000 ? 'riverside' : 'clocktower',
   x, y: 510, width, height: 30,
@@ -59,6 +60,14 @@ const heartPickups = [
 export const JOURNEY_02 = {
   id: 'journey-02', name: '沿河旧街 · 钟楼下等我', worldEnd: 18500, finishX: 18000,
   maxDistance: 560, pursuerSpeed: 136, regions, districts: regions,
+  routePhrases: [
+    {start:0,end:3000,name:'货台入门',mechanic:'spring'},
+    {start:3000,end:6500,name:'踢球开桥',mechanic:'switch'},
+    {start:6500,end:9000,name:'广场选路',mechanic:'speedPad'},
+    {start:9000,end:11500,name:'钟楼货台',mechanic:'collapse'},
+    {start:11500,end:15000,name:'装卸时机',mechanic:'constructionBox'},
+    {start:15000,end:18500,name:'逆风追逐',mechanic:'wind'},
+  ],
   platforms: [...ground, ...upper],
   shortcutNodes: [
     { start: 1820, end: 2630, route: 'river-intro' },
@@ -86,7 +95,7 @@ export const JOURNEY_02 = {
     { id: 'river-patrol-loading-upper', type: 'patrol', x: 12840, y: 374, width: 30, height: 36, motion: { range: 34, period: 1500 } },
     { id: 'river-blocker-approach', type: 'blocker', x: 13800, y: 448, width: 36, height: 62, motion: { range: 45, period: 1800 } },
     { id: 'river-patrol-2', type: 'patrol', x: 14520, y: 474, width: 30, height: 36, motion: { range: 50, period: 1750 } },
-    { id: 'river-box-final', type: 'constructionBox', x: 15450, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2500, warningMs: 780 },
+    { id: 'river-box-final', type: 'constructionBox', x: 15620, y: 220, startY: 220, groundY: 466, width: 38, height: 44, period: 2500, warningMs: 780 },
     { id: 'river-spikes-final', type: 'spikes', x: 16400, y: 482, width: 52, height: 28 },
     { id: 'river-blocker-final', type: 'blocker', x: 17400, y: 448, width: 36, height: 62, motion: { range: 54, period: 1650 } },
   ],
@@ -98,16 +107,16 @@ export const JOURNEY_02 = {
     { id: 'river-bookbag-1', type: 'bookbag', x: 9810, y: 478, width: 28, height: 32 },
     { id: 'river-spring-2', type: 'spring', x: 11610, y: 486, width: 34, height: 24 },
     { id: 'river-ball-2', type: 'basketball', x: 13380, y: 482, width: 22, height: 22 },
-    { id: 'river-wind-final-1', type: 'wind', x: 15280, y: 420, width: 240, height: 90 },
+    { id: 'river-wind-final-1', type: 'wind', x: 15700, y: 420, width: 240, height: 90 },
     { id: 'river-speed-final', type: 'speedPad', x: 15840, y: 492, width: 96, height: 18 },
     { id: 'river-wind-final-2', type: 'wind', x: 16100, y: 420, width: 240, height: 90 },
     { id: 'river-ball-final', type: 'basketball', x: 16900, y: 482, width: 22, height: 22 },
   ],
   pickups: [...energy, ...coins, ...heartPickups], energy, coins, heartPickups,
   checkpoints: [
-    { id: 'river-checkpoint-1', x: 4240, respawnX: 4270 },
-    { id: 'river-checkpoint-2', x: 8440, respawnX: 8470 },
-    { id: 'river-checkpoint-3', x: 11400, respawnX: 11430 },
-    { id: 'river-checkpoint-4', x: 15120, respawnX: 15150 },
+    { id: 'river-checkpoint-1', x: 4240, respawnX: 3890 },
+    { id: 'river-checkpoint-2', x: 8440, respawnX: 8400 },
+    { id: 'river-checkpoint-3', x: 11400, respawnX: 11190 },
+    { id: 'river-checkpoint-4', x: 15120, respawnX: 14990 },
   ],
 };

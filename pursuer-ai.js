@@ -120,7 +120,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
   const rhythm = getPursuitRhythm(cycleElapsedMs, progress);
   const heldMode = timer > 0 && ['slowed', 'downed'].includes(pursuer.mode);
   const gap = pursuer.x - player.x;
-  const proximityEscape = progress < FINAL_WINDOW_PROGRESS && gap < 220;
+  const proximityEscape = !level.companion && !heldMode && progress < FINAL_WINDOW_PROGRESS && gap < 220;
   const mode = proximityEscape ? 'evade' : heldMode ? pursuer.mode : rhythm;
   const modeTimerMs = proximityEscape ? 0 : heldMode ? timer : rhythm === 'evade' ? RHYTHM_MS - cycleElapsedMs % RHYTHM_MS : 0;
   const baseVelocity = mode === 'evade' ? EVADE_SPEED
@@ -129,10 +129,12 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
         : mode === 'downed' ? 0 : CRUISE_SPEED;
   // Before the catch window Meng visibly pulls ahead instead of being moved
   // forward by a post-update clamp. The lead can still be cut with a ball.
-  const velocity = proximityEscape
+  let velocity = proximityEscape
     ? Math.max(baseVelocity, 265)
     : baseVelocity;
-  const planningSpeed = Math.min(velocity, CRUISE_SPEED);
+  if (level.companion) velocity = Math.max(0, Math.min(240, Math.abs(player.horizontalSpeed ?? 150) + (-gap - 150) * 0.8));
+  if (!pursuer.grounded && !heldMode && pursuer.airVelocity) velocity = pursuer.airVelocity;
+  const planningSpeed = Math.max(1, velocity);
   const platforms = level.platforms ?? [];
   const previousPlatforms = level.previousPlatforms ?? platforms;
   const previousCharacter = {
@@ -245,7 +247,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     const distanceToEdge = activeSurface.x + activeSurface.width - (x + RUNNER_WIDTH);
     const distanceToNext = nextGround ? Math.max(0, nextGround.x - (x + RUNNER_WIDTH)) : Infinity;
     const gapJumpSpeed = gap <= 80 ? SHORT_GAP_JUMP_SPEED : JUMP_SPEED;
-    const jumpSafety = gap <= 80 ? 4 : JUMP_SAFETY_PX;
+    const jumpSafety = Math.max(JUMP_SAFETY_PX, velocity * seconds + 4);
     const gapPlan = nextGround && gap > 6
       ? getJumpPlan(activeSurface.y, nextGround.y, distanceToNext, planningSpeed, gapJumpSpeed, jumpSafety)
       : null;
@@ -273,7 +275,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
 
   let velocityY = pursuer.velocityY ?? 0;
   let ignoredOneWayGroup = dropThroughGroup;
-  if (mode === 'downed') {
+  if (mode === 'downed' && grounded) {
     velocityY = 0;
   } else if (grounded && shouldDropToLower) {
     grounded = false;
@@ -292,7 +294,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     doubleJumpQueued = false;
   }
 
-  const nextX = x + velocity * seconds;
+  let nextX = x + velocity * seconds;
   if (grounded) {
     const nextSupport = getActiveSurface({ x: nextX, y, grounded: true, groundedPlatformId }, platforms);
     if (nextSupport) groundedPlatformId = nextSupport.id;
@@ -347,10 +349,13 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     groundedPlatformId = null;
   }
   if (y > GROUND_Y + 160) {
+    const safeSurface = platforms.filter((platform) => platform.y === GROUND_Y && platform.x <= nextX)
+      .sort((a, b) => b.x - a.x)[0];
+    if (safeSurface) nextX = Math.min(safeSurface.x + safeSurface.width - RUNNER_WIDTH - 12, Math.max(safeSurface.x + 12, nextX));
     y = GROUND_Y - RUNNER_HEIGHT;
     velocityY = 0;
     grounded = true;
-    groundedPlatformId = null;
+    groundedPlatformId = safeSurface?.id ?? null;
     jumpsUsed = 0;
     doubleJumpQueued = false;
   }
@@ -366,6 +371,7 @@ export function updatePursuer(pursuer, player, elapsedMs, level = {}) {
     groundedPlatformId,
     jumpsUsed,
     doubleJumpQueued,
+    airVelocity: grounded ? null : pursuer.grounded ? velocity : pursuer.airVelocity ?? velocity,
     dropThroughGroup,
     targetPlatformId: nextRoutePlatform?.id ?? groundedPlatformId,
     targetRoute: routeNode && nextX < routeNode.end ? routeNode.route : null,

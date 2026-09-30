@@ -1,3 +1,5 @@
+import { ACADEMY_FRAMES, ACADEMY_POSES, ACADEMY_SCALE, ACADEMY_HEIGHT_RATIO } from './academy-frames.js?v=20260930a';
+
 const DISPLAY_WIDTH = 66;
 const DISPLAY_HEIGHT = 88;
 export const RUN_CYCLE_DISTANCE_PX = 128;
@@ -35,6 +37,7 @@ export function getCharacterPose(character) {
   if (character.mode === 'downed') return 'downed';
   if (character.mode === 'cry') return 'cry';
   if (character.mode === 'tap') return 'tap';
+  if (character.mode === 'stomach') return 'stomach';
   if (character.slipTimerMs > 0) return 'slip';
   if (character.grounded) return 'run';
   if (character.velocityY < -80) return 'jump-up';
@@ -66,6 +69,7 @@ function drawStillPortrait(ctx, portrait, x, y, width = DISPLAY_WIDTH, height = 
 }
 
 function drawRunCycle(ctx, portrait, distanceTravelled) {
+  if (portrait?.academy) return drawAcademyFrame(ctx, portrait.runCycle, ACADEMY_FRAMES[portrait.runnerId]?.[getRunFrameIndex(distanceTravelled)], portrait.runnerId);
   const runCycle = portrait?.runCycle;
   const frame = getRunFrameRect(portrait?.runnerId, getRunFrameIndex(distanceTravelled));
   if (!runCycle?.naturalWidth || runCycle.naturalWidth < 1152 || runCycle.naturalHeight < 1152 || !frame) return false;
@@ -85,7 +89,20 @@ function drawRunCycle(ctx, portrait, distanceTravelled) {
   return true;
 }
 
+function drawAcademyFrame(ctx, image, frame, runnerId) {
+  if (!image?.naturalWidth || !frame) return false;
+  const bodyScale = {beibei:1,meng:385/369,cao:385/380}[runnerId] ?? 1;
+  const scale = ACADEMY_SCALE * bodyScale * ACADEMY_HEIGHT_RATIO[runnerId];
+  ctx.drawImage(image,frame.x,frame.y,frame.w,frame.h,-frame.originX*scale,-frame.originY*scale,frame.w*scale,frame.h*scale);
+  return true;
+}
+
 function drawPose(ctx, portrait, pose) {
+  if (portrait?.academy) {
+    const index = pose === 'jump-up' ? 0 : ['fall','jump-apex'].includes(pose) ? 1 : ['cry','stomach','downed','slip'].includes(pose) ? 2 : null;
+    if (index === null) return false;
+    return drawAcademyFrame(ctx,portrait.poseAtlas,ACADEMY_POSES[portrait.runnerId]?.[index],portrait.runnerId);
+  }
   if (JUMP_POSE_INDEX[pose] !== undefined) {
     const jumpSheet = portrait?.poses?.jump;
     if (jumpSheet?.naturalWidth) {
@@ -137,14 +154,14 @@ export function drawCharacter(ctx, character, portrait) {
   }
   ctx.translate(centreX, baselineY);
   ctx.scale(facing * landScaleX, landScaleY);
-  if (portrait?.runnerId === 'meng') {
+  if (portrait?.runnerId === 'meng' && !portrait.academy) {
     ctx.filter = 'brightness(1.18) saturate(1.14) drop-shadow(0 1px 1px rgba(255,255,255,.48))';
   }
 
-  if (pose === 'downed') {
+  if (pose === 'downed' && !portrait?.academy) {
     ctx.rotate(Math.PI / 2);
     drawCurrentOutfit(ctx, portrait, pose, distanceTravelled);
-  } else if (pose === 'cry') {
+  } else if (pose === 'cry' && !portrait?.academy) {
     drawCurrentOutfit(ctx, portrait, pose, distanceTravelled);
     ctx.fillStyle = '#74d7ee';
     for (const [x, y] of [[5, -28], [16, -24]]) {

@@ -22,14 +22,19 @@ function normalizeProgress(value) {
       badges: Array.isArray(record.badges) ? [...new Set(record.badges.filter((badge) => typeof badge === 'string'))] : [],
     };
   }
-  const campaignRecord = value.records?.['journey-02'];
-  if (campaignRecord && typeof campaignRecord === 'object') {
-    records['journey-02'] = {
-      bestProgress: Math.max(0, Math.min(1, Number(campaignRecord.bestProgress) || 0)),
-      bestCoins: finiteInteger(campaignRecord.bestCoins),
-      wins: finiteInteger(campaignRecord.wins),
-      badges: Array.isArray(campaignRecord.badges) ? [...new Set(campaignRecord.badges.filter((badge) => typeof badge === 'string'))] : [],
-    };
+  for (const id of ['journey-02', 'journey-03']) {
+    const campaignRecord = value.records?.[id];
+    if (campaignRecord && typeof campaignRecord === 'object') {
+      records[id] = {
+        bestProgress: Math.max(0, Math.min(1, Number(campaignRecord.bestProgress) || 0)),
+        bestCoins: finiteInteger(campaignRecord.bestCoins),
+        wins: finiteInteger(campaignRecord.wins),
+        badges: Array.isArray(campaignRecord.badges) ? [...new Set(campaignRecord.badges.filter((badge) => typeof badge === 'string'))] : [],
+      };
+    }
+  }
+  for (const [id, record] of Object.entries(records)) {
+    record.stars = Math.min(3, finiteInteger(value.records[id].stars, record.wins ? 1 : 0));
   }
   return {
     schemaVersion: 2,
@@ -85,6 +90,7 @@ export function recordLevelResult(progress, levelId, state, level) {
     bestCoins: Math.max(previous.bestCoins, finiteInteger(state.coins)),
     wins: previous.wins + Number(finished),
     badges: [...new Set([...previous.badges, ...earnedBadges])],
+    stars: Math.max(previous.stars ?? 0, finished ? 1 + Number((state.damageCount ?? 0) === 0) + Number((state.collectedCoinIds?.length ?? 0) >= Math.ceil((level.coins?.length ?? 0) / 2)) : 0),
   };
   const beforeUnlock = nextProgress.unlockedThrough;
   let unlockedLevel = null;
@@ -92,6 +98,8 @@ export function recordLevelResult(progress, levelId, state, level) {
     nextProgress.unlockedThrough = MAX_LEVEL_ID;
     if (!nextProgress.campaignUnlocked) unlockedLevel = 'journey-02';
     nextProgress.campaignUnlocked = true;
+  } else if (finished && levelId === 'journey-02' && previous.wins === 0) {
+    unlockedLevel = 'journey-03';
   } else if (finished && typeof levelId === 'number' && levelId >= 2 && levelId < MAX_LEVEL_ID) {
     nextProgress.unlockedThrough = Math.max(nextProgress.unlockedThrough, levelId + 1);
     if (nextProgress.unlockedThrough > beforeUnlock) unlockedLevel = nextProgress.unlockedThrough;

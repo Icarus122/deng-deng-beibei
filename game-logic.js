@@ -2,8 +2,9 @@ import { sweptOverlaps } from './entities.js';
 import { createBasketball, updateBasketball } from './basketball-logic.js?v=20260924a';
 import { getDynamicHazards, isCollapseGone, resolveHazardContact } from './hazard-logic.js';
 import { CHAPTERS, JOURNEY } from './level-data.js?v=20260925b';
-import { JOURNEY_02 } from './journey-02.js?v=20260925b';
-import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260924a';
+import { JOURNEY_02 } from './journey-02.js?v=20260930a';
+import { JOURNEY_03 } from './journey-03.js?v=20260930a';
+import { createPursuer, updatePursuer } from './pursuer-ai.js?v=20260930a';
 import { findLandingPlatform } from './platform-physics.js';
 
 const PLAYER_WIDTH = 24;
@@ -24,7 +25,31 @@ const HIT_STOP_MS = 50;
 const LAND_SQUASH_MS = 120;
 const DUST_MS = 180;
 
-export const LEVELS = { 1: JOURNEY, ...CHAPTERS, 'journey-02': JOURNEY_02 };
+export const LEVELS = { 1: JOURNEY, ...CHAPTERS, 'journey-02': JOURNEY_02, 'journey-03': JOURNEY_03 };
+
+export function getRuntimeLevel(state) {
+  const level = LEVELS[state.levelId];
+  return state.missionPhase === 'return' ? { ...level, ...level.returnRoute } : level;
+}
+
+export function beginReturn(state) {
+  if (state.missionPhase !== 'returnReady') return state;
+  const next = { ...state, missionPhase:'return', missionTimeMs:JOURNEY_03.returnBudgetMs,
+    checkpointX:state.player.x, checkpointPlatformId:state.player.groundedPlatformId,
+    hearts:Math.max(2,state.hearts), energyMeter:100, basketball:null,
+    hazards:getDynamicHazards({...JOURNEY_03,...JOURNEY_03.returnRoute},state.elapsedMs,{}),
+    hazardSlowTimerMs:0,windTimerMs:0,windContactIds:[],damageContactIds:[],hitStopMs:0,
+    pursuer:{...state.restingMeng,mode:'stomach'},
+    cao:{...createPursuer(Math.min(JOURNEY_03.worldEnd-PLAYER_WIDTH,state.player.x+160)),facing:-1},
+    player:{...state.player,facing:-1,horizontalSpeed:-150}, event:'returnStarted' };
+  return { ...next, returnStart: next };
+}
+
+export function retryReturn(state) {
+  if (!state.returnStart) return null;
+  const checkpoint = state.returnStart;
+  return { ...checkpoint, player:{...checkpoint.player}, cao:{...checkpoint.cao}, pursuer:{...checkpoint.pursuer}, returnStart:checkpoint };
+}
 
 function clonePlayer(player) {
   return { ...player };
@@ -92,6 +117,7 @@ export function createGame(levelId) {
     distance: initialDistance,
     maxDistance: level.maxDistance,
     pursuer: createPursuer(player.x + initialDistance),
+    ...(levelId === 'journey-03' ? {missionPhase:'chaseBoth',cao:createPursuer(player.x+380),missionTimeMs:0,restingMeng:null} : {}),
     checkpointX: 70,
     energyTimerMs: 0,
     energyMeter: 0,
@@ -127,6 +153,11 @@ export function createGame(levelId) {
 
 export function resetLevel(levelId) {
   return createGame(levelId);
+}
+
+export function hasCatchContact(previousPlayer, player, previousPursuer, pursuer) {
+  const body = (runner) => ({ x: runner.x - 16, y: runner.y, width: CATCH_CONTACT_GAP, height: PLAYER_HEIGHT });
+  return sweptOverlaps(body(previousPlayer), body(player), body(previousPursuer), body(pursuer));
 }
 
 export function getPursuerRenderState(pursuer) {
@@ -195,23 +226,25 @@ export function getPursuerTaunt(progress, mode = 'cruise', regionId = null) {
   return '快追上了？那就来呀！';
 }
 
-export function getRenderPlatforms(levelId, elapsedMs, collapseStarts = {}, activatedSwitchIds = []) {
-  return LEVELS[levelId].platforms
+export function getRenderPlatforms(levelId, elapsedMs, collapseStarts = {}, activatedSwitchIds = [], missionPhase = null) {
+  return getRuntimeLevel({levelId,missionPhase}).platforms
     .filter((platform) => (!platform.collapse || !isCollapseGone(platform.id, elapsedMs, collapseStarts))
       && (!platform.requiresSwitch || activatedSwitchIds.includes(platform.requiresSwitch)))
     .map((platform) => movingPlatform(platform, elapsedMs));
 }
 
 export function updateGame(state, input, elapsedMs, { random = Math.random } = {}) {
-  if (state.phase !== 'playing') return state;
+  if (state.phase !== 'playing' || state.missionPhase === 'returnReady') return state;
 
-  const level = LEVELS[state.levelId];
+  const level = getRuntimeLevel(state);
+  const returning = state.missionPhase === 'return';
   const stepMs = clamp(elapsedMs, 0, 50);
   const nextElapsedMs = state.elapsedMs + stepMs;
   if ((state.hitStopMs ?? 0) > 0) {
     return {
       ...state,
       elapsedMs: nextElapsedMs,
+      missionTimeMs: returning ? Math.max(0, state.missionTimeMs - stepMs) : state.missionTimeMs,
       event: 'none',
       hitStopMs: Math.max(0, state.hitStopMs - stepMs),
       invulnerabilityMs: Math.max(0, (state.invulnerabilityMs ?? 0) - stepMs),
@@ -326,8 +359,9 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   };
   if (!droppedThrough) consumeBufferedJump();
 
-  const direction = input.left && !input.right ? -1 : 1;
-  const sprinting = Boolean(input.sprint || input.right) && direction > 0 && energyMeter > 0 && player.slipTimerMs === 0 && hazardSlowTimerMs === 0;
+  const forward = returning ? -1 : 1;
+  const direction = input.left && !input.right ? -1 : input.right && !input.left ? 1 : forward;
+  const sprinting = Boolean(input.sprint || (returning ? input.left : input.right)) && direction === forward && energyMeter > 0 && player.slipTimerMs === 0 && hazardSlowTimerMs === 0;
   if (sprinting) {
     sprinted = true;
     energyMeter = Math.max(0, energyMeter - seconds * 24);
@@ -335,7 +369,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     if (energyMeter === 0) event = 'energyEmpty';
   }
   const runSpeed = sprinting ? 240 : 150;
-  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 135 : direction < 0 ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0, speedPadTimerMs > 0 ? 215 : 0);
+  const movementSpeed = player.slipTimerMs > 0 ? 52 : hazardSlowTimerMs > 0 ? 88 : windTimerMs > 0 ? 135 : direction !== forward ? 105 : Math.max(runSpeed, platformBoostTimerMs > 0 ? 190 : 0, speedPadTimerMs > 0 ? 215 : 0);
   player.facing = direction;
   const previousX = player.x;
   player.x = clamp(player.x + direction * movementSpeed * seconds, 0, level.worldEnd - PLAYER_WIDTH);
@@ -470,7 +504,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   let checkpointX = state.checkpointX;
   let checkpointPlatformId = state.checkpointPlatformId ?? level.platforms.find((platform) => platform.y === GROUND_Y && state.checkpointX >= platform.x && state.checkpointX < platform.x + platform.width)?.id ?? null;
   for (const checkpoint of level.checkpoints ?? []) {
-    if (player.x >= checkpoint.x && checkpoint.respawnX > checkpointX) {
+    if (returning ? player.x <= checkpoint.x && checkpoint.respawnX < checkpointX : player.x >= checkpoint.x && checkpoint.respawnX > checkpointX) {
       checkpointX = checkpoint.respawnX;
       checkpointPlatformId = level.platforms.find((platform) => platform.y === GROUND_Y && checkpointX >= platform.x && checkpointX < platform.x + platform.width)?.id ?? null;
       if (event === 'none') event = 'checkpoint';
@@ -493,7 +527,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     player.dropThroughMs = 0;
     player.coyoteTimerMs = COYOTE_TIME_MS;
     invulnerabilityMs = Math.max(invulnerabilityMs, 1500);
-    pursuer = {
+    if (!returning) pursuer = {
       ...pursuer,
       x: player.x + Math.min(level.maxDistance - 40, distanceBeforeFall + 48),
       y: GROUND_Y - PLAYER_HEIGHT,
@@ -509,7 +543,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   }
 
   const previousPursuer = { ...pursuer };
-  pursuer = updatePursuer(pursuer, player, stepMs, {
+  pursuer = returning ? pursuer : updatePursuer(pursuer, player, stepMs, {
     ...level,
     previousPlatforms,
     platforms,
@@ -530,18 +564,40 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     finalWindowOpened = true;
     event = 'catchWindowOpened';
   }
-  const distance = pursuer.x - player.x;
-  const verticalOverlap = player.y < pursuer.y + PLAYER_HEIGHT
-    && player.y + PLAYER_HEIGHT > pursuer.y;
+  let distance = pursuer.x - player.x;
   const reachedWorldEnd = player.x >= level.worldEnd - PLAYER_WIDTH;
+  let missionPhase = state.missionPhase;
+  let restingMeng = state.restingMeng;
+  let cao = state.cao;
+  const missionTimeMs = returning ? Math.max(0,state.missionTimeMs-stepMs) : state.missionTimeMs;
+  if (missionPhase === 'chaseBoth') {
+    cao = updatePursuer(cao,player,stepMs,{...level,platforms,previousPlatforms,hazards,elapsedMs:nextElapsedMs});
+    if (player.x >= level.midpointX) {
+      restingMeng = {...pursuer,x:level.deliveryX,y:478,velocityY:0,grounded:true,mode:'stomach'};
+      pursuer = cao;
+      missionPhase = 'chaseCao';
+      event = 'targetChanged';
+      distance = pursuer.x - player.x;
+    }
+  } else if (returning) {
+    cao = updateReturnCompanion(cao,player,stepMs,{...level,platforms,previousPlatforms,hazards});
+  }
   let phase = 'playing';
   if (hearts <= 0) {
     phase = 'lost';
     event = 'lost';
-  } else if (progress >= CATCH_WINDOW_PROGRESS && distance <= CATCH_CONTACT_GAP && verticalOverlap) {
+  } else if (returning && missionTimeMs <= 0) {
+    phase = 'lost'; event = 'deliveryTimeout';
+  } else if (returning && player.x <= level.deliveryX+40 && player.y+PLAYER_HEIGHT >= GROUND_Y-5) {
+    phase = 'caught'; event = 'delivered';
+  } else if (!returning && progress >= CATCH_WINDOW_PROGRESS && hasCatchContact(previousPlayer, player, previousPursuer, pursuer)) {
+    if (missionPhase === 'chaseCao') {
+      missionPhase = 'returnReady'; event = 'tissueReceived';
+    } else {
     phase = 'caught';
     event = 'caught';
-  } else if (distance >= level.maxDistance || reachedWorldEnd) {
+    }
+  } else if (!returning && (distance >= level.maxDistance || reachedWorldEnd)) {
     phase = 'lost';
     event = 'lost';
   }
@@ -549,6 +605,7 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
   return {
     ...state,
     phase,
+    missionPhase, missionTimeMs, restingMeng, cao,
     player,
     distance,
     pursuer,
@@ -581,4 +638,16 @@ export function updateGame(state, input, elapsedMs, { random = Math.random } = {
     hazards,
     event,
   };
+}
+
+function updateReturnCompanion(cao, player, elapsedMs, level) {
+  const end = level.worldEnd;
+  const mirror = (runner) => ({...runner,x:end-runner.x-PLAYER_WIDTH});
+  const platformMirror = (items) => items.map(p=>({...p,x:end-p.x-p.width}));
+  const next = updatePursuer(mirror(cao), mirror(player),elapsedMs,{
+    ...level,finishX:Infinity,shortcutNodes:[],companion:true,
+    platforms:platformMirror(level.platforms),previousPlatforms:platformMirror(level.previousPlatforms),
+    hazards:platformMirror(level.hazards),obstacles:platformMirror(level.obstacles),
+  });
+  return {...next,x:end-next.x-PLAYER_WIDTH,facing:-1};
 }

@@ -1,4 +1,4 @@
-const TAUNT_DURATION_MS = 1200;
+const TAUNT_DURATION_MS = 2200;
 const TAUNT_COOLDOWN_MS = 12000;
 const MODE_STABLE_MS = 900;
 const REACTION_MODES = new Set(['evade', 'slowed', 'downed', 'finalChase']);
@@ -32,7 +32,7 @@ export function advanceTauntCue(tracker, { elapsedMs, regionId, mode }) {
 }
 
 export function createTaunt(text, elapsedMs) {
-  return { text, expiresAtMs: elapsedMs + TAUNT_DURATION_MS };
+  return { text, expiresAtMs: elapsedMs + Math.max(TAUNT_DURATION_MS,Math.min(3200,text.length*140)) };
 }
 
 export function isTauntActive(taunt, elapsedMs) {

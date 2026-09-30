@@ -1,12 +1,16 @@
-import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame } from './game-logic.js?v=20260925b';
+import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame, getRuntimeLevel, beginReturn, retryReturn } from './game-logic.js?v=20260930a';
+import { parseLevelId, getNextCampaign } from './campaign.js?v=20260930a';
+import { createCampaignUI } from './campaign-ui.js?v=20260930a';
+import { createComicPlayer } from './comic-player.js?v=20260930a';
+import { interpolateRenderState } from './render-state.js?v=20260930a';
 import { advanceCamera } from './camera.js';
-import { drawCharacter } from './character-renderer.js?v=20260925b';
+import { drawCharacter } from './character-renderer.js?v=20260930a';
 import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
-import { advanceTauntCue, createTaunt, createTauntTracker, isTauntActive } from './taunt.js?v=20260925a';
+import { advanceTauntCue, createTaunt, createTauntTracker, isTauntActive } from './taunt.js?v=20260930a';
 import { createLazyBackgrounds, preloadBackground } from './assets.js?v=20260924a';
 import { createGameAudio } from './audio.js?v=20260921a';
-import { loadProgress, markStorySeen, recordLevelResult, saveProgress } from './level-progress.js?v=20260924a';
+import { loadProgress, markStorySeen, recordLevelResult, saveProgress } from './level-progress.js?v=20260930a';
 import { getStoryScene } from './story-scenes.js?v=20260925b';
 
 const canvas = document.querySelector('#game-canvas');
@@ -28,9 +32,7 @@ const loseDialog = document.querySelector('#lose-dialog');
 const winDialog = document.querySelector('#win-dialog');
 const pauseDialog = document.querySelector('#pause-dialog');
 const storyDialog = document.querySelector('#story-dialog');
-const storyChapter = document.querySelector('#story-chapter');
 const storyHeading = document.querySelector('#story-heading');
-const storyText = document.querySelector('#story-text');
 const storyNextButton = document.querySelector('#story-next-button');
 const storySkipButton = document.querySelector('#story-skip-button');
 const levelName = document.querySelector('#level-name');
@@ -51,11 +53,12 @@ const jumpButton = document.querySelector('#jump-button');
 const winCopy = document.querySelector('#win-copy');
 const winDetail = document.querySelector('#win-detail');
 const loseDetail = document.querySelector('#lose-detail');
-const chapterButtons = document.querySelectorAll('[data-level-id]');
 const progressSummary = document.querySelector('#progress-summary');
 
-const beibeiPortrait = { runnerId: 'beibei', still: new Image(), runCycle: new Image(), poses: { cry: new Image(), jump: new Image() } };
-const mengPortrait = { runnerId: 'meng', still: new Image(), runCycle: new Image(), poses: { jump: new Image() } };
+const poseAtlas = new Image();
+const beibeiPortrait = { runnerId: 'beibei', academy:true, runCycle: new Image(), poseAtlas };
+const mengPortrait = { runnerId: 'meng', academy:true, runCycle: new Image(), poseAtlas };
+const caoPortrait = { runnerId: 'cao', academy:true, runCycle: new Image(), poseAtlas };
 const propsAtlas = new Image();
 const platformAtlas = new Image();
 const backgroundImages = createLazyBackgrounds();
@@ -84,27 +87,27 @@ let sprintAudioActive = false;
 let runnerAssetsFailed = false;
 let runnerAssetRetry = 0;
 let activeStory = null;
+let previousSimulationState = null;
+let returnCheckpoint = null;
+const comicPlayer = createComicPlayer(storyDialog, document.querySelector('#comic-page'), storyNextButton);
+const campaignUI = createCampaignUI({
+  getProgress: () => savedProgress, levels: LEVELS,
+  startLevel: requestLevelStart,
+  replayStory: id => playStory(id, 'intro', null, { replay:true }),
+});
 
 const runnerAssets = [
-  { image: beibeiPortrait.runCycle, url: 'assets/beibei-run-cycle-v5.png?v=20260920g' },
-  { image: mengPortrait.runCycle, url: 'assets/meng-run-cycle-v5.png?v=20260920g' },
-  { image: beibeiPortrait.poses.cry, url: 'assets/beibei-cry-v2.png?v=20260920d' },
-  { image: beibeiPortrait.poses.jump, url: 'assets/beibei-jump-v1.png?v=20260920d' },
-  { image: mengPortrait.poses.jump, url: 'assets/meng-jump-v1.png?v=20260920f' },
+  { image: beibeiPortrait.runCycle, url: 'assets/academy-beibei-v1.png?v=20260930a' },
+  { image: mengPortrait.runCycle, url: 'assets/academy-meng-v1.png?v=20260930a' },
+  { image: caoPortrait.runCycle, url: 'assets/academy-cao-v1.png?v=20260930a' },
+  { image: poseAtlas, url: 'assets/academy-poses-v1.png?v=20260930a' },
   { image: propsAtlas, url: 'assets/props-atlas-v2.png?v=20260920f' },
   { image: platformAtlas, url: 'assets/platforms-atlas-v2.png?v=20260920f' },
 ];
 
 function runnersReady() {
   return Boolean(
-    beibeiPortrait.runCycle.naturalWidth === 1152
-    && beibeiPortrait.runCycle.naturalHeight === 1152
-    && mengPortrait.runCycle.naturalWidth === 1152
-    && mengPortrait.runCycle.naturalHeight === 1152
-    && beibeiPortrait.poses.cry.naturalWidth
-    && beibeiPortrait.poses.jump.naturalWidth
-    && mengPortrait.poses.jump.naturalWidth === 1881
-    && mengPortrait.poses.jump.naturalHeight === 836
+    [beibeiPortrait.runCycle, mengPortrait.runCycle, caoPortrait.runCycle, poseAtlas].every(image => image.naturalWidth === 1254 && image.naturalHeight === 1254)
     && propsAtlas.naturalWidth === 1024
     && platformAtlas.naturalWidth === 1024,
   );
@@ -141,15 +144,14 @@ function resumeQueuedLevel() {
   const levelId = queuedLevelId;
   queuedLevelId = null;
   startButton.disabled = false;
-  startButton.textContent = '开始第一关';
+  startButton.textContent = '开始旅程';
   startLevel(levelId);
 }
 
 beibeiPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
 mengPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
-beibeiPortrait.poses.cry.addEventListener('load', resumeQueuedLevel);
-beibeiPortrait.poses.jump.addEventListener('load', resumeQueuedLevel);
-mengPortrait.poses.jump.addEventListener('load', resumeQueuedLevel);
+caoPortrait.runCycle.addEventListener('load', resumeQueuedLevel);
+poseAtlas.addEventListener('load', resumeQueuedLevel);
 propsAtlas.addEventListener('load', resumeQueuedLevel);
 platformAtlas.addEventListener('load', resumeQueuedLevel);
 runnerAssets.forEach(({ image, url }) => {
@@ -171,6 +173,8 @@ ctx.imageSmoothingQuality = 'high';
 
 function closeDialogs() {
   activeStory = null;
+  comicPlayer.clear();
+  campaignUI.close();
   [loseDialog, winDialog, pauseDialog, storyDialog, levelSelectDialog].forEach((dialog) => {
     if (dialog.open) dialog.close();
   });
@@ -194,39 +198,18 @@ function drawBackground(cameraX) {
 }
 
 function refreshChapterButtons() {
-  chapterButtons.forEach((button) => {
-    const levelId = button.dataset.levelId === 'journey-02' ? 'journey-02' : Number(button.dataset.levelId);
-    const level = LEVELS[levelId];
-    const record = savedProgress.records[levelId];
-    button.disabled = levelId === 'journey-02' ? !savedProgress.campaignUnlocked : levelId > savedProgress.unlockedThrough;
-    const chapterLabel = button.dataset.chapterLabel ?? button.querySelector('.chapter-title')?.textContent ?? level?.name ?? button.textContent;
-    button.dataset.chapterLabel = chapterLabel;
-    const stats = record ? ` · ${Math.round(record.bestProgress * 100)}% · ${record.bestCoins}枚` : '';
-    const title = button.querySelector('.chapter-title');
-    const progress = button.querySelector('.chapter-progress');
-    if (title && progress) {
-      title.textContent = `${button.disabled ? '🔒 ' : ''}${chapterLabel}`;
-      progress.textContent = record ? `${Math.round(record.bestProgress * 100)}% · ${record.bestCoins} 枚硬币${record.wins ? ` · 胜利 ${record.wins} 次` : ''}` : button.disabled ? '通关第一关后解锁' : '尚未挑战';
-    } else button.textContent = `${button.disabled ? '🔒 ' : ''}${chapterLabel}${stats}`;
-  });
-  document.querySelector('[data-story-level="journey-02"]').disabled = !savedProgress.campaignUnlocked;
-  const unlocked = Math.max(1, savedProgress.unlockedThrough - 1);
-  progressSummary.textContent = `校园练习已开放 ${unlocked}/5 段 · ${savedProgress.campaignUnlocked ? '第二关已解锁' : '追上孟培杰，解锁第二关'}`;
-}
-
-function showStoryLine() {
-  if (!activeStory) return;
-  const line = activeStory.lines[activeStory.index];
-  storyChapter.textContent = `${LEVELS[activeStory.levelId].name} · ${activeStory.kind === 'intro' ? '关前' : '关后'}`;
-  storyHeading.textContent = line.speaker;
-  storyText.textContent = line.text;
-  storyNextButton.textContent = activeStory.index === activeStory.lines.length - 1 ? '继续' : '下一句';
+  campaignUI.refresh();
+  progressSummary.textContent = savedProgress.campaignUnlocked ? '第二关已解锁' : '完成第一关解锁下一段旅程';
 }
 
 function finishStory() {
   if (!activeStory) return;
   const { sceneKey, remember, onDone } = activeStory;
   activeStory = null;
+  comicPlayer.clear();
+  clearInput();
+  lastFrame = 0;
+  simulationClock = { ...simulationClock, accumulatorMs:0 };
   if (storyDialog.open) storyDialog.close();
   if (remember) {
     savedProgress = markStorySeen(savedProgress, sceneKey);
@@ -238,13 +221,15 @@ function finishStory() {
 function playStory(levelId, kind, onDone = null, { replay = false } = {}) {
   const lines = getStoryScene(levelId, kind);
   const sceneKey = `${levelId}:${kind}`;
-  if (!lines.length || (!replay && savedProgress.storySeen.includes(sceneKey))) {
+  if ((!lines.length && levelId !== 'journey-03') || (!replay && savedProgress.storySeen.includes(sceneKey))) {
     onDone?.();
     return;
   }
   activeStory = { levelId, kind, lines, index: 0, sceneKey, remember: !replay, onDone };
-  showStoryLine();
-  storyDialog.showModal();
+  storyHeading.textContent = `${LEVELS[levelId].name} · 漫画剧情`;
+  clearInput();
+  void gameAudio.suspend();
+  comicPlayer.open(levelId,kind);
 }
 
 function persistRunResult() {
@@ -314,15 +299,13 @@ const PROP_FRAMES = {
 function drawAtlasProp(id, x, y, width, height) {
   const frame = PROP_FRAMES[id];
   if (!frame || !propsAtlas.naturalWidth) return false;
-  const size = Math.max(width, height);
-  const drawX = x + (width - size) / 2;
-  const drawY = y + (height - size) / 2;
-  ctx.drawImage(propsAtlas, frame[0] * 256, frame[1] * 256, 256, 256, drawX, drawY, size, size);
+  ctx.drawImage(propsAtlas, frame[0] * 256, frame[1] * 256, 256, 256, x, y, width, height);
   return true;
 }
 
 function drawHazard(hazard, elapsedMs) {
   if (hazard.type === 'collapse') {
+    if (state.collapseStarts[hazard.id] === undefined) return;
     const pulse = .72 + Math.sin(elapsedMs / 140) * .18;
     ctx.save();
     ctx.globalAlpha = pulse;
@@ -357,19 +340,19 @@ function drawHazard(hazard, elapsedMs) {
       ctx.stroke();
     }
     ctx.restore();
-    drawAtlasProp('crate', hazard.x - 10, hazard.y - 10, hazard.width + 20, hazard.height + 20);
+    drawAtlasProp('crate', hazard.x - 2, hazard.y - 2, hazard.width + 4, hazard.height + 2);
     return;
   }
   if (hazard.type === 'blocker') {
-    drawAtlasProp('barrier', hazard.x - 10, hazard.y - 8, hazard.width + 20, hazard.height + 16);
+    drawAtlasProp('barrier', hazard.x - 2, hazard.y - 2, hazard.width + 4, hazard.height + 2);
     return;
   }
   if (hazard.type === 'patrol') {
-    drawAtlasProp('patrol', hazard.x - 7, hazard.y - 4, hazard.width + 14, hazard.height + 8);
+    drawAtlasProp('patrol', hazard.x - 2, hazard.y - 2, hazard.width + 4, hazard.height + 2);
     return;
   }
   if (hazard.type === 'spikes') {
-    drawAtlasProp('spikes', hazard.x, hazard.y - 36, hazard.width, hazard.height + 72);
+    drawAtlasProp('spikes', hazard.x, hazard.y, hazard.width, hazard.height);
   }
 }
 
@@ -468,7 +451,7 @@ function drawSwitch(target) {
 }
 
 function drawDistanceBubble() {
-  if (state.energyTimerMs <= 0 && state.platformBoostTimerMs <= 0 && state.speedPadTimerMs <= 0) return;
+  if (Math.abs(state.player.horizontalSpeed) < 190) return;
   ctx.fillStyle = '#ff797f';
   ctx.fillRect(350, 55, 210, 28);
   ctx.fillStyle = '#fff9e9';
@@ -486,14 +469,14 @@ function updateHeartHud() {
   document.querySelector('#heart-icons')?.setAttribute('aria-label', `生命：${state.hearts}颗心`);
 }
 
-function render() {
+function render(visual = state) {
   if (!state) return;
-  const renderDelta = Math.max(0, state.elapsedMs - lastRenderElapsedMs);
-  cameraX = advanceCamera(cameraX, state.player.x, renderDelta, VIEWPORT_WIDTH, LEVELS[currentLevel].worldEnd, state.player.horizontalSpeed);
-  lastRenderElapsedMs = state.elapsedMs;
-  const level = LEVELS[currentLevel];
-  const platforms = getRenderPlatforms(currentLevel, state.elapsedMs, state.collapseStarts, state.activatedSwitchIds);
-  const closeZoom = Math.max(0, Math.min(.025, (190 - state.distance) / 2800));
+  const renderDelta = Math.max(0, visual.elapsedMs - lastRenderElapsedMs);
+  cameraX = advanceCamera(cameraX, visual.player.x, renderDelta, VIEWPORT_WIDTH, LEVELS[currentLevel].worldEnd, state.player.horizontalSpeed);
+  lastRenderElapsedMs = visual.elapsedMs;
+  const level = getRuntimeLevel(state);
+  const platforms = getRenderPlatforms(currentLevel, visual.elapsedMs, state.collapseStarts, state.activatedSwitchIds);
+  const closeZoom = state.missionPhase === 'return' ? 0 : Math.max(0, Math.min(.025, (190 - state.distance) / 2800));
 
   ctx.clearRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   ctx.save();
@@ -523,20 +506,22 @@ function render() {
     .forEach((hazard) => drawHazard(hazard, state.elapsedMs));
 
   const beibei = {
-    ...state.player,
+    ...visual.player,
     invulnerabilityMs: state.invulnerabilityMs,
     flashTimeMs: state.elapsedMs,
     mode: state.phase === 'lost' ? 'cry' : state.phase === 'caught' && resultPose === 'tap' ? 'tap' : undefined,
   };
-  const meng = { ...getPursuerRenderState(state.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
+  const meng = { ...getPursuerRenderState(visual.pursuer), mode: state.phase === 'caught' && resultPose === 'fallen' ? 'downed' : state.pursuer.mode };
   drawPursuerMotion(meng);
   drawCharacter(ctx, beibei, beibeiPortrait);
-  drawCharacter(ctx, meng, mengPortrait);
+  drawCharacter(ctx, meng, state.missionPhase === 'chaseCao' || state.missionPhase === 'returnReady' ? caoPortrait : mengPortrait);
+  if (state.missionPhase === 'chaseBoth' || state.missionPhase === 'return') drawCharacter(ctx,{...visual.cao,width:24,height:32},caoPortrait);
+  if (state.missionPhase === 'chaseCao' || state.missionPhase === 'returnReady') drawCharacter(ctx,{...state.restingMeng,width:24,height:32},mengPortrait);
   drawDust(beibei);
   drawSpeedLines();
-  if (state.basketball?.active) drawBasketball(state.basketball);
+  if (visual.basketball?.active) drawBasketball(visual.basketball);
 
-  if (state.phase === 'playing' && isTauntActive(taunt, state.elapsedMs)
+  if (state.phase === 'playing' && state.missionPhase !== 'return' && isTauntActive(taunt, state.elapsedMs)
     && meng.x > cameraX + 28 && meng.x < cameraX + VIEWPORT_WIDTH - 28) {
     const visualTop = meng.y - 56;
     const boxY = Math.max(20, visualTop - 50);
@@ -566,20 +551,26 @@ function render() {
     ctx.fillRect(state.player.x + 34, state.player.y - 68, 190, 30);
     ctx.fillStyle = '#2c2540';
     ctx.font = '16px monospace';
-    ctx.fillText('没心眼，不等我', state.player.x + 43, state.player.y - 48);
+    ctx.fillText(state.missionPhase === 'return' ? '纸巾送到啦！' : '没心眼，不等我', state.player.x + 43, state.player.y - 48);
   }
   ctx.restore();
   ctx.restore();
   drawDistanceBubble();
   drawChaseFeedback();
 
-  const remaining = Math.max(0, Math.round(((state.maxDistance - state.distance) / state.maxDistance) * 100));
+  const remaining = state.missionPhase === 'return'
+    ? Math.max(0, Math.min(100, state.missionTimeMs / level.returnBudgetMs * 100))
+    : Math.max(0, Math.min(100, Math.round(((state.maxDistance - state.distance) / state.maxDistance) * 100)));
+  distanceFill.parentElement.previousElementSibling.textContent = state.missionPhase === 'return' ? '时间' : '距离';
+  distanceFill.parentElement.parentElement.setAttribute('aria-label', state.missionPhase === 'return' ? '返程剩余时间' : '追赶距离');
+  leftButton.setAttribute('aria-label', state.missionPhase === 'return' ? '按住向左加速送纸巾' : '按住向左回头');
+  rightButton.setAttribute('aria-label', state.missionPhase === 'return' ? '按住向右回头' : '按住向右加速');
   distanceFill.style.width = `${remaining}%`;
   energyFill.style.width = `${Math.round(state.energyMeter ?? 0)}%`;
   updateHeartHud();
   const district = currentDistrict();
   const progress = Math.min(100, Math.round((state.player.x / level.finishX) * 100));
-  levelName.textContent = `${district?.name ?? level.name} · 路程 ${progress}% · 硬币 ${state.coins} · 生命 ${state.hearts}/3`;
+  levelName.textContent = state.missionPhase === 'return' ? `送纸巾 ← · ${Math.ceil(state.missionTimeMs/1000)} 秒` : `${district?.name ?? level.name} · ${progress}% · ◈ ${state.coins}`;
 }
 
 function updateLiveText() {
@@ -587,7 +578,7 @@ function updateLiveText() {
   const messages = {
     hit: `撞到危险物，失去一颗心（剩余 ${state.hearts} 颗）。`,
     fell: `掉进陷阱，失去一颗心并回到检查点（剩余 ${state.hearts} 颗）。`,
-    energy: '能量 +40！按住手机冲刺键继续加速。',
+    energy: '能量 +40！按住前进方向冲刺。',
     energyEmpty: '能量耗尽，冲刺结束！',
     coin: '收集到硬币！',
     surprise: '惊喜方块！硬币和 +20 能量到手。',
@@ -621,7 +612,7 @@ function stopGame() {
 }
 
 function pauseGame() {
-  if (state?.phase !== 'playing' || isPaused) return false;
+  if (state?.phase !== 'playing' || isPaused || activeStory) return false;
   isPaused = true;
   stopGame();
   clearInput();
@@ -650,7 +641,7 @@ function resumeGame() {
 
 function showLoseDialog() {
   const level = LEVELS[currentLevel];
-  loseDetail.textContent = state.hearts <= 0
+  loseDetail.textContent = state.missionPhase === 'return' ? '纸巾还没送到。再试一次将从返程起点开始，不用重跑前半关。' : state.hearts <= 0
     ? '贝贝坐下来哭了一会儿。三颗心用完了，休息一下再来吧。'
     : state.player.x >= level.worldEnd - state.player.width
       ? '已经跑到路的尽头，还差一点。留好冲刺能量再试一次！'
@@ -662,12 +653,12 @@ function showLoseDialog() {
 function showWinDialog() {
   const level = LEVELS[currentLevel];
   const badges = lastRunResult?.earnedBadges ?? [];
-  const nextLevel = currentLevel === 1 ? 'journey-02' : typeof currentLevel === 'number' && currentLevel >= 2 && currentLevel < 6 ? currentLevel + 1 : null;
-  winCopy.textContent = currentLevel === 1 ? '贝贝追上了 · 第一关通关！' : `${level.name} · 追上啦！`;
+  const nextLevel = typeof currentLevel === 'number' && currentLevel >= 2 && currentLevel < 6 ? currentLevel + 1 : getNextCampaign(currentLevel);
+  winCopy.textContent = currentLevel === 'journey-03' ? '纸巾送达！救援完成' : currentLevel === 1 ? '贝贝追上了 · 第一关通关！' : `${level.name} · 追上啦！`;
   const unlockMessage = lastRunResult?.unlockedLevel
     ? currentLevel === 1 ? ' · 已解锁第二关和全部练习' : ` · 已解锁${LEVELS[lastRunResult.unlockedLevel].name}`
     : '';
-  winDetail.textContent = `“没心眼，不等我”${badges.length ? ` · 挑战达成：${badges.join('、')}` : ''}${unlockMessage}`;
+  winDetail.textContent = `${currentLevel === 'journey-03' ? '贝贝和曹钜钛把纸巾送回了孟培杰身边。' : '“没心眼，不等我”'}${badges.length ? ` · 挑战达成：${badges.join('、')}` : ''}${unlockMessage}`;
   nextLevelButton.hidden = nextLevel === null;
   nextLevelButton.dataset.nextLevel = String(nextLevel ?? '');
   replayButton.hidden = false;
@@ -686,6 +677,12 @@ function handleTerminal() {
     return;
   }
   gameAudio.play('caught', { speed: state.player.horizontalSpeed });
+  if (state.event === 'delivered') {
+    resultPose = 'delivered';
+    render();
+    endTimer = window.setTimeout(() => playStory(currentLevel, 'outro', showWinDialog), 440);
+    return;
+  }
   resultPose = 'tap';
   render();
   endTimer = window.setTimeout(() => {
@@ -731,6 +728,7 @@ function drawPursuerMotion(pursuer) {
 }
 
 function drawSpeedLines() {
+  if (state.missionPhase === 'return') return;
   const alpha = Math.max(0, Math.min(1, (190 - state.distance) / 70));
   if (!alpha) return;
   ctx.save();
@@ -760,6 +758,7 @@ function drawDust(player) {
 }
 
 function drawChaseFeedback() {
+  if (state.missionPhase === 'return') return;
   const danger = Math.max(0, Math.min(1, (state.distance - state.maxDistance * .7) / (state.maxDistance * .3)));
   if (!danger) return;
   const pulse = .14 + Math.sin(state.elapsedMs / 120) * .07;
@@ -777,14 +776,14 @@ function drawChaseFeedback() {
 function updateTaunt() {
   const level = LEVELS[currentLevel];
   const district = currentDistrict();
-  if (state.phase !== 'playing' || state.player.x <= level.finishX * 0.08 || !district) return;
+  if (state.phase !== 'playing' || state.missionPhase === 'return' || state.player.x <= level.finishX * 0.08 || !district) return;
   const result = advanceTauntCue(tauntTracker, {
     elapsedMs: state.elapsedMs,
     regionId: district.id,
     mode: state.pursuer.mode,
   });
   tauntTracker = result.tracker;
-  if (result.cue) taunt = createTaunt(getPursuerTaunt(state.player.x / level.finishX, result.cue.mode, district.id), state.elapsedMs);
+  if (result.cue) taunt = createTaunt(state.missionPhase === 'chaseCao' ? '拿到纸巾，咱们就回去！' : getPursuerTaunt(state.player.x / level.finishX, result.cue.mode, district.id), state.elapsedMs);
 }
 
 function playStepSounds(previous, next) {
@@ -804,7 +803,7 @@ function playStepSounds(previous, next) {
 }
 
 function frame(timestamp) {
-  if (isPaused || !state || state.phase !== 'playing') return;
+  if (isPaused || activeStory || !state || state.phase !== 'playing') return;
   if (!lastFrame) lastFrame = timestamp;
   const elapsedMs = Math.min(50, timestamp - lastFrame);
   lastFrame = timestamp;
@@ -812,14 +811,31 @@ function frame(timestamp) {
   simulationClock = pacing.clock;
   for (let step = 0; step < pacing.steps && state.phase === 'playing'; step += 1) {
     const previousState = state;
+    previousSimulationState = state;
     state = updateGame(state, input, pacing.stepMs);
     playStepSounds(previousState, state);
     input.jumpPressed = false;
     input.jumpReleased = false;
     updateTaunt();
     updateLiveText();
+    if (state.event === 'targetChanged' || state.missionPhase === 'returnReady') {
+      stopGame();
+      clearInput();
+      render();
+      const kind = state.missionPhase === 'returnReady' ? 'return' : 'midpoint';
+      playStory(currentLevel, kind, () => {
+        if (kind === 'return') {
+          state = beginReturn(state);
+          returnCheckpoint = retryReturn(state);
+        }
+        lastFrame = 0;
+        void gameAudio.resume();
+        animationFrame = requestAnimationFrame(frame);
+      }, {replay:true});
+      return;
+    }
   }
-  render();
+  render(interpolateRenderState(previousSimulationState,state,simulationClock.accumulatorMs/pacing.stepMs));
   if (state.phase !== 'playing') {
     handleTerminal();
     return;
@@ -827,14 +843,16 @@ function frame(timestamp) {
   animationFrame = requestAnimationFrame(frame);
 }
 
-function startLevel(levelId) {
+function startLevel(levelId, initialState = null) {
   stopGame();
   closeDialogs();
   isPaused = false;
   pauseButton.setAttribute('aria-pressed', 'false');
   currentLevel = levelId;
   clearInput();
-  state = createGame(levelId);
+  state = initialState ?? createGame(levelId);
+  previousSimulationState = state;
+  returnCheckpoint = initialState ? retryReturn(initialState) : null;
   sprintAudioActive = false;
   runRecorded = false;
   lastRunResult = null;
@@ -852,9 +870,10 @@ function startLevel(levelId) {
   gameScreen.hidden = false;
   preloadBackground(backgroundImages, LEVELS[levelId].districts[0]?.id);
   render();
-  if (levelId === 1 || levelId === 'journey-02') {
+  if (!initialState && (levelId === 1 || String(levelId).startsWith('journey-'))) {
     playStory(levelId, 'intro', () => {
       lastFrame = 0;
+      void gameAudio.resume();
       animationFrame = requestAnimationFrame(frame);
     });
   } else animationFrame = requestAnimationFrame(frame);
@@ -900,7 +919,7 @@ function jumpSource(event, source) {
 
 function queueJump(event, source = 'jump') {
   event?.preventDefault();
-  if (state?.phase !== 'playing') return;
+  if (state?.phase !== 'playing' || isPaused || activeStory) return;
   const holdSource = jumpSource(event, source);
   if (jumpHoldSources.has(holdSource)) return;
   if (jumpHoldSources.size === 0) input.jumpPressed = true;
@@ -917,6 +936,7 @@ function releaseJump(event, source = 'jump') {
 }
 
 function setHeldInput(action, source, held) {
+  if (held && (isPaused || activeStory)) return;
   const sources = heldInputs[action];
   if (held) sources.add(source);
   else sources.delete(source);
@@ -1004,11 +1024,7 @@ pauseDialog.addEventListener('cancel', (event) => {
 });
 storyNextButton.addEventListener('click', () => {
   if (!activeStory) return;
-  if (activeStory.index + 1 >= activeStory.lines.length) finishStory();
-  else {
-    activeStory.index += 1;
-    showStoryLine();
-  }
+  if (comicPlayer.click() === 'continue') finishStory();
 });
 storySkipButton.addEventListener('click', finishStory);
 storyDialog.addEventListener('cancel', (event) => {
@@ -1036,16 +1052,14 @@ bindHoldButton(rightButton,
   (event) => setHeldInput('right', `touch:right:${event.pointerId}`, true),
   (event) => setHeldInput('right', `touch:right:${event.pointerId}`, false));
 bindHoldButton(jumpButton, (event) => queueJump(event, 'touch-jump'), (event) => releaseJump(event, 'touch-jump'));
-startButton.addEventListener('click', () => requestLevelStart(queuedLevelId ?? 1));
-levelSelectButton.addEventListener('click', () => levelSelectDialog.showModal());
+startButton.addEventListener('click', () => queuedLevelId !== null ? requestLevelStart(queuedLevelId) : campaignUI.open());
+levelSelectButton.addEventListener('click', () => campaignUI.open());
 levelSelectClose.addEventListener('click', () => levelSelectDialog.close());
-chapterButtons.forEach((button) => button.addEventListener('click', () => requestLevelStart(button.dataset.levelId === 'journey-02' ? 'journey-02' : Number(button.dataset.levelId))));
-document.querySelectorAll('[data-story-level]').forEach((button) => button.addEventListener('click', () => {
-  levelSelectDialog.close();
-  playStory(button.dataset.storyLevel === 'journey-02' ? 'journey-02' : Number(button.dataset.storyLevel), 'intro', null, { replay: true });
-}));
-retryButton.addEventListener('click', () => requestLevelStart(currentLevel));
+retryButton.addEventListener('click', () => {
+  if (returnCheckpoint) startLevel(currentLevel,returnCheckpoint);
+  else requestLevelStart(currentLevel);
+});
 giveUpButton.addEventListener('click', returnHome);
-nextLevelButton.addEventListener('click', () => requestLevelStart(nextLevelButton.dataset.nextLevel === 'journey-02' ? 'journey-02' : Number(nextLevelButton.dataset.nextLevel)));
+nextLevelButton.addEventListener('click', () => requestLevelStart(parseLevelId(nextLevelButton.dataset.nextLevel)));
 replayButton.addEventListener('click', () => requestLevelStart(currentLevel));
 homeButtons.forEach((button) => button.addEventListener('click', returnHome));

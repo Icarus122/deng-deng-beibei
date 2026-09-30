@@ -1,6 +1,6 @@
 import { LEVELS, createGame, getPursuerRenderState, getPursuerTaunt, getRenderPlatforms, updateGame, getRuntimeLevel, beginReturn, retryReturn } from './game-logic.js?v=20260930a';
-import { parseLevelId, getNextCampaign } from './campaign.js?v=20260930a';
-import { createCampaignUI } from './campaign-ui.js?v=20260930a';
+import { parseLevelId, getNextCampaign } from './campaign.js?v=20260930b';
+import { createCampaignUI } from './campaign-ui.js?v=20260930b';
 import { createComicPlayer } from './comic-player.js?v=20260930a';
 import { interpolateRenderState } from './render-state.js?v=20260930a';
 import { advanceCamera } from './camera.js';
@@ -9,7 +9,7 @@ import { drawScene, getPalette } from './scene-renderer.js?v=20260920c';
 import { advanceSimulationClock, createSimulationClock } from './simulation-clock.js';
 import { advanceTauntCue, createTaunt, createTauntTracker, isTauntActive } from './taunt.js?v=20260930a';
 import { createLazyBackgrounds, preloadBackground } from './assets.js?v=20260924a';
-import { createGameAudio } from './audio.js?v=20260921a';
+import { createGameAudio } from './audio.js?v=20260930b';
 import { loadProgress, markStorySeen, recordLevelResult, saveProgress } from './level-progress.js?v=20260930a';
 import { getStoryScene } from './story-scenes.js?v=20260925b';
 
@@ -92,6 +92,7 @@ let returnCheckpoint = null;
 const comicPlayer = createComicPlayer(storyDialog, document.querySelector('#comic-page'), storyNextButton);
 const campaignUI = createCampaignUI({
   getProgress: () => savedProgress, levels: LEVELS,
+  audio: gameAudio,
   startLevel: requestLevelStart,
   replayStory: id => playStory(id, 'intro', null, { replay:true }),
 });

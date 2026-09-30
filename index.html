@@ -6,15 +6,15 @@
     <meta name="theme-color" content="#f7c76b" />
     <title>等等贝贝吧</title>
       <link rel="stylesheet" href="style.css?v=20260930a" />
-    <link rel="stylesheet" href="campaign.css?v=20260930a" />
+    <link rel="stylesheet" href="campaign.css?v=20260930b" />
   </head>
   <body>
     <main class="game-shell">
       <section id="home-screen" class="home" aria-labelledby="game-title">
-        <button class="corner-button settings-button" aria-label="设置">⚙</button>
+        <button class="corner-button settings-button" aria-label="设置"><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#gear"/></svg></button>
         <div class="game-logo"><div class="crest" aria-hidden="true">✦</div><p>银杏魔法学院</p><h1 id="game-title">等等<br><span>贝贝吧</span></h1><div class="logo-ribbon">一场没说完的冒险</div></div>
         <div class="home-actions"><button id="start-button" class="wood-button">开始旅程</button><button id="level-select-button" class="wood-button secondary">旅程地图</button></div>
-        <span class="preview-badge">v0.3.0-alpha · 学院篇</span><p id="progress-summary" class="sr-only" aria-live="polite"></p>
+        <span class="preview-badge">v0.3.1-alpha · 学院篇</span><p id="progress-summary" class="sr-only" aria-live="polite"></p>
       </section>
 
       <section id="game-screen" class="screen game-screen" hidden aria-label="游戏进行中">
@@ -52,9 +52,19 @@
     </main>
 
     <dialog id="level-select-dialog" class="campaign" aria-label="旅程地图">
-      <header class="map-hud"><button id="level-select-close" class="corner-button" aria-label="返回首页">‹</button><div class="star-counter"><span>★</span><b id="map-stars">0</b></div><h2 class="chapter-plaque">银杏魔法学院</h2><button class="corner-button settings-button" aria-label="设置">⚙</button></header>
-      <div id="map-viewport" class="map-viewport" tabindex="0" aria-label="世界地图，可左右滑动；Tab 选择旗帜"><div id="map-world" class="map-world"><img class="map-art" src="design/assets/campaign-map-v2.webp" width="1672" height="941" alt="学院、旧街、集市、图书馆、湖畔与观星台相连的魔法地图" draggable="false"><svg class="routes" viewBox="0 0 1000 570" preserveAspectRatio="none" aria-hidden="true"><path d="M180 382 Q245 333 360 302 Q440 250 550 194 Q440 85 210 148 M550 194 Q680 135 790 171 Q860 300 780 410"/></svg><div id="map-nodes"></div></div></div>
-      <nav class="map-dock" aria-label="地图菜单"><button id="map-locate"><span aria-hidden="true">⚑</span>地图</button><button id="map-journal"><span aria-hidden="true">▤</span>漫画</button><button id="map-characters"><span aria-hidden="true">♙</span>人物</button><button id="map-practice"><span aria-hidden="true">✧</span>练习</button></nav>
+      <header class="map-hud">
+        <button id="level-select-close" class="corner-button" aria-label="返回首页"><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#back"/></svg></button>
+        <div class="star-counter"><span>★</span><b id="map-stars">0</b></div>
+        <h2 class="chapter-plaque">银杏魔法学院</h2>
+        <button class="corner-button settings-button" aria-label="设置"><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#gear"/></svg></button>
+      </header>
+      <div id="map-viewport" class="map-viewport" tabindex="0" aria-label="世界地图，可上下左右滑动；Tab 选择旗帜"><div id="map-world" class="map-world"><img class="map-art" src="design/assets/campaign-map-v2.webp" width="1672" height="941" alt="学院、旧街、集市、图书馆、湖畔与观星台相连的魔法地图" draggable="false"><svg class="routes" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><path d="M230 730 Q270 750 330 680 T400 520 L430 490 Q500 490 550 380 M550 380 Q515 265 415 260 T220 260 M550 380 Q645 450 685 400 T780 350 Q815 450 780 570 T800 700"/></svg><div id="map-nodes"></div></div></div>
+      <nav class="map-dock" aria-label="地图菜单">
+        <button id="map-locate"><span><svg class="ui-icon" viewBox="0 0 96 116" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#flag"/></svg></span>地图</button>
+        <button id="map-journal"><span><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#book"/></svg></span>漫画</button>
+        <button id="map-characters"><span><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#person"/></svg></span>人物</button>
+        <button id="map-practice"><span><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#spark"/></svg></span>练习</button>
+      </nav>
     </dialog>
     <dialog id="level-intro-dialog" class="level-dialog" aria-labelledby="level-intro-title"><h2 id="level-intro-title" class="modal-plaque"></h2><button id="level-intro-close" class="close-button" aria-label="关闭介绍">×</button><div id="level-intro-content"></div></dialog>
     <dialog id="info-dialog" class="info-dialog" aria-labelledby="info-title"><h2 id="info-title" class="modal-plaque"></h2><button id="info-close" class="close-button" aria-label="关闭">×</button><div id="info-content"></div></dialog>
@@ -100,6 +110,6 @@
       <button id="story-skip-button" class="comic-close" type="button" aria-label="跳过剧情">×</button><div id="comic-page" class="comic-page" aria-live="polite"></div><button id="story-next-button" class="comic-continue">点击显示全部</button>
     </dialog>
 
-    <script type="module" src="game.js?v=20260930a"></script>
+    <script type="module" src="game.js?v=20260930b"></script>
   </body>
 </html>

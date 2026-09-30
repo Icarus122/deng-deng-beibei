@@ -138,6 +138,23 @@ test('sprint pitch responds gently to the player speed', () => {
   audio.dispose();
 });
 
+test('settings mute stops current voices and blocks new ones until re-enabled', () => {
+  const audio = createGameAudio({ AudioContextCtor: FakeAudioContext });
+  const context = FakeAudioContext.instances.at(-1);
+  audio.play('caught');
+  const count = context.oscillators.length;
+  audio.setMuted(true);
+  assert.equal(audio.muted, true);
+  assert.ok(context.oscillators.every(voice => voice.stopCalls === 2));
+  assert.equal(audio.play('jump'), false);
+  assert.equal(context.oscillators.length, count);
+  audio.setMuted(false);
+  assert.equal(audio.muted, false);
+  assert.equal(audio.play('jump'), true);
+  assert.equal(context.oscillators.length, count + 1);
+  audio.dispose();
+});
+
 test('suspending audio stops active tones and can resume cleanly', async () => {
   const audio = createGameAudio({ AudioContextCtor: FakeAudioContext });
   const context = FakeAudioContext.instances.at(-1);

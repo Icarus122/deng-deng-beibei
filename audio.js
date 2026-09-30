@@ -24,6 +24,7 @@ function getDefaultAudioContext() {
 
 export function createGameAudio({ AudioContextCtor = getDefaultAudioContext() } = {}) {
   let context = null;
+  let muted = false;
   const activeVoices = new Set();
 
   if (typeof AudioContextCtor === 'function') {
@@ -65,7 +66,7 @@ export function createGameAudio({ AudioContextCtor = getDefaultAudioContext() } 
 
   function play(eventName, { speed = 150 } = {}) {
     const tones = EVENT_TONES[eventName];
-    if (!context || !tones) return false;
+    if (!context || !tones || muted) return false;
 
     const now = Number.isFinite(context.currentTime) ? context.currentTime : 0;
     const sprintPitch = Math.max(0.92, Math.min(1.12, 1 + (speed - 150) / 750));
@@ -128,6 +129,17 @@ export function createGameAudio({ AudioContextCtor = getDefaultAudioContext() } 
   }
 
   return {
+    get muted() {
+      return muted;
+    },
+    setMuted(value) {
+      muted = Boolean(value);
+      if (muted) {
+        for (const { oscillator } of activeVoices) {
+          try { oscillator.stop(); } catch { /* The voice may already have stopped. */ }
+        }
+      }
+    },
     get supported() {
       return context !== null;
     },

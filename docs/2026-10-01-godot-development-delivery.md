@@ -2,7 +2,7 @@
 
 ## 定位
 
-这是新的可游玩开发版，不是计划全部品质门槛已通过的正式候选。默认 Canvas v0.3.1-alpha 保留；Godot 单独放 /godot-demo/。前三关功能已经连接，但不得据此命名 v0.4.0-alpha 或承诺 Steam 上架质量。发布核验记录会在最后补充。
+这是新的可游玩开发版，不是计划全部品质门槛已通过的正式候选。默认 Canvas v0.3.1-alpha 保留；Godot 单独放 /godot-demo/。前三关功能已经连接，但不得据此命名 v0.4.0-alpha 或承诺 Steam 上架质量。公开 Pages 已按文末记录验收。
 
 ## 本轮完成
 
@@ -60,3 +60,17 @@ Web 原创学院地图与旗帜、道路预览、首尾及中段漫画、逐格�
 - 沿用用户已经明确的提交/推送/Pages授权，但只发布独立开发入口；代价是仍不能把未通过动作验收的游戏称为整计划完成。
 
 素材输出/完整最终提示词和工具模式见 godot/assets/CAMPAIGN-PROMPTS.md；原画、重打包PNG及每帧JSON均保留。Godot MIT/第三方声明取自官方4.7.2-stable，字体沿用SIL OFL1.1。
+
+## 提交与公开发布验收
+
+2026-10-01 15:32（UTC+8）核验，发布代码提交为 `283e94a24189277fb2c8949b82dc367a03307d57`，含初始开发集成 `9e775b0` 与审查修复 `283e94a`。已快进合并 main 并推送；远端 main SHA 与本地一致。本节作为随后追加的文档记录，不改变已验证的游戏资源。
+
+- [Godot 三关开发试玩](https://icarus122.github.io/deng-deng-beibei/godot-demo/)：实际公开 HTML 200，开发版标识和 `20261001-campaign-dev2` 加载参数已传播。
+- [构建清单](https://icarus122.github.io/deng-deng-beibei/godot-demo/build-info.json)：`2026-10-01-dev2`，明确记录动画发布门槛尚未验收。
+- 下载公开 PCK：15,308,744 字节，SHA256 `901ecf773f46e23c512b9905feb3986a25162262422738605195a13f69b11977`。
+- 下载公开 WASM：39,514,754 字节，SHA256 `fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0`。两者均与合并后测试的本地导出相同，不仅依据清单自报哈希。
+- 对公开 Pages 运行真实 Edge Web 引擎：桌面 DPR1、手机竖屏/横屏 DPR2、禁用 IndexedDB 四个上下文全部通过；实际地图/道路简介、漫画逐格与回看、保存后刷新、双指奔跑跳跃、暂停和按键不覆盖 canvas。常规上下文没有控制台错误；截图留在忽略目录 `artifacts/godot-pages-review`。
+- 合并后的主仓库再次执行 Godot 31 个根测试脚本、实际 PCK 启动、Canvas Node 138 项、Python 3 项，全部通过。
+- [原 Canvas 入口](https://icarus122.github.io/deng-deng-beibei/)仍返回 200；本轮没有替换原游戏模块。
+
+GitHub Pages 构建 API 本次返回 403 速率限制，因此没有声称读到了成功的构建任务状态；发布确认依据是实际公共页面、资源内容哈希和真实引擎交互。本机编辑器、私人照片/视频、测试截图及无关旧方案没有上传。手机视口测试不是手机真机，也不解除上文动画、性能、路线覆盖与首包预算门槛。

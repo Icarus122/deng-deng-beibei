@@ -22,6 +22,7 @@ func run() -> void:
 			pending_pit = false
 			visited.clear()
 			var wall_time := 0.0
+			var minimum_lead: Array = [100000.0, 100000.0]
 			var delta: float = 1.0 / hz
 			while scene.mode != "completed" and wall_time < 400:
 				await physics_frame
@@ -38,6 +39,10 @@ func run() -> void:
 					var recoveries: int = scene.ai_recoveries
 					var hearts: int = scene.state.hearts
 					scene._physics_process(delta)
+					if scene.runner.position.x / scene.world.data.length < 0.85 and scene.state.phase in ["chase", "dual_chase", "chase_cao"]:
+						for partner in scene.partners:
+							if chapter != 3 or partner.character == 1 or scene.state.phase == "dual_chase":
+								minimum_lead[partner.character] = minf(minimum_lead[partner.character], partner.runner.position.x - scene.runner.position.x)
 					if scene.state.hearts < hearts:
 						print("HURT ", chapter, " ", hz, "Hz at=", scene.runner.position, " v=", scene.runner.velocity, " jumps=", scene.runner.jumps_used, " phase=", scene.state.phase, " contacts=", scene.state.contacts.keys(), " health=", scene.state.hearts)
 					if scene.ai_recoveries > recoveries:
@@ -55,7 +60,7 @@ func run() -> void:
 				print("FAIL: course needed off-world AI rescue")
 				cleanup(1)
 				return
-			print("COURSE ", chapter, " ", hz, "Hz completed seconds=", snappedf(wall_time, 0.01), " hearts=", scene.state.hearts, " return_margin=", snappedf(scene.state.time_left, 0.01), " scenes=", visited.keys())
+			print("COURSE ", chapter, " ", hz, "Hz completed seconds=", snappedf(wall_time, 0.01), " hearts=", scene.state.hearts, " return_margin=", snappedf(scene.state.time_left, 0.01), " min_pre85_lead=", minimum_lead, " scenes=", visited.keys())
 			cleanup(-1)
 	print("GODOT PLAYTHROUGH: all three actual campaign roads and timed return passed at 30/60Hz")
 	quit(0)
@@ -95,7 +100,8 @@ func choose_input(delta: float) -> void:
 				var cart_speed: float = (hazard.box.position.x - hazard.previous_box.position.x) / delta
 				var closing: float = absf(runner.velocity.x) - cart_speed * chosen
 				trigger = clampf(closing * 0.25 + 44, 80, 155)
-			if distance > 20 and distance < trigger and hazard.kind != "crate":
+			var same_height: bool = hazard.y >= runner.position.y - 100 and hazard.y <= runner.position.y + 60
+			if distance > 20 and distance < trigger and hazard.kind != "crate" and same_height:
 				jump = true
 		var ray := PhysicsRayQueryParameters2D.create(runner.position + Vector2(0, -45), runner.position + Vector2(direction * 55, -45), 3, [runner.get_rid()])
 		if not runner.get_world_2d().direct_space_state.intersect_ray(ray).is_empty():
@@ -104,6 +110,22 @@ func choose_input(delta: float) -> void:
 		jump = true
 	elif runner.jumps_used == 1 and runner.velocity.y > 200 and runner.position.y >= 525 and floor_at(runner.position.x + chosen * 20, 580).is_empty() and not floor_at(runner.position.x + chosen * 300, 580).is_empty():
 		jump = true
+	if not runner.is_on_floor() and runner.jumps_used == 1 and runner.velocity.y > 0:
+		# A moving cart can turn underneath a descending first jump.
+		var lookahead := 0.16
+		var feet: Vector2 = runner.position + runner.velocity * lookahead + Vector2(0, 725 * lookahead * lookahead)
+		var body := Rect2(feet - Vector2(16, 100), Vector2(32, 100))
+		for hazard in scene.world.hazards:
+			if not hazard.dangerous:
+				continue
+			var box: Rect2 = hazard.box
+			box.position += (hazard.box.position - hazard.previous_box.position) / delta * lookahead
+			if body.intersects(box):
+				jump = true
+	if pending_pit:
+		# Releasing forward keeps the ordinary navigation pace until landing.
+		scene.control("left", false)
+		scene.control("right", false)
 	if jump:
 		jump_hold = 0.7
 		scene.control("jump", false)

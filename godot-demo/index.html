@@ -23,16 +23,17 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 .menu-head{position:absolute;left:3%;right:3%;top:3%;z-index:3;display:flex;align-items:center;gap:9px}
 .menu-head .plaque{margin:auto;font-weight:800;border:2px solid #c6bb8c;border-radius:7px;padding:9px 18px;background:#163b49ed;box-shadow:0 3px #091b28}
 .icon-button{height:46px;width:46px;padding:5px;border-radius:8px;border:2px solid #c8ba8a;display:grid;place-items:center;background:linear-gradient(#557180,#243d4c);box-shadow:0 3px #0b1e2a;font-size:24px;line-height:1}
-.icon-button svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.5}
+.icon-button svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:2}
 .map-view{display:flex;align-items:center;justify-content:center;background:radial-gradient(#385b62,#10252e)}
 .map-plane{position:relative;width:100%;aspect-ratio:16/9;background:url("ui/world-map.webp") center/100% 100%;box-shadow:0 0 40px #0008}
 .map-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.level-pin{position:absolute;transform:translate(-50%,-85%);width:clamp(45px,5.6vw,76px);height:clamp(58px,7vw,92px);padding:0;background:none;border:0;border-radius:0;filter:drop-shadow(0 4px 3px #172f3f);transition:transform .15s;display:flex;align-items:center;flex-direction:column}
+.level-pin{position:absolute;transform:translate(-50%,-85%);width:clamp(52px,6.4vw,86px);height:clamp(66px,8vw,110px);padding:0;background:none;border:0;border-radius:0;filter:drop-shadow(0 4px 3px #172f3f);transition:transform .15s;display:flex;align-items:center;flex-direction:column}
 .level-pin:hover,.level-pin:focus-visible{transform:translate(-50%,-85%) scale(1.12);outline:3px solid #ffda70;outline-offset:5px}
-.level-pin .flag{width:78%;height:73%;display:grid;place-content:center;background:linear-gradient(100deg,#066681,#169cbc);border:3px solid #ffe49d;box-shadow:inset 0 0 0 2px #173e54;clip-path:polygon(0 0,100% 0,100% 100%,50% 85%,0 100%);font-size:clamp(18px,2.1vw,30px);font-weight:900;text-shadow:0 2px #083440}
-.level-pin .pin-stars{font-size:clamp(10px,1.3vw,17px);color:#ffe889;letter-spacing:0;line-height:1.2;white-space:nowrap;order:-1}
-.level-pin.completed .flag{background:linear-gradient(100deg,#c47d20,#e8b845)}
-.level-pin.locked .flag{background:linear-gradient(#4c6170,#283844);border-color:#aab4b0;color:#c2c6bb}
+.level-pin .flag{width:100%;height:100%;display:block}
+.flag svg{width:100%;height:100%;display:block}
+.level-pin .pin-stars{position:absolute;left:18%;top:-5px;width:72%;height:20px;filter:drop-shadow(0 1px 1px #102839)}
+.pin-stars svg{width:100%;height:100%;display:block}
+.level-pin.locked{filter:drop-shadow(0 3px 2px #172f3f);opacity:.8}
 .map-dock{position:absolute;bottom:3%;left:50%;transform:translateX(-50%);display:flex;gap:15px;border:2px solid #afa585;border-radius:10px;background:#173744e8;padding:9px 16px;box-shadow:0 4px #081d28}
 .map-dock button{background:none;border:0;padding:4px 10px;font-size:15px;font-weight:700;color:#ffe199}
 .map-dock span{display:block;font-size:22px;line-height:1.25;color:#b8ede9}
@@ -72,7 +73,7 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 #campaign{position:fixed;inset:0;min-height:100dvh;border-radius:0}
 .menu-head{top:max(16px,env(safe-area-inset-top));left:14px;right:14px}.menu-head .plaque{font-size:14px;padding:9px 12px}.map-dock{bottom:max(25px,env(safe-area-inset-bottom));width:max-content}
 .home-view{padding-top:26%;padding-bottom:20%;background-position:52% center}.game-title{font-size:40px}.game-title small{font-size:13px}
-.map-view{min-height:100dvh}.level-pin{width:45px;height:60px}.level-pin .flag{font-size:20px}.level-pin .pin-stars{font-size:10px}
+.map-view{min-height:100dvh}.level-pin{width:48px;height:64px}.level-pin .pin-stars{height:15px;top:-6px}
 .modal-shade{min-height:100dvh;padding:75px 14px 35px}.brief-heading{font-size:18px;padding:18px 48px}.brief-columns{grid-template-columns:1fr}.brief-road{height:180px;min-height:0;border-right:0;border-bottom:3px solid #b5a274}.brief-copy{padding:20px}.brief-copy p{font-size:17px}.brief-copy .wood-button{width:100%;margin-top:5px}
 .comic-page{height:100dvh;padding:25px 16px 16px}.comic-panels{grid-template-columns:1fr;gap:24px}.comic-art{height:340px}.comic-bubble{font-size:18px;line-height:1.65;padding:18px}.comic-head{font-size:18px}.comic-footer button{font-size:17px;padding:10px 20px}
 #game-hud{font-size:12px;padding:6px 5px;gap:6px}.meter{width:70px}#hearts{font-size:18px}#hud-title{max-width:115px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -83,7 +84,7 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 
 </head>
 <body>
-<header class="game-header"><h1>等等贝贝吧</h1><a href="../">旧版</a><button id="pause" disabled>暂停</button><button id="restart" disabled>重来</button></header>
+<header class="game-header"><h1>等等贝贝吧</h1><button id="pause" disabled>暂停</button><button id="restart" disabled>重来</button></header>
 <div id="game-hud" hidden><span id="hud-title"></span><span id="hearts"></span><span>能量 <i class="meter"><span id="energy-fill"></span></i></span><span id="return-clock"></span></div>
 <main id="workspace">
 <div id="stage"><canvas id="canvas" width="1280" height="720" tabindex="0" aria-label="等等贝贝吧 Godot 开发试玩"></canvas><div id="campaign" hidden></div><div id="status"><span id="notice">正在加载学院旅途…</span><progress id="progress"></progress><button id="retry" hidden>重试</button></div></div>
@@ -91,11 +92,11 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 <div id="jump-pad"><button id="jump" data-control="jump">跳</button></div>
 </main>
 <p id="hint">自动前进 · 空格跳跃 · 左键回头 · 长按右键加速 · 下＋跳穿台 · P 暂停</p>
-<noscript>请启用 JavaScript，或返回旧版试玩。</noscript>
+<noscript>请启用 JavaScript 后进入学院旅途。</noscript>
 <script src="index.js"></script>
 <script>
-const config={"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":15308744,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
-config.mainPack='index.pck?v=20261001-campaign-dev2';
+const config={"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":17003264,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+config.mainPack='index.pck?v=20261001-campaign-dev3';
 config.fileSizes[config.mainPack]=config.fileSizes['index.pck'];
 const engine=new Engine(config);
 const canvas=document.querySelector('#canvas');
@@ -113,7 +114,13 @@ const roadNames=['campus.webp','riverside.webp','night-market.png'];
 let currentState=null,signature='',settingsOpen=false,settingsPausedPlay=false,audio=null;
 const activeTones=new Set();
 const escapeText=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const gear='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m13 3 6 0 1 4 4 2 4-1 3 5-3 3 0 4 3 3-3 5-4-1-4 2-1 4-6 0-1-4-4-2-4 1-3-5 3-3 0-4-3-3 3-5 4 1 4-2z" transform="translate(0 -2) scale(.88)"/><circle cx="16" cy="16" r="5"/></svg>';
+const gear='<svg viewBox="0 0 40 40" aria-hidden="true"><g fill="#d9bb72" stroke="#765835" stroke-width=".8">'+Array.from({length:8},(_,i)=>'<path d="M17 5H23L24 11H16Z" transform="rotate('+i*45+' 20 20)"/>').join('')+'<circle cx="20" cy="20" r="11"/><circle cx="20" cy="20" r="5.5" fill="#183e50" stroke="#fff0bd" stroke-width="1.5"/></g><path d="M14 14A9 9 0 0 1 25 13" stroke="#fff3c5" stroke-width="1.5"/></svg>';
+function levelMarker(level,stars,locked){
+ const id='banner-'+level,light=locked?'#7d9194':stars?'#e9c168':'#32bfd0',dark=locked?'#405862':stars?'#995321':'#12677d';
+ const symbol=locked?'<path d="M42 54V49a7 7 0 0 1 14 0v5" fill="none" stroke="#e7e5d2" stroke-width="3"/><rect x="39" y="54" width="20" height="17" rx="3" fill="#e7e5d2"/><circle cx="49" cy="60" r="2" fill="#385565"/>':'<text x="49" y="69" text-anchor="middle" font-size="30" font-weight="900" fill="#fff5d3" stroke="#273f50" stroke-width=".6" paint-order="stroke">'+level+'</text>';
+ return '<svg viewBox="0 0 88 112" aria-hidden="true"><defs><linearGradient id="'+id+'" x2="1" y2="1"><stop stop-color="'+light+'"/><stop offset="1" stop-color="'+dark+'"/></linearGradient></defs><ellipse cx="42" cy="107" rx="24" ry="4" fill="#092d3b" opacity=".45"/><path d="M18 18V107" stroke="#453424" stroke-width="6"/><path d="M17 18V105" stroke="#e1b565" stroke-width="2"/><path d="M18 9l6 8-6 8-6-8z" fill="#ffe6a2" stroke="#745334" stroke-width="2"/><path d="M21 28Q47 22 77 28V77Q65 95 49 96Q33 93 21 84Z" fill="url(#'+id+')" stroke="#ffe3a0" stroke-width="3"/><path d="M27 32Q48 28 70 32V75Q59 88 49 90Q35 87 27 81Z" fill="none" stroke="#fff4c5" stroke-width="1" opacity=".7"/><path d="M21 30l6 52-6 2z" fill="#0b3548" opacity=".3"/><path d="M15 27H80" stroke="#70502d" stroke-width="7" stroke-linecap="round"/><path d="M15 25H80" stroke="#f4d48f" stroke-width="3" stroke-linecap="round"/><path d="M45 35l4-4 4 4-4 4z" fill="#ffebbc"/>'+symbol+'<path d="M35 78q14 8 28-1" fill="none" stroke="#f6d790" stroke-width="1.5"/></svg>';
+}
+function markerStars(count){return '<svg viewBox="0 0 72 20" aria-hidden="true">'+[0,1,2].map(i=>'<path d="M10 1l2.7 5.6 6.2.9-4.5 4.4 1.1 6.2L10 15.2l-5.5 2.9 1.1-6.2L1.1 7.5l6.2-.9z" transform="translate('+i*24+' 0)" fill="'+(i<count?'#ffe075':'#305463')+'" stroke="#ffe3a1" stroke-width="1.2"/>').join('')+'</svg>'}
 function menuHead(back='home'){return '<div class="menu-head"><button class="icon-button" data-action="'+back+'" aria-label="返回">‹</button><div class="plaque">银杏魔法学院</div><button class="icon-button" data-action="settings" aria-label="设置">'+gear+'</button></div>'}
 function renderPanels(s){
  const cols=s.chapter===2?5:4,rows=s.chapter===3?4:2;
@@ -127,8 +134,8 @@ function drawUI(s){
  if(s.mode==='home')html='<section class="scene-view home-view"><h2 class="game-title">等等贝贝吧<small>银 杏 学 院 · 星 灯 旅 途</small></h2><button class="wood-button" data-action="map">进入学院</button><small class="dev-badge">Godot 开发试玩 · 三关开放体验</small><div class="menu-head"><span></span><button class="icon-button" style="margin-left:auto" data-action="settings" aria-label="设置">'+gear+'</button></div></section>';
  else if(s.mode==='map'){
  const points=[[18,69],[36,55],[55,36],[23,27],[80,32],[79,73]];
- const pins=points.map((p,i)=>'<button class="level-pin '+(i>2?'locked':s.stars[i]?'completed':'')+'" style="left:'+p[0]+'%;top:'+p[1]+'%" '+(i<3?'data-level="'+(i+1)+'" data-action="brief:'+(i+1)+'" aria-label="第'+(i+1)+'关 '+escapeText(s.titles[i])+'"':'data-action="future" aria-label="后续章节尚未开放"')+'><span class="pin-stars">'+(i<3?'★'.repeat(s.stars[i])+'☆'.repeat(3-s.stars[i]):'')+'</span><span class="flag">'+(i<3?i+1:'⌑')+'</span></button>').join('');
- html='<section class="scene-view map-view"><div class="map-plane"><svg class="map-path" viewBox="0 0 1000 562"><path d="M180 388 Q210 322 360 309 Q410 245 550 202" fill="none" stroke="#704d28" stroke-width="7" stroke-dasharray="2 13" stroke-linecap="round"/><path d="M550 202 Q555 120 230 152 M550 202 Q640 141 800 180 Q870 273 790 410" fill="none" stroke="#d8c799" stroke-width="5" stroke-dasharray="2 13" stroke-linecap="round" opacity=".55"/></svg>'+pins+'</div>'+menuHead()+'<nav class="map-dock"><button data-action="map"><span>⚑</span>地图</button><button data-action="replay"><span>▤</span>漫画</button><button data-action="sample"><span>✧</span>练习</button></nav></section>';
+ const pins=points.map((p,i)=>'<button class="level-pin '+(i>2?'locked':s.stars[i]?'completed':'')+'" style="left:'+p[0]+'%;top:'+p[1]+'%" '+(i<3?'data-level="'+(i+1)+'" data-action="brief:'+(i+1)+'" aria-label="第'+(i+1)+'关 '+escapeText(s.titles[i])+'"':'data-action="future" aria-label="后续章节尚未开放"')+'><span class="pin-stars">'+(i<3?markerStars(s.stars[i]):'')+'</span><span class="flag">'+levelMarker(i+1,s.stars[i]||0,i>2)+'</span></button>').join('');
+ html='<section class="scene-view map-view"><div class="map-plane"><svg class="map-path" viewBox="0 0 1000 562"><path d="M180 388 Q210 322 360 309 Q410 245 550 202" fill="none" stroke="#283b41" stroke-width="5" stroke-dasharray="1 12" stroke-linecap="round"/><path d="M180 388 Q210 322 360 309 Q410 245 550 202" fill="none" stroke="#ffe6a2" stroke-width="3" stroke-dasharray="1 12" stroke-linecap="round"/><path d="M550 202 Q555 120 230 152 M550 202 Q640 141 800 180 Q870 273 790 410" fill="none" stroke="#d8e6dc" stroke-width="3" stroke-dasharray="1 12" stroke-linecap="round" opacity=".6"/></svg>'+pins+'</div>'+menuHead()+'<nav class="map-dock"><button data-action="map"><span>⚑</span>地图</button><button data-action="replay"><span>▤</span>漫画</button><button data-action="sample"><span>✧</span>练习</button></nav></section>';
  }else if(s.mode==='archive'){const labels={intro:'出发之前',outro:'伙伴与约定',bridge:'定位铃',mid:'服务站',return:'回头的理由'};html='<section class="modal-shade"><article class="level-brief"><h2 class="brief-heading">学院漫画册</h2><button class="icon-button close-modal" data-action="map" aria-label="关闭">×</button><div class="archive-list">'+s.titles.map((title,i)=>'<section><h3>'+escapeText(title)+'</h3>'+s.scenes.filter(key=>key.startsWith((i+1)+'_')).map(key=>'<button data-action="replay:'+key+'">'+labels[key.split('_')[1]]+'</button>').join('')+'</section>').join('')+'</div></article></section>'}
  else if(s.mode==='brief')html='<section class="modal-shade"><article class="level-brief"><h2 class="brief-heading">'+s.chapter+' · '+escapeText(s.titles[s.chapter-1])+'</h2><button class="icon-button close-modal" data-action="map" aria-label="关闭">×</button><div class="brief-columns"><img class="brief-road" src="ui/'+roadNames[s.chapter-1]+'" alt="本关道路场景"><div class="brief-copy"><p>'+escapeText(s.brief)+'</p><button class="wood-button" data-action="start:'+s.chapter+'">出发</button></div></div></article></section>';
  else if(s.mode==='comic')html='<section class="comic-page"><h2 class="comic-head">'+escapeText(s.titles[s.chapter-1])+'</h2><div class="comic-panels">'+renderPanels(s)+'</div><footer class="comic-footer"><button data-action="skip">跳过</button><button data-action="comic">'+(s.shown<s.panels.length?'展开全页':'继续')+'</button></footer></section>';
@@ -167,7 +174,7 @@ document.addEventListener('click',event=>{
   else if(action==='close-settings'){settingsOpen=false;drawUI(currentState);if(settingsPausedPlay)control('pause',true)}
   else if(action==='sample')location.href='?sample&debug';
   else if(action==='replay')control('archive',true);
-  else if(action==='future'){button.blur();button.querySelector('.flag').textContent='…'}
+  else if(action==='future'){button.blur()}
   else control(action,true);
  }else if(event.target.closest('.comic-page'))control('comic',true);
 });
@@ -185,7 +192,7 @@ document.querySelector('#retry').onclick=()=>location.reload();
 const missing=Engine.getMissingFeatures({threads:false});
 async function start(){
  try{
-  if(missing.length)throw new Error('浏览器不支持 WebGL 2 / WebAssembly，可使用旧版试玩。');
+  if(missing.length)throw new Error('浏览器需要支持 WebGL 2 / WebAssembly，请使用新版浏览器。');
   await engine.startGame({canvas,onProgress:(current,total)=>{if(total){progress.value=current;progress.max=total}}});
   status.hidden=true;status.style.display='none';
   for(const b of document.querySelectorAll('button'))b.disabled=false;

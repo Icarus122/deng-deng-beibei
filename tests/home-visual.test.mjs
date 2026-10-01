@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-test('academy home has an original illustration and a separate flag-based campaign map', async () => {
-  const css = await readFile(new URL('../campaign.css', import.meta.url), 'utf8');
-  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+test('current academy home and map use separate art and road-introduction views', async () => {
+  const html = await readFile(new URL('../godot/web/shell.html', import.meta.url), 'utf8');
 
-  assert.match(css, /home-academy-v1\.webp/);
+  assert.match(html, /ui\/home\.webp/);
+  assert.match(html, /ui\/world-map\.webp/);
   assert.doesNotMatch(html, /portrait-row|>VS</);
-  assert.match(html, /id="level-select-dialog"/);
-  assert.match(html, /id="map-nodes"/);
-  assert.match(html, /id="level-intro-dialog"/);
+  assert.match(html, /class="map-plane"/);
+  assert.match(html, /data-level=/);
+  assert.match(html, /class="level-brief"/);
 });

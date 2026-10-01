@@ -105,6 +105,15 @@ func open_comic(key: String, after: String) -> void:
 	reveal.open(Story.SCENES[key].size())
 	mode = "comic"
 	_clear_controls()
+	if key == "3_return" and after == "phase":
+		var cao: CharacterBody2D = partners[1].runner
+		runner.velocity.x = 0
+		cao.velocity.x = 0
+		runner.action = "idle" if runner.is_on_floor() else runner.action
+		cao.action = "idle" if cao.is_on_floor() else cao.action
+		# Pausing can precede the sprite's render update for this physics tick.
+		runner.get_child(1)._process(0)
+		cao.get_child(1)._process(0)
 	get_tree().paused = true
 	emit_ui()
 
@@ -127,8 +136,10 @@ func comic_click() -> void:
 		runner.facing = -1
 		partners[1].ai.direction = -1
 		partners[1].ai.following = true
-		partners[1].runner.position.x = maxf(runner.position.x + 130, 41700)
-		partners[1].runner.reset_physics_interpolation()
+		partners[1].runner.facing = -1
+		# Cao starts following from the actual exchange point as Beibei leaves.
+		runner.get_child(1)._process(0)
+		partners[1].runner.get_child(1)._process(0)
 	elif state.phase == "chase_cao":
 		state.checkpoint_x = 21000
 	elif state.phase == "completed":

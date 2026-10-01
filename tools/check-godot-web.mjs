@@ -14,8 +14,13 @@ try {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    await page.goto(base + '?debug&v=campaign-20261001');
+    const entrance = new URL('../', base);
+    entrance.search = '?debug&v=campaign-20261001-dev3';
+    entrance.hash = 'entrance-check';
+    await page.goto(entrance.href);
     await page.waitForFunction(() => window.godotCampaignReady || window.godotSampleReady, { timeout: 30000 });
+    assert.match(page.url(), /godot-demo\/\?debug&v=campaign-20261001-dev3#entrance-check/, 'root must open the same new game and preserve query/hash');
+    assert.equal(await page.getByRole('link', { name: '旧版', exact: true }).count(), 0);
     assert.equal(await page.evaluate(() => window.godotCampaignReady === true), true, 'default development entrance must open actual campaign, not only animation sample');
     await page.screenshot({ path: output + '/' + variant + '-home.png' });
     await page.getByRole('button', { name: '设置', exact: true }).click();
@@ -27,6 +32,12 @@ try {
     assert.equal(await page.evaluate(() => window.campaignState.sound), false, 'sound setting must persist through actual browser reload');
     assert.equal(await page.evaluate(() => window.campaignState.fps), 60, 'render cap must persist through actual browser reload');
     await page.getByRole('button', { name: '进入学院', exact: true }).click();
+    assert.equal(await page.locator('.level-pin .flag svg').count(), 6, 'all road markers use scalable illustrated crests, not flat clipped boxes');
+    assert.equal(await page.locator('.level-pin .pin-stars svg').count(), 3);
+    for (const marker of await page.locator('.level-pin').all()) {
+      const box = await marker.boundingBox();
+      assert(box.width >= 44 && box.height >= 44, 'map markers remain comfortable touch targets');
+    }
     await page.screenshot({ path: output + '/' + variant + '-map.png' });
     await page.locator('[data-action="replay"]').click();
     await page.locator('[data-action="replay:2_intro"]').click();

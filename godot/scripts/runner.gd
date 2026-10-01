@@ -44,7 +44,7 @@ func release_jump() -> void:
 	if velocity.y < -220.0:
 		velocity.y = -220.0
 
-func step(delta: float, direction: float, sprint: bool, jump_held: bool, down: bool) -> void:
+func step(delta: float, direction: float, sprint: bool, jump_held: bool, down: bool, pace_scale := 1.0) -> void:
 	previous_run_distance = run_distance
 	feedback_remaining = maxf(0.0, feedback_remaining - delta)
 	var was_grounded := is_on_floor()
@@ -57,7 +57,7 @@ func step(delta: float, direction: float, sprint: bool, jump_held: bool, down: b
 		coyote = COYOTE_SECONDS
 	else:
 		coyote = maxf(0.0, coyote - delta)
-	var speed := SPRINT_SPEED if sprint and energy > 0.0 else WALK_SPEED
+	var speed := (SPRINT_SPEED if sprint and energy > 0.0 else WALK_SPEED) * pace_scale
 	velocity.x = move_toward(velocity.x, clampf(direction, -1.0, 1.0) * speed, 1800.0 * delta)
 	var turning := absf(velocity.x) > 15.0 and velocity.x * direction < 0.0
 	if absf(velocity.x) > 15.0:

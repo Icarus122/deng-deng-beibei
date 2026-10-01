@@ -4,6 +4,7 @@ const Data = preload("res://scripts/level_data.gd")
 const Contact = preload("res://scripts/swept_contact.gd")
 const PROPS = preload("res://assets/props.png")
 const PLATFORM = preload("res://assets/platforms.png")
+const RoadSurface = preload("res://scripts/road_surface.gd")
 const SIGNS = preload("res://assets/campaign-props-packed-v3.png")
 const BACKGROUNDS := {"campus": preload("res://assets/campus.webp"), "riverside": preload("res://assets/riverside.webp"), "night-market": preload("res://assets/night-market.png")}
 const RECTS := {
@@ -75,28 +76,14 @@ func _ground(a: Vector2, b: Vector2) -> void:
 	body.add_child(shape)
 	add_child(body)
 	var earth := Polygon2D.new()
+	earth.name = "RoadFace"
 	earth.polygon = vertices
-	earth.color = Color("38475c") if data.number == 3 else Color("59544f")
+	earth.color = [Color("69594e"), Color("515968"), Color("414c64")][data.number - 1]
+	earth.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 	body.add_child(earth)
-	var curb := Line2D.new()
-	curb.points = PackedVector2Array([a, b])
-	curb.width = 8
-	curb.default_color = Color("d8c69e")
-	body.add_child(curb)
-	# Short independent textured cap tiles follow the actual slope/collision line.
-	var count := ceili(a.distance_to(b) / 190.0)
-	for i in range(count):
-		var t := float(i) / count
-		var texture := AtlasTexture.new()
-		texture.atlas = PLATFORM
-		texture.region = Rect2(273, 132, 224, 24)
-		var tile := Sprite2D.new()
-		tile.texture = texture
-		tile.centered = false
-		tile.position = a.lerp(b, t)
-		tile.rotation = (b - a).angle()
-		tile.scale = Vector2(a.distance_to(b) / count / 224.0, 0.7)
-		body.add_child(tile)
+	var surface := RoadSurface.new()
+	surface.configure(a, b, data.number)
+	earth.add_child(surface)
 
 func _platform(item: Dictionary) -> void:
 	var entity: Dictionary = item.duplicate()

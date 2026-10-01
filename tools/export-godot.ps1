@@ -17,7 +17,8 @@ try {
     foreach ($taskLicense in @('FONT-LICENSE.txt', 'GODOT-LICENSE.txt', 'GODOT-COPYRIGHT.txt')) {
         Copy-Item -LiteralPath (Join-Path $taskRepo ('godot/assets/' + $taskLicense)) -Destination (Join-Path $taskRepo ('godot-demo/' + $taskLicense)) -Force
     }
-    & $Editor --headless --path godot-demo --main-pack index.pck --quit-after 15
-    if ($LASTEXITCODE -ne 0) { throw 'Actual exported PCK startup failed' }
+    $taskSmoke = & $Editor --headless --path godot-demo --main-pack index.pck --quit-after 15 2>&1
+    $taskSmoke | ForEach-Object { Write-Output $_ }
+    if ($LASTEXITCODE -ne 0 -or ($taskSmoke -join "`n") -match '(?m)SCRIPT ERROR:|^ERROR:') { throw 'Actual exported PCK startup failed' }
     Get-Item godot-demo/index.pck, godot-demo/index.wasm | Select-Object Name, Length
 } finally { Pop-Location }

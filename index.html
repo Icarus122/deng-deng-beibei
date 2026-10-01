@@ -1,115 +1,16 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7c76b" />
-    <title>等等贝贝吧</title>
-      <link rel="stylesheet" href="style.css?v=20260930a" />
-    <link rel="stylesheet" href="campaign.css?v=20260930b" />
-  </head>
-  <body>
-    <main class="game-shell">
-      <section id="home-screen" class="home" aria-labelledby="game-title">
-        <button class="corner-button settings-button" aria-label="设置"><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#gear"/></svg></button>
-        <div class="game-logo"><div class="crest" aria-hidden="true">✦</div><p>银杏魔法学院</p><h1 id="game-title">等等<br><span>贝贝吧</span></h1><div class="logo-ribbon">一场没说完的冒险</div></div>
-        <div class="home-actions"><button id="start-button" class="wood-button">开始旅程</button><button id="level-select-button" class="wood-button secondary">旅程地图</button></div>
-        <span class="preview-badge">v0.3.1-alpha · 学院篇</span><p id="progress-summary" class="sr-only" aria-live="polite"></p>
-      </section>
-
-      <section id="game-screen" class="screen game-screen" hidden aria-label="游戏进行中">
-        <header class="hud">
-          <p id="level-name">第一关 · 校园小路</p>
-          <div class="distance-wrap" aria-label="追赶距离">
-            <span>距离</span><div class="distance-track"><i id="distance-fill"></i></div>
-          </div>
-          <div class="distance-wrap" aria-label="贝贝能量">
-            <span>能量</span><div class="energy-track"><i id="energy-fill"></i></div>
-          </div>
-          <div class="hud-actions">
-            <div id="heart-icons" class="heart-icons" role="img" aria-label="生命：3颗心">
-              <span>♥</span><span>♥</span><span>♥</span>
-            </div>
-            <button id="pause-button" class="pause-button" type="button" aria-label="暂停游戏（P 或 Esc）" aria-keyshortcuts="P Escape" aria-pressed="false" title="暂停游戏">Ⅱ</button>
-          </div>
-        </header>
-        <div class="game-stage">
-          <canvas id="game-canvas" width="1280" height="540" aria-label="董贝贝追赶孟培杰的高清横版追逐游戏"></canvas>
-          <p id="hud-notice" class="hud-notice" hidden></p>
-        </div>
-        <div class="touch-controls" aria-label="手机操作按键">
-          <div class="touch-dpad" role="group" aria-label="方向控制">
-            <button id="up-button" class="touch-control dpad-up" type="button" aria-label="跳跃">↑</button>
-            <button id="left-button" class="touch-control dpad-left" type="button" aria-label="按住向左回头">←</button>
-            <button id="down-button" class="touch-control dpad-down" type="button" aria-label="按住下落">↓</button>
-            <button id="right-button" class="touch-control dpad-right" type="button" aria-label="按住向右加速">→</button>
-          </div>
-          <button id="jump-button" class="touch-control touch-jump" type="button" aria-label="按住跳跃">跳</button>
-        </div>
-        <p id="game-status" class="sr-only" aria-live="polite"></p>
-        <p class="touch-tip">自动前进 · 电脑：← 回头，→ 加速，空格跳跃，P / Esc 暂停 · 手机：左侧方向键、右侧跳跃；↓ + 跳穿过高台；HUD 暂停键暂停 · 碰篮球自动踢向前方</p>
-      </section>
-    </main>
-
-    <dialog id="level-select-dialog" class="campaign" aria-label="旅程地图">
-      <header class="map-hud">
-        <button id="level-select-close" class="corner-button" aria-label="返回首页"><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#back"/></svg></button>
-        <div class="star-counter"><span>★</span><b id="map-stars">0</b></div>
-        <h2 class="chapter-plaque">银杏魔法学院</h2>
-        <button class="corner-button settings-button" aria-label="设置"><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#gear"/></svg></button>
-      </header>
-      <div id="map-viewport" class="map-viewport" tabindex="0" aria-label="世界地图，可上下左右滑动；Tab 选择旗帜"><div id="map-world" class="map-world"><img class="map-art" src="design/assets/campaign-map-v2.webp" width="1672" height="941" alt="学院、旧街、集市、图书馆、湖畔与观星台相连的魔法地图" draggable="false"><svg class="routes" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><path d="M230 730 Q270 750 330 680 T400 520 L430 490 Q500 490 550 380 M550 380 Q515 265 415 260 T220 260 M550 380 Q645 450 685 400 T780 350 Q815 450 780 570 T800 700"/></svg><div id="map-nodes"></div></div></div>
-      <nav class="map-dock" aria-label="地图菜单">
-        <button id="map-locate"><span><svg class="ui-icon" viewBox="0 0 96 116" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#flag"/></svg></span>地图</button>
-        <button id="map-journal"><span><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#book"/></svg></span>漫画</button>
-        <button id="map-characters"><span><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#person"/></svg></span>人物</button>
-        <button id="map-practice"><span><svg class="ui-icon" viewBox="0 0 32 32" aria-hidden="true"><use href="assets/campaign-ui-icons-v1.svg#spark"/></svg></span>练习</button>
-      </nav>
-    </dialog>
-    <dialog id="level-intro-dialog" class="level-dialog" aria-labelledby="level-intro-title"><h2 id="level-intro-title" class="modal-plaque"></h2><button id="level-intro-close" class="close-button" aria-label="关闭介绍">×</button><div id="level-intro-content"></div></dialog>
-    <dialog id="info-dialog" class="info-dialog" aria-labelledby="info-title"><h2 id="info-title" class="modal-plaque"></h2><button id="info-close" class="close-button" aria-label="关闭">×</button><div id="info-content"></div></dialog>
-
-    <dialog id="lose-dialog" class="result-dialog">
-      <div class="dialog-pixels">｡°(°´ᯅ`°)°｡</div>
-      <p class="dialog-kicker">追赶失败</p>
-      <h2>贝贝跟丢了</h2>
-      <p id="lose-detail">孟培杰跑得太快啦……</p>
-      <div class="dialog-actions">
-        <button id="give-up-button" class="ghost-button">放弃</button>
-        <button id="retry-button" class="primary-button">再来一遍</button>
-        <button class="home-button">返回主页面</button>
-      </div>
-    </dialog>
-
-    <dialog id="win-dialog" class="result-dialog">
-      <div class="dialog-pixels">✦ ˖ ✦</div>
-      <p class="dialog-kicker">追赶成功</p>
-      <h2 id="win-copy">贝贝追上了</h2>
-      <p id="win-detail">没心眼，不等我</p>
-      <div class="dialog-actions">
-        <button id="next-level-button" class="primary-button">下一关</button>
-        <button id="replay-button" class="primary-button" hidden>重来一次</button>
-        <button class="home-button">返回主页面</button>
-      </div>
-    </dialog>
-
-    <dialog id="pause-dialog" class="result-dialog pause-dialog" aria-labelledby="pause-title">
-      <div class="dialog-pixels">Ⅱ</div>
-      <p class="dialog-kicker">追逐暂停</p>
-      <h2 id="pause-title">歇口气再追</h2>
-      <p>贝贝和孟培杰都停在这里了。</p>
-      <div class="dialog-actions">
-        <button id="resume-button" class="primary-button" type="button">继续游戏</button>
-        <button id="pause-restart-button" class="ghost-button" type="button">重新开始</button>
-        <button id="pause-home-button" class="home-button" type="button">返回主页面</button>
-      </div>
-    </dialog>
-
-    <dialog id="story-dialog" class="comic-dialog" aria-labelledby="story-heading">
-      <h2 id="story-heading" class="sr-only"></h2><p id="story-chapter" class="sr-only"></p><p id="story-text" class="sr-only"></p>
-      <button id="story-skip-button" class="comic-close" type="button" aria-label="跳过剧情">×</button><div id="comic-page" class="comic-page" aria-live="polite"></div><button id="story-next-button" class="comic-continue">点击显示全部</button>
-    </dialog>
-
-    <script type="module" src="game.js?v=20260930b"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>等等贝贝吧 · 学院旅途</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-content:center;background:#142b38;color:#ffe2a1;font:18px system-ui;text-align:center}a{color:#b9ebe3}</style>
+<script>
+const game = new URL("godot-demo/", location.href);
+game.search = location.search;
+game.hash = location.hash;
+location.replace(game.href);
+</script>
+</head>
+<body><p>正在进入银杏学院…</p><a href="godot-demo/">进入游戏</a><noscript><p>游戏需要启用 JavaScript。</p></noscript></body>
 </html>

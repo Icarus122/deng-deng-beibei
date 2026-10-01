@@ -31,7 +31,12 @@ func step(delta: float, player: Vector2, catch_open: bool) -> void:
 	# Land first; the remaining stun still applies on the receiving bank.
 	if stunned > 0 and runner.is_on_floor():
 		move = 0.0
-	var sprint := not catch_open and (runner.position.x - player.x) * direction < 120
+	var lead := (runner.position.x - player.x) * direction
+	var escaping := not following and not catch_open
+	var sprint := escaping and lead < 360
+	# Rebuild distance lost on terrain using the same acceleration/collisions.
+	# Catch windows, return following and a grounded stun retain ordinary pace.
+	var pace_scale := 1.0 + clampf((280 - lead) / 360, 0, 0.18) if escaping and stunned <= 0 else 1.0
 	if move != 0.0 and (stunned <= 0 or not runner.is_on_floor()):
 		var ahead := floor_at(runner.position.x + direction * 75, runner.position.y)
 		var landing := floor_at(runner.position.x + direction * 340, runner.position.y)
@@ -52,6 +57,11 @@ func step(delta: float, player: Vector2, catch_open: bool) -> void:
 		if runner.is_on_floor() and not runner.get_world_2d().direct_space_state.intersect_ray(wall_ray).is_empty() and jump_cooldown == 0:
 			runner.request_jump()
 			jump_cooldown = 0.65
+	# The selected-bank double jump is tuned for walking pace; a recovery
+	# sprint can sail across its short landing bank into the following pit.
+	if pit_jump:
+		sprint = false
+		pace_scale = 1.0
 	if move != 0 and absf(runner.position.x - previous_x) < delta * 8:
 		no_progress += delta
 	else:
@@ -62,7 +72,7 @@ func step(delta: float, player: Vector2, catch_open: bool) -> void:
 		runner.request_jump()
 		no_progress = 0
 	runner.energy = 100
-	runner.step(delta, move, sprint, true, drop)
+	runner.step(delta, move, sprint, true, drop, pace_scale)
 
 func knock_down() -> void:
 	stunned = 1.0

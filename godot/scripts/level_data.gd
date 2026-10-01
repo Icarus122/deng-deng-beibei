@@ -16,9 +16,11 @@ static func chapter(number: int) -> Dictionary:
 	road.checkpoints = starts.duplicate()
 	for i in range(6):
 		var x: float = starts[i]
-		var height := 45.0 if number == 1 else (70.0 if number == 2 else 95.0)
+		var height: float = 45.0 if number == 1 else ([60.0, 85.0, 65.0, 100.0, 75.0, 90.0][i] if number == 2 else [70.0, 95.0, 80.0, 105.0, 85.0, 100.0][i])
 		road.hills.append(Vector4(x + 700, x + 1200, x + 1700, x + 2300))
 		road.hills[-1] = {"range": road.hills[-1], "height": height}
+		if number > 1:
+			road.hills.append({"range": Vector4(x + 4800, x + 5100, x + 5350, x + 5750), "height": 35.0 + (i % 3) * 10})
 		var gap_width := 145.0 if number == 1 else 215.0
 		road.gaps.append(Vector2(x + 3050, x + 3050 + gap_width))
 		if number > 1:
@@ -29,13 +31,15 @@ static func chapter(number: int) -> Dictionary:
 			var py := 508.0 if p in [0, 3] else 436.0
 			road.platforms.append({"id": "p_%d_%d" % [i, p], "x": px, "y": py,
 				"width": 250.0, "kind": "moving" if number > 1 and p == 2 else ("collapse" if number == 3 and p == 1 else "stone"), "amplitude": 55.0})
-		var count := 2 if number == 1 else 5
+		var count := 2 if number == 1 else 6
 		for h in range(count):
 			var hx := x + 400 + h * 900
 			# Gap approaches remain visible and free of unavoidable stacked damage.
 			if h == 3:
 				hx = x + 3900
-			var kind: String = ["banana", "spikes"][h % 2] if number == 1 else (["cart", "spikes", "crate", "banana", "crate"][h] if number == 2 else ["cart", "crate", "spikes", "banana", "cart"][h])
+			if h == 5:
+				hx = x + 5100
+			var kind: String = ["banana", "spikes"][h % 2] if number == 1 else (["cart", "spikes", "crate", "banana", "crate", "spikes"][h] if number == 2 else ["cart", "crate", "spikes", "banana", "cart", "crate"][h])
 			road.hazards.append({"id": "h_%d_%d" % [i, h], "x": hx, "y": floor_y(road, hx), "kind": kind, "phase": i * 0.7 + h})
 		for p in range(14 if number == 1 else 20):
 			var px := x + 180 + p * 245
@@ -49,9 +53,18 @@ static func chapter(number: int) -> Dictionary:
 		if i in [1, 4]:
 			road.pickups.append({"id": "heart_%d" % i, "x": x + 3305, "y": 390.0, "kind": "heart"})
 		if number == 3 and x > 21000:
-			for h in range(5):
+			for h in range(6):
 				var hx := x + 250 + h * 680
-				road.return_hazards.append({"id": "return_%d_%d" % [i, h], "x": hx, "y": floor_y(road, hx), "kind": ["cart", "spikes", "crate", "cart", "banana"][h], "phase": 0.5 + h})
+				road.return_hazards.append({"id": "return_%d_%d" % [i, h], "x": hx, "y": floor_y(road, hx), "kind": ["cart", "spikes", "crate", "cart", "banana", "crate"][h], "phase": 0.5 + h})
+	# Add optional risk/reward tiers after the base array so authored pickup indices stay stable.
+	if number > 1:
+		for i in range(6):
+			var x: float = starts[i]
+			for p in range(2):
+				var px := x + 2780 + p * 320
+				road.platforms.append({"id": "loft_%d_%d" % [i, p], "x": px, "y": 364.0, "width": 200.0, "kind": "stone" if number == 2 else "collapse", "amplitude": 0.0})
+				road.pickups.append({"id": "loft_reward_%d_%d" % [i, p], "x": px + 60, "y": 324.0, "kind": "gem"})
+			road.hazards.append({"id": "loft_spikes_%d" % i, "x": x + 2750, "y": 364.0, "kind": "spikes", "phase": 0.0})
 	if number == 2:
 		road.pickups.append({"id": "bridge_ball", "x": 19400.0, "y": 490.0, "kind": "ball"})
 		road.gaps.append(Vector2(20000, 20260))

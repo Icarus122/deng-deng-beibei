@@ -1,11 +1,11 @@
 extends AnimatedSprite2D
 
 const SHEETS := [preload("res://assets/meng-actions-packed-v1.png"), preload("res://assets/cao-actions-packed-v1.png")]
-const RUN_SHEETS := [preload("res://assets/meng-run-packed-v2.png"), preload("res://assets/cao-run-packed-v2.png")]
+const RUN_SHEETS := [preload("res://assets/meng-run-beibei-packed-v1.png"), preload("res://assets/cao-run-beibei-packed-v1.png")]
 const CAO_IDLE = preload("res://assets/cao-idle-packed-v2.png")
 const CYCLE_DISTANCE := 176.0
 const RUN_ANCHOR := Vector2(224, 400)
-const RUN_SCALE := [0.381, 0.391]
+const RUN_SCALE := [0.433, 0.433]
 const ACTION_INDEX := {"idle": 8, "jump": 9, "double_jump": 9, "apex": 9, "fall": 10, "land": 11, "hurt": 12, "slip": 12, "fallen": 13, "stomach": 14, "concern": 14, "celebrate": 15}
 var runner: CharacterBody2D
 var character := 0

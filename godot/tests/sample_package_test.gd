@@ -11,12 +11,12 @@ func _initialize() -> void:
 		print("FAIL: development export needs explicit dependencies and no raw rejected art")
 		quit(1)
 		return
-	for path in ["res://scenes/boot.tscn", "res://scenes/campaign.tscn", "res://scripts/campaign.gd", "res://scripts/level_world.gd", "res://scenes/sample.tscn", "res://scripts/runner.gd", "res://scripts/runner_visual.gd", "res://assets/beibei-actions-packed-v1.png", "res://assets/cao-idle-packed-v2.png", "res://assets/academy-ui.otf"]:
+	for path in ["res://scenes/boot.tscn", "res://scenes/campaign.tscn", "res://scripts/campaign.gd", "res://scripts/level_world.gd", "res://scenes/sample.tscn", "res://scripts/runner.gd", "res://scripts/runner_visual.gd", "res://assets/beibei-actions-packed-v1.png", "res://assets/meng-run-beibei-packed-v1.png", "res://assets/cao-run-beibei-packed-v1.png", "res://assets/cao-idle-packed-v2.png", "res://assets/academy-ui.otf"]:
 		if not files.has(path):
 			print("FAIL: explicit development manifest omits runtime dependency: ", path)
 			quit(1)
 			return
-	for path in ["res://assets/beibei-parts-v1.png", "res://assets/cao-actions-v1.png", "res://tests/fixtures/rejected_cutout_visual.gd"]:
+	for path in ["res://assets/beibei-parts-v1.png", "res://assets/cao-actions-v1.png", "res://assets/meng-run-beibei-style-v2.png", "res://assets/cao-run-beibei-style-v1.png", "res://assets/meng-run-packed-v2.png", "res://assets/cao-run-packed-v2.png", "res://tests/fixtures/rejected_cutout_visual.gd"]:
 		if files.has(path):
 			print("FAIL: raw rejected art or diagnostic fixture is included")
 			quit(1)

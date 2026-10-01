@@ -15,11 +15,11 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     const entrance = new URL('../', base);
-    entrance.search = '?debug&v=campaign-20261001-dev3';
+    entrance.search = '?debug&v=20261001-fullbody-dev4';
     entrance.hash = 'entrance-check';
     await page.goto(entrance.href);
     await page.waitForFunction(() => window.godotCampaignReady || window.godotSampleReady, { timeout: 30000 });
-    assert.match(page.url(), /godot-demo\/\?debug&v=campaign-20261001-dev3#entrance-check/, 'root must open the same new game and preserve query/hash');
+    assert.match(page.url(), /godot-demo\/\?debug&v=20261001-fullbody-dev4#entrance-check/, 'root must open the same new game and preserve query/hash');
     assert.equal(await page.getByRole('link', { name: '旧版', exact: true }).count(), 0);
     assert.equal(await page.evaluate(() => window.godotCampaignReady === true), true, 'default development entrance must open actual campaign, not only animation sample');
     await page.screenshot({ path: output + '/' + variant + '-home.png' });

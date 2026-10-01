@@ -1,11 +1,12 @@
 {
-  "build": "2026-10-01-dev3",
+  "build": "2026-10-01-dev4",
   "channel": "development-preview",
   "engine": "Godot 4.7.2",
-  "pckBytes": 17003264,
-  "pckSha256": "4ad164043a5f632466aecf97062b3b68b1d9fc3e16fc872e01761a7c2b60fc58",
+  "pckBytes": 16843264,
+  "pckSha256": "aee56b3687a5411f67fe43aa432366ec604af4811d4ce42c0246d9720e256837",
   "wasmBytes": 39514754,
   "wasmSha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
   "animationReleaseGate": "not-accepted",
+  "partnerRunStyle": "beibei-fullbody-12",
   "defaultCanvasRetained": false
 }

@@ -1,0 +1,222 @@
+{
+  "source": "godot\\assets\\cao-run-beibei-style-v1.png",
+  "pixelScale": 1,
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 448,
+      "h": 432,
+      "originX": 224,
+      "originY": 400,
+      "originalOrigin": [
+        204,
+        371
+      ],
+      "inkMargins": [
+        52,
+        66,
+        68,
+        29
+      ]
+    },
+    {
+      "x": 448,
+      "y": 0,
+      "w": 448,
+      "h": 432,
+      "originX": 672,
+      "originY": 400,
+      "originalOrigin": [
+        571,
+        375
+      ],
+      "inkMargins": [
+        97,
+        63,
+        84,
+        28
+      ]
+    },
+    {
+      "x": 896,
+      "y": 0,
+      "w": 448,
+      "h": 432,
+      "originX": 1120,
+      "originY": 400,
+      "originalOrigin": [
+        917,
+        382
+      ],
+      "inkMargins": [
+        157,
+        57,
+        109,
+        27
+      ]
+    },
+    {
+      "x": 1344,
+      "y": 0,
+      "w": 448,
+      "h": 432,
+      "originX": 1568,
+      "originY": 400,
+      "originalOrigin": [
+        1288,
+        382
+      ],
+      "inkMargins": [
+        146,
+        57,
+        120,
+        27
+      ]
+    },
+    {
+      "x": 0,
+      "y": 432,
+      "w": 448,
+      "h": 432,
+      "originX": 224,
+      "originY": 832,
+      "originalOrigin": [
+        195,
+        728
+      ],
+      "inkMargins": [
+        48,
+        69,
+        73,
+        31
+      ]
+    },
+    {
+      "x": 448,
+      "y": 432,
+      "w": 448,
+      "h": 432,
+      "originX": 672,
+      "originY": 832,
+      "originalOrigin": [
+        558,
+        727
+      ],
+      "inkMargins": [
+        64,
+        71,
+        57,
+        29
+      ]
+    },
+    {
+      "x": 896,
+      "y": 432,
+      "w": 448,
+      "h": 432,
+      "originX": 1120,
+      "originY": 832,
+      "originalOrigin": [
+        918,
+        731
+      ],
+      "inkMargins": [
+        93,
+        71,
+        56,
+        31
+      ]
+    },
+    {
+      "x": 1344,
+      "y": 432,
+      "w": 448,
+      "h": 432,
+      "originX": 1568,
+      "originY": 832,
+      "originalOrigin": [
+        1280,
+        728
+      ],
+      "inkMargins": [
+        94,
+        72,
+        70,
+        31
+      ]
+    },
+    {
+      "x": 0,
+      "y": 864,
+      "w": 448,
+      "h": 432,
+      "originX": 224,
+      "originY": 1264,
+      "originalOrigin": [
+        195,
+        1081
+      ],
+      "inkMargins": [
+        105,
+        66,
+        148,
+        51
+      ]
+    },
+    {
+      "x": 448,
+      "y": 864,
+      "w": 448,
+      "h": 432,
+      "originX": 672,
+      "originY": 1264,
+      "originalOrigin": [
+        553,
+        1081
+      ],
+      "inkMargins": [
+        136,
+        66,
+        130,
+        84
+      ]
+    },
+    {
+      "x": 896,
+      "y": 864,
+      "w": 448,
+      "h": 432,
+      "originX": 1120,
+      "originY": 1264,
+      "originalOrigin": [
+        918,
+        1077
+      ],
+      "inkMargins": [
+        63,
+        68,
+        49,
+        53
+      ]
+    },
+    {
+      "x": 1344,
+      "y": 864,
+      "w": 448,
+      "h": 432,
+      "originX": 1568,
+      "originY": 1264,
+      "originalOrigin": [
+        1282,
+        1079
+      ],
+      "inkMargins": [
+        76,
+        67,
+        78,
+        53
+      ]
+    }
+  ]
+}

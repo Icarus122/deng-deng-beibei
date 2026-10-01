@@ -16,14 +16,14 @@ spec.loader.exec_module(packer)
 
 
 class PartnerRunPackTest(unittest.TestCase):
-    def check_partner(self, name):
-        manifest_path = ASSETS / f'{name}-run-packed-v2.json'
+    def check_partner(self, name, packed_name='run-packed-v2', source_name='run-v2', head_budget=8):
+        manifest_path = ASSETS / f'{name}-{packed_name}.json'
         self.assertTrue(manifest_path.exists(), f'{name} needs an authored 12-frame run manifest')
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
         self.assertEqual(manifest['pixelScale'], 1)
         self.assertEqual(len(manifest['frames']), 12)
-        source = np.asarray(Image.open(ASSETS / f'{name}-run-v2.png').convert('RGBA'))
-        packed = np.asarray(Image.open(ASSETS / f'{name}-run-packed-v2.png').convert('RGBA'))
+        source = np.asarray(Image.open(ASSETS / f'{name}-{source_name}.png').convert('RGBA'))
+        packed = np.asarray(Image.open(ASSETS / f'{name}-{packed_name}.png').convert('RGBA'))
         hashes = set()
         head_tops = []
         for frame in manifest['frames']:
@@ -45,13 +45,19 @@ class PartnerRunPackTest(unittest.TestCase):
             hashes.add(hashlib.sha256(cell.tobytes()).hexdigest())
             head_tops.append(int(cy.min()) - anchor_y)
         self.assertEqual(len(hashes), 12, '12 keys must contain 12 different original drawings')
-        self.assertLessEqual(max(head_tops) - min(head_tops), 8, 'head anchor cannot jump between rows')
+        self.assertLessEqual(max(head_tops) - min(head_tops), head_budget, 'head anchor cannot jump between rows')
 
     def test_meng_has_twelve_lossless_safely_anchored_bodies(self):
         self.check_partner('meng')
 
     def test_cao_has_twelve_lossless_safely_anchored_bodies(self):
         self.check_partner('cao')
+
+    def test_meng_beibei_style_complete_frames(self):
+        self.check_partner('meng', 'run-beibei-packed-v1', 'run-beibei-style-v2', 16)
+
+    def test_cao_beibei_style_complete_frames(self):
+        self.check_partner('cao', 'run-beibei-packed-v1', 'run-beibei-style-v1', 16)
 
 
 if __name__ == '__main__':

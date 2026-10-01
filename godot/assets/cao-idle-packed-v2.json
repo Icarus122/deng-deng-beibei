@@ -1,0 +1,24 @@
+{
+  "source": "godot\\assets\\cao-idle-v2.png",
+  "pixelScale": 1,
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 1152,
+      "h": 1664,
+      "originX": 576,
+      "originY": 1600,
+      "originalOrigin": [
+        512,
+        1490
+      ],
+      "inkMargins": [
+        323,
+        126,
+        245,
+        64
+      ]
+    }
+  ]
+}

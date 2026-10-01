@@ -2,3 +2,5 @@ artifacts/
 artifacts-*/
 node_modules/
 .worktrees/
+godot/.godot/
+__pycache__/

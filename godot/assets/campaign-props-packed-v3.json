@@ -1,0 +1,78 @@
+{
+  "source": "godot\\assets\\campaign-props-v3.png",
+  "pixelScale": 1,
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 512,
+      "h": 640,
+      "originX": 256,
+      "originY": 600,
+      "originalOrigin": [
+        449,
+        479
+      ],
+      "inkMargins": [
+        30,
+        135,
+        33,
+        37
+      ]
+    },
+    {
+      "x": 512,
+      "y": 0,
+      "w": 512,
+      "h": 640,
+      "originX": 768,
+      "originY": 600,
+      "originalOrigin": [
+        1109,
+        469
+      ],
+      "inkMargins": [
+        40,
+        286,
+        39,
+        37
+      ]
+    },
+    {
+      "x": 0,
+      "y": 640,
+      "w": 512,
+      "h": 640,
+      "originX": 256,
+      "originY": 1240,
+      "originalOrigin": [
+        450,
+        996
+      ],
+      "inkMargins": [
+        138,
+        105,
+        143,
+        39
+      ]
+    },
+    {
+      "x": 512,
+      "y": 640,
+      "w": 512,
+      "h": 640,
+      "originX": 768,
+      "originY": 1240,
+      "originalOrigin": [
+        1102,
+        1008
+      ],
+      "inkMargins": [
+        159,
+        77,
+        155,
+        38
+      ]
+    }
+  ]
+}

@@ -24,6 +24,9 @@ func step(delta: float, player: Vector2, catch_open: bool) -> void:
 		move = direction if (player.x - runner.position.x) * direction > 115 else 0.0
 	elif (goal - runner.position.x) * direction < 20:
 		move = 0.0
+	# Following distance/goal changes cannot cancel travel to the selected bank.
+	if pit_jump and not runner.is_on_floor():
+		move = direction
 	# A hit cannot stop an already committed jump over empty space.
 	# Land first; the remaining stun still applies on the receiving bank.
 	if stunned > 0 and runner.is_on_floor():

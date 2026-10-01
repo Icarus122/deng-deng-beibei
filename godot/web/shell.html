@@ -18,6 +18,7 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 .home-view{background:linear-gradient(0deg,#071b21b0,transparent 60%),url("ui/home.webp") center/cover;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:7% 20px 6%}
 .game-title{font-family:"Microsoft YaHei",serif;font-weight:900;font-size:clamp(28px,4.4vw,64px);letter-spacing:.1em;text-shadow:0 3px #162d3a,0 6px 5px #07121b,2px 0 #162d3a,-2px 0 #162d3a;margin:0;color:#ffe29a;text-align:center}
 .game-title small{display:block;font-size:.28em;letter-spacing:.5em;color:#e9f5e1;margin-top:8px}
+.dev-badge{position:absolute;bottom:12px;right:18px;font-size:12px;color:#e6ead7;text-shadow:0 2px #122d38}
 .wood-button{background:linear-gradient(#a5773b,#654322);border:3px solid #d6b577;box-shadow:inset 0 0 0 2px #3c2b1e,0 5px #152b32,0 8px 10px #0005;border-radius:8px;font-weight:800;padding:13px 30px;color:#fff1c8;font-size:21px}
 .menu-head{position:absolute;left:3%;right:3%;top:3%;z-index:3;display:flex;align-items:center;gap:9px}
 .menu-head .plaque{margin:auto;font-weight:800;border:2px solid #c6bb8c;border-radius:7px;padding:9px 18px;background:#163b49ed;box-shadow:0 3px #091b28}
@@ -121,7 +122,7 @@ function drawUI(s){
  const savedScroll=ui.scrollTop;
  const panelScroll=ui.querySelector('.comic-panels')?.scrollTop||0;
  let html='';
- if(s.mode==='home')html='<section class="scene-view home-view"><h2 class="game-title">等等贝贝吧<small>银 杏 学 院 · 星 灯 旅 途</small></h2><button class="wood-button" data-action="map">进入学院</button><div class="menu-head"><span></span><button class="icon-button" style="margin-left:auto" data-action="settings" aria-label="设置">'+gear+'</button></div></section>';
+ if(s.mode==='home')html='<section class="scene-view home-view"><h2 class="game-title">等等贝贝吧<small>银 杏 学 院 · 星 灯 旅 途</small></h2><button class="wood-button" data-action="map">进入学院</button><small class="dev-badge">Godot 开发试玩 · 三关开放体验</small><div class="menu-head"><span></span><button class="icon-button" style="margin-left:auto" data-action="settings" aria-label="设置">'+gear+'</button></div></section>';
  else if(s.mode==='map'){
  const points=[[18,69],[36,55],[55,36],[23,27],[80,32],[79,73]];
  const pins=points.map((p,i)=>'<button class="level-pin '+(i>2?'locked':s.stars[i]?'completed':'')+'" style="left:'+p[0]+'%;top:'+p[1]+'%" '+(i<3?'data-level="'+(i+1)+'" data-action="brief:'+(i+1)+'" aria-label="第'+(i+1)+'关 '+escapeText(s.titles[i])+'"':'data-action="future" aria-label="后续章节尚未开放"')+'><span class="pin-stars">'+(i<3?'★'.repeat(s.stars[i])+'☆'.repeat(3-s.stars[i]):'')+'</span><span class="flag">'+(i<3?i+1:'⌑')+'</span></button>').join('');

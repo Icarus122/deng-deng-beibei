@@ -98,6 +98,11 @@ try {
     await page.locator('[data-level="3"]').click();
     assert.match(await page.locator('.brief-road').getAttribute('src'), /night-market/);
     await page.screenshot({ path: output + '/' + variant + '-brief.png' });
+    await page.getByRole('button', { name: '出发', exact: true }).click();
+    await page.getByRole('button', { name: '跳过', exact: true }).click();
+    await page.waitForFunction(() => window.campaignState.mode === 'play' && window.campaignState.chapter === 3);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: output + '/' + variant + '-night-play.png' });
     assert.deepEqual(errors, []);
     console.log(variant.toUpperCase() + ': actual persistence, archive, map/road brief, comic geometry, multitouch/pause and non-obstructing controls passed');
     await context.close();

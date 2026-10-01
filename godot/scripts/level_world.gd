@@ -253,6 +253,7 @@ func unlock_bridge() -> void:
 
 func reset_pickups_after(x: float, direction: int) -> void:
 	for entity in pickups:
-		if (entity.x - x) * direction > 0:
+		# Coins and their score are retained together; only consumable aids respawn.
+		if entity.kind != "coin" and (entity.x - x) * direction > 0:
 			entity.taken = false
 			entity.node.show()

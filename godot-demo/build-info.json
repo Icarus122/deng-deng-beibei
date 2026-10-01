@@ -1,0 +1,11 @@
+{
+  "build": "2026-10-01-dev2",
+  "channel": "development-preview",
+  "engine": "Godot 4.7.2",
+  "pckBytes": 15308744,
+  "pckSha256": "901ecf773f46e23c512b9905feb3986a25162262422738605195a13f69b11977",
+  "wasmBytes": 39514754,
+  "wasmSha256": "fc74679e3b97f76878947fcd4fbe1268cbfa6188182a2e33bbc3f5dc9bfa57d0",
+  "animationReleaseGate": "not-accepted",
+  "defaultCanvasRetained": true
+}

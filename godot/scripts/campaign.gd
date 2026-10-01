@@ -176,8 +176,9 @@ func _physics_process(delta: float) -> void:
 			partner.ai.pit_jump = false
 			ai_recoveries += 1
 	_resolve_contacts(before)
-	_pickups()
-	_projectile(delta)
+	if state.phase != "failed":
+		_pickups()
+		_projectile(delta)
 	if mode != "play":
 		return
 	if runner.position.y > 900:
@@ -196,7 +197,7 @@ func _physics_process(delta: float) -> void:
 		var cao: CharacterBody2D = partners[1].runner
 		if state.phase != "chase_cao" or (absf(cao.position.x - runner.position.x) < 50 and absf(cao.position.y - runner.position.y) < 70):
 			state.advance(runner.position.x)
-	elif runner.position.x / world.data.length >= 0.85:
+	elif state.phase == "chase" and runner.position.x / world.data.length >= 0.85:
 		var target: CharacterBody2D = partners[0].runner
 		if absf(target.position.x - runner.position.x) < 50 and absf(target.position.y - runner.position.y) < 70:
 			state.phase = "comic_outro"
@@ -350,7 +351,10 @@ func control(command: String, pressed: bool) -> void:
 	elif command == "suspend" and pressed:
 		set_paused(true)
 	elif command == "restart" and pressed and runner != null:
-		retry()
+		if mode == "completed":
+			start_chapter(selected_chapter)
+		else:
+			retry()
 	elif command == "sound" and pressed:
 		sound_enabled = not sound_enabled
 		_save_progress()

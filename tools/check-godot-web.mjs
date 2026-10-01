@@ -15,11 +15,11 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     const entrance = new URL('../', base);
-    entrance.search = '?debug&v=20261001-fullbody-dev4';
+    entrance.search = '?debug&v=20261001-actions-comic-dev5';
     entrance.hash = 'entrance-check';
     await page.goto(entrance.href);
     await page.waitForFunction(() => window.godotCampaignReady || window.godotSampleReady, { timeout: 30000 });
-    assert.match(page.url(), /godot-demo\/\?debug&v=20261001-fullbody-dev4#entrance-check/, 'root must open the same new game and preserve query/hash');
+    assert.match(page.url(), /godot-demo\/\?debug&v=20261001-actions-comic-dev5#entrance-check/, 'root must open the same new game and preserve query/hash');
     assert.equal(await page.getByRole('link', { name: '旧版', exact: true }).count(), 0);
     assert.equal(await page.evaluate(() => window.godotCampaignReady === true), true, 'default development entrance must open actual campaign, not only animation sample');
     await page.screenshot({ path: output + '/' + variant + '-home.png' });
@@ -40,11 +40,28 @@ try {
     }
     await page.screenshot({ path: output + '/' + variant + '-map.png' });
     await page.locator('[data-action="replay"]').click();
-    await page.locator('[data-action="replay:2_intro"]').click();
-    await page.waitForSelector('.comic-page');
-    await page.getByRole('button', { name: '展开全页', exact: true }).click();
-    await page.getByRole('button', { name: '继续', exact: true }).click();
-    await page.waitForSelector('.archive-list');
+    for (const scene of ['1_intro','1_outro','2_intro','2_bridge','2_outro','3_intro','3_mid','3_return','3_outro']) {
+      await page.locator('[data-action="replay:' + scene + '"]').click();
+      await page.waitForSelector('.comic-page');
+      await page.getByRole('button', { name: '展开全页', exact: true }).click();
+      await page.waitForTimeout(450);
+      const geometry = await page.evaluate(() => {
+        const panels = [...document.querySelectorAll('.comic-panel')];
+        return panels.map(panel => {
+          const box = panel.getBoundingClientRect();
+          return { width: box.width, inside: [...panel.querySelectorAll('.comic-bubble')].every(bubble => {
+            const text = bubble.getBoundingClientRect();
+            return text.left >= box.left && text.right <= box.right && text.top >= box.top && text.bottom <= box.bottom;
+          }), artwork: panel.querySelector('.comic-art image').getAttribute('href') };
+        });
+      });
+      assert(geometry.every(panel => panel.inside), 'all dialogue must remain inside artwork, not below it: ' + scene);
+      assert(geometry.every(panel => panel.artwork.includes(scene.replace('_','-') + '-v2')), 'each scene uses its own new illustration');
+      if (!mobile) assert(Math.abs(geometry[0].width - geometry[1].width) > 40, 'desktop panels should not be identical-width cards');
+      await page.screenshot({ path: output + '/' + variant + '-' + scene + '.png' });
+      await page.getByRole('button', { name: '继续', exact: true }).click();
+      await page.waitForSelector('.archive-list');
+    }
     await page.getByRole('button', { name: '关闭', exact: true }).click();
     await page.locator('[data-level="1"]').click();
     await page.waitForSelector('.brief-road');
@@ -53,7 +70,7 @@ try {
     await page.waitForSelector('.comic-page');
     assert.equal(await page.locator('.comic-panel.revealed').count(), 1);
     await page.locator('.comic-page').click({ position: { x: 8, y: 8 } });
-    assert.equal(await page.locator('.comic-panel.revealed').count(), 5, 'first click must reveal all without advancing');
+    assert.equal(await page.locator('.comic-panel.revealed').count(), 4, 'first click must reveal all without advancing');
     const comicGeometry = await page.evaluate(() => {
       const art = document.querySelector('.comic-art');
       const projection = art.getScreenCTM?.();

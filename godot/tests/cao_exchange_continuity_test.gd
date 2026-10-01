@@ -39,7 +39,7 @@ func run() -> void:
 		await physics_frame
 		scene._physics_process(1.0 / hz)
 		check(scene.mode == "comic" and scene.comic_key == "3_return", "near-Cao arrival opens tissue exchange at %dHz" % hz)
-		check(cao.action == "idle" and visual.frame == 8, "exchange freeze already displays Cao's settled pose, without a stale run frame")
+		check(cao.action == "idle" and visual.animation == "poses" and visual.frame == visual.ACTION_INDEX.idle, "exchange freeze already displays Cao's settled pose, without a stale run frame")
 		var frozen := cao.position
 		while scene.mode == "comic":
 			scene.comic_click()

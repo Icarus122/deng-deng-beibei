@@ -1,5 +1,7 @@
 # 样板素材与来源
 
+2026-10-01 dev5：当前孟／曹跑步使用 `*-run-short-packed-v1.png`，三人非跑步使用 `*-actions-packed-v2.png` 的16个完整姿势；原画、显式锚点和无损像素打包均保留。九张 `comic-*-v2.png` 为内置 ImageGen 原创学院漫画，中文由网页画内气泡绘制，不烧进图片。完整编辑提示词、参考、被拒草稿和采用输出见 `../../docs/2026-10-01-short-actions-comic-prompts.json`，当前验收边界见对应 delivery 文档。下列 dev4 与更早段落是历史记录，独立旧曹站姿不再驱动当前人物。
+
 2026-10-01 dev4：孟/曹跑步采用贝贝完整人物动作流程的新原画 `meng-run-beibei-style-v2.png` / `cao-run-beibei-style-v1.png`，均为内置 ImageGen 1448×1086 RGBA。各自的 `*-run-beibei-packed-v1.png` 为用户授权的无损裁切/透明留白重打包，1792×1296、4×3 个 448×432 源框、虚拟锚点 (224,400)，最小透明边距均为 27px。头与身体是同一完整原画；没有拆分关节、变形或透明叠图。末行虚拟地面按头/躯干位置保留腾空，而不是把所有脚强压回地面。完整提示词、角色参考、被拒初稿与验证边界见 `assets/PARTNER-RUN-BEIBEI-PROMPTS.md`。新图已接入；下方 dev3 跑步记录是历史版本，不再驱动跑步。
 
 2026-10-01 dev3：孟/曹跑步改用 `meng-run-packed-v2.png` / `cao-run-packed-v2.png`，各 12 个独立完整身体姿势、448×432 单元格、锚点 (224,400)。内置 ImageGen 原画为对应 `*-run-v2.png`；用户已授权的 `tools/pack-poses.py` 只做无损裁切、透明留白和重新打包，匹配 JSON 可逐像素核对。最小透明边距孟 32px、曹 23px。两套 v3-review 为拒用候选，不进入 PCK。结构干净不代表自然动作合格：相反侧触地、摆臂与循环接续仍待精修。完整提示词、来源与拒用原因见 `assets/PARTNER-RUN-PROMPTS.md`。

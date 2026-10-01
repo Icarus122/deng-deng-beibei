@@ -31,7 +31,7 @@ func _initialize() -> void:
 	var b := painted_height(meng)
 	var c := painted_height(cao)
 	var cao_texture: AtlasTexture = cao.sprite_frames.get_frame_texture(cao.animation, cao.frame)
-	var valid := absf(a - b) < 2 and absf(c / b - 183.0 / 170.0) < 0.02 and cao_texture.region.size.y > 1000
+	var valid := absf(a - b) < 2 and absf(c / b - 183.0 / 170.0) < 0.02 and cao_texture.atlas.resource_path.ends_with("cao-actions-packed-v2.png")
 	print("STANDING HEIGHTS Beibei=", a, " Meng=", b, " Cao=", c, " ratio=", c / b)
 	beibei.free()
 	meng.free()

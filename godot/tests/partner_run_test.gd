@@ -11,6 +11,9 @@ func _initialize() -> void:
 		var actor = load("res://scripts/runner.gd").new()
 		var visual = load("res://scripts/partner_visual.gd").new()
 		visual.configure(character)
+		if visual.physics_interpolation_mode != Node.PHYSICS_INTERPOLATION_MODE_OFF:
+			fail("local artwork scale must not interpolate from the previous pose family")
+			return
 		visual.runner = actor
 		actors.append(actor)
 		visuals.append(visual)
@@ -41,9 +44,21 @@ func _initialize() -> void:
 			actor.facing = 1.0
 		actor.action = "idle"
 		visual._process(0.0)
-		if visual.animation != "poses" or visual.frame != 8:
+		if visual.animation != "poses" or visual.frame != 0:
 			fail("idle must select its existing independent action artwork immediately")
 			return
+		var action_regions: Array = []
+		for action in visual.ACTION_INDEX:
+			actor.action = action
+			visual._process(0)
+			var texture: AtlasTexture = visual.sprite_frames.get_frame_texture(visual.animation, visual.frame)
+			if visual.animation != "poses" or visual.frame != visual.ACTION_INDEX[action] or action_regions.has(texture.region):
+				fail("jump, apex, fall, landing and feedback need distinct complete drawings")
+				return
+			if visual.scale != Vector2.ONE * visual.ACTION_SCALE[character]:
+				fail("action family must keep one fixed art scale even when legs fold")
+				return
+			action_regions.append(texture.region)
 	# Separate actors at different phases cannot share a clock or phase accumulator.
 	actors[0].action = "run"
 	actors[0].previous_run_distance = 1.0

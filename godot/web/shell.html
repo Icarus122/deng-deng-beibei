@@ -46,13 +46,19 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 .brief-copy{padding:22px 26px;display:flex;flex-direction:column;align-items:flex-start}
 .brief-copy p{font-size:17px;line-height:1.8;margin:0 0 20px;white-space:pre-line;color:#ede5d2;max-width:36ch}
 .brief-copy .wood-button{align-self:flex-end;margin-top:auto}
-.comic-page{background:#090b10;height:100%;padding:24px 24px 18px;cursor:pointer;color:#192333;display:flex;flex-direction:column;overflow:hidden}
+.comic-page{background:#090b10;position:fixed;inset:0;z-index:6;height:100dvh;padding:18px 20px 14px;cursor:pointer;color:#192333;display:flex;flex-direction:column;overflow:hidden}
 .comic-head{color:#dfc594;font-size:18px;font-weight:700;margin:0 0 18px;letter-spacing:.12em}
-.comic-panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;flex:1;min-height:0;overflow-y:auto;align-items:start;grid-auto-rows:max-content}
-.comic-panel{background:#f5ecd8;border:3px solid #080d15;box-shadow:0 3px 0 #806f58;visibility:hidden;overflow:hidden;transform:translateY(10px);opacity:0}
+.comic-panels{width:min(1060px,100%,calc((100dvh - 145px)*1.18));align-self:center;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;flex:1;min-height:0;overflow-y:auto;align-items:start;align-content:start;grid-auto-rows:max-content;padding:3px 7px 10px}
+.comic-panel{position:relative;container-type:inline-size;grid-column:span 7;aspect-ratio:3/2;margin:0;background:#172c39;border:3px solid #f1e9d1;box-shadow:3px 4px 0 #303034;visibility:hidden;overflow:hidden;transform:translateY(10px);opacity:0;clip-path:polygon(0 1%,99% 0,100% 99%,1% 100%)}
+.comic-panel:nth-child(2){grid-column:span 5;margin-top:12px;clip-path:polygon(1% 0,100% 2%,99% 100%,0 98%)}
+.comic-panel:nth-child(3){grid-column:span 5;margin-top:8px}.comic-panel:nth-child(4){grid-column:span 7}
+.comic-panels.panels-3 .comic-panel:nth-child(3){grid-column:3/span 8}
 .comic-panel.revealed{visibility:visible;transform:none;opacity:1;transition:opacity .35s,transform .35s}
-.comic-art{display:block;width:100%;height:clamp(100px,18vh,210px);background:#172c39}
-.comic-bubble{font-family:"Microsoft YaHei",system-ui,sans-serif;font-size:16px;font-weight:550;line-height:1.55;white-space:pre-line;padding:14px 16px;margin:0;background:linear-gradient(#fffdf2,#efe4cb);border-top:2px solid #26333b;color:#22313d}
+.comic-art{display:block;position:absolute;inset:0;width:100%;height:100%;background:#172c39}
+.comic-bubble{position:absolute;z-index:1;font-family:"Microsoft YaHei",system-ui,sans-serif;font-size:clamp(13px,3cqw,18px);font-weight:650;line-height:1.45;white-space:pre-line;padding:7px 11px;margin:0;background:#fffdf5;border:2px solid #232733;border-radius:22px 26px 20px 25px/18px 22px 18px 23px;color:#232733;box-shadow:1px 2px #131b2540}
+.comic-bubble::after{content:"";position:absolute;width:13px;height:16px;left:24%;bottom:-13px;background:#fffdf5;clip-path:polygon(0 0,100% 0,65% 100%);filter:drop-shadow(1px 2px #232733)}
+.comic-bubble.lower::after{top:-13px;bottom:auto;transform:rotate(180deg)}
+.comic-speaker{display:block;font-size:.7em;line-height:1.2;color:#82694c;letter-spacing:.08em;margin-bottom:2px}
 .comic-footer{display:flex;justify-content:flex-end;gap:12px;padding-top:18px;pointer-events:none;flex-shrink:0;background:#090b10}
 .comic-footer button{pointer-events:auto;transform:rotate(-2deg);background:#fff6dd;border:3px solid #20313e;border-radius:3px;color:#273340;font-size:18px;font-weight:800;padding:10px 25px;box-shadow:0 3px #050e15}
 .pause-card{width:min(430px,95%);border:3px solid #b8b098;box-shadow:0 5px #101e2b;border-radius:12px;background:linear-gradient(#385768,#17303c);text-align:center;padding:30px 25px}
@@ -68,14 +74,14 @@ body{font-family:"Microsoft YaHei",system-ui,sans-serif}
 .meter span{display:block;height:100%;background:linear-gradient(90deg,#60d5c5,#eed587);width:0}
 #stage{width:min(1280px,96vw,calc((100dvh - 175px)*16/9))}
 .touch #stage{width:min(96vw,calc((100dvh - 260px)*16/9))}
-@media(orientation:landscape) and (max-height:600px){.touch #stage{width:min(100%,calc((100dvh - 110px)*16/9))}#game-hud{padding:4px 8px;font-size:12px}.comic-page{padding:12px 14px 40px}.comic-head{font-size:14px;margin-bottom:10px}.comic-bubble{font-size:13px;padding:8px}.comic-art{height:76px}.comic-panels{gap:9px}.comic-footer{padding-top:10px}.comic-footer button{font-size:14px;padding:7px 20px}}
+@media(orientation:landscape) and (max-height:600px){.touch #stage{width:min(100%,calc((100dvh - 110px)*16/9))}#game-hud{padding:4px 8px;font-size:12px}.comic-page{position:fixed;inset:0;z-index:6;height:100dvh;padding:10px 12px}.comic-head{font-size:14px;margin-bottom:8px}.comic-panels{grid-template-columns:1fr;gap:12px;width:min(540px,100%);align-self:center}.comic-panel:nth-child(n),.comic-panels.panels-3 .comic-panel:nth-child(3){grid-column:1;margin-top:0}.comic-bubble{font-size:16px}.comic-footer{padding-top:8px}.comic-footer button{font-size:14px;padding:7px 20px}}
 @media(max-width:600px) and (orientation:portrait){
 #campaign{position:fixed;inset:0;min-height:100dvh;border-radius:0}
 .menu-head{top:max(16px,env(safe-area-inset-top));left:14px;right:14px}.menu-head .plaque{font-size:14px;padding:9px 12px}.map-dock{bottom:max(25px,env(safe-area-inset-bottom));width:max-content}
 .home-view{padding-top:26%;padding-bottom:20%;background-position:52% center}.game-title{font-size:40px}.game-title small{font-size:13px}
 .map-view{min-height:100dvh}.level-pin{width:48px;height:64px}.level-pin .pin-stars{height:15px;top:-6px}
 .modal-shade{min-height:100dvh;padding:75px 14px 35px}.brief-heading{font-size:18px;padding:18px 48px}.brief-columns{grid-template-columns:1fr}.brief-road{height:180px;min-height:0;border-right:0;border-bottom:3px solid #b5a274}.brief-copy{padding:20px}.brief-copy p{font-size:17px}.brief-copy .wood-button{width:100%;margin-top:5px}
-.comic-page{height:100dvh;padding:25px 16px 16px}.comic-panels{grid-template-columns:1fr;gap:24px}.comic-art{height:340px}.comic-bubble{font-size:18px;line-height:1.65;padding:18px}.comic-head{font-size:18px}.comic-footer button{font-size:17px;padding:10px 20px}
+.comic-page{height:100dvh;padding:25px 12px 16px}.comic-panels{grid-template-columns:1fr;gap:20px;padding:3px 3px 12px}.comic-panel:nth-child(n),.comic-panels.panels-3 .comic-panel:nth-child(3){grid-column:1;margin-top:0}.comic-bubble{font-size:16px;line-height:1.4;padding:7px 9px}.comic-head{font-size:18px}.comic-footer button{font-size:17px;padding:10px 20px}
 #game-hud{font-size:12px;padding:6px 5px;gap:6px}.meter{width:70px}#hearts{font-size:18px}#hud-title{max-width:115px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 </style>
@@ -94,7 +100,7 @@ $GODOT_HEAD_INCLUDE
 <script src="$GODOT_URL"></script>
 <script>
 const config=$GODOT_CONFIG;
-config.mainPack='index.pck?v=20261001-fullbody-dev4';
+config.mainPack='index.pck?v=20261001-actions-comic-dev5';
 config.fileSizes[config.mainPack]=config.fileSizes['index.pck'];
 const engine=new Engine(config);
 const canvas=document.querySelector('#canvas');
@@ -121,9 +127,12 @@ function levelMarker(level,stars,locked){
 function markerStars(count){return '<svg viewBox="0 0 72 20" aria-hidden="true">'+[0,1,2].map(i=>'<path d="M10 1l2.7 5.6 6.2.9-4.5 4.4 1.1 6.2L10 15.2l-5.5 2.9 1.1-6.2L1.1 7.5l6.2-.9z" transform="translate('+i*24+' 0)" fill="'+(i<count?'#ffe075':'#305463')+'" stroke="#ffe3a1" stroke-width="1.2"/>').join('')+'</svg>'}
 function menuHead(back='home'){return '<div class="menu-head"><button class="icon-button" data-action="'+back+'" aria-label="返回">‹</button><div class="plaque">银杏魔法学院</div><button class="icon-button" data-action="settings" aria-label="设置">'+gear+'</button></div>'}
 function renderPanels(s){
- const cols=s.chapter===2?5:4,rows=s.chapter===3?4:2;
- const w=1536/cols,h=1024/rows;
- return s.panels.map((panel,i)=>{const x=panel[1]%cols,y=Math.floor(panel[1]/cols),id='comic-cell-'+i;return '<article class="comic-panel '+(i<s.shown?'revealed':'')+'"><svg class="comic-art" role="img" aria-label="第'+(i+1)+'格剧情" viewBox="'+[x*w,y*h,w,h].join(' ')+'" preserveAspectRatio="xMidYMid meet"><defs><clipPath id="'+id+'"><rect x="'+x*w+'" y="'+y*h+'" width="'+w+'" height="'+h+'"/></clipPath></defs><image href="ui/comic-'+s.chapter+'.png" width="1536" height="1024" clip-path="url(#'+id+')"/></svg><p class="comic-bubble">'+escapeText(panel[0])+'</p></article>'}).join('');
+ const art=s.comic_art,w=art.width/art.columns,h=art.height/art.rows;
+ return s.panels.map((panel,i)=>{
+  const x=panel.art%art.columns,y=Math.floor(panel.art/art.columns),id='comic-cell-'+i;
+  const bubbles=panel.lines.map((line,j)=>{const [left,top,width]=panel.bubbles[j],lower=top>50;return '<p class="comic-bubble '+(lower?'lower':'')+'" style="left:'+left+'%;'+(lower?'bottom:4%':'top:'+top+'%')+';width:'+width+'%"><span class="comic-speaker">'+escapeText(line[0])+'</span>'+escapeText(line[1])+'</p>'}).join('');
+  return '<article class="comic-panel '+(i<s.shown?'revealed':'')+'"><svg class="comic-art" role="img" aria-label="第'+(i+1)+'格剧情" viewBox="'+[x*w,y*h,w,h].join(' ')+'" preserveAspectRatio="xMidYMid meet"><defs><clipPath id="'+id+'"><rect x="'+x*w+'" y="'+y*h+'" width="'+w+'" height="'+h+'"/></clipPath></defs><image href="ui/'+art.file+'" width="'+art.width+'" height="'+art.height+'" clip-path="url(#'+id+')"/></svg>'+bubbles+'</article>';
+ }).join('');
 }
 function drawUI(s){
  const savedScroll=ui.scrollTop;
@@ -136,7 +145,7 @@ function drawUI(s){
  html='<section class="scene-view map-view"><div class="map-plane"><svg class="map-path" viewBox="0 0 1000 562"><path d="M180 388 Q210 322 360 309 Q410 245 550 202" fill="none" stroke="#283b41" stroke-width="5" stroke-dasharray="1 12" stroke-linecap="round"/><path d="M180 388 Q210 322 360 309 Q410 245 550 202" fill="none" stroke="#ffe6a2" stroke-width="3" stroke-dasharray="1 12" stroke-linecap="round"/><path d="M550 202 Q555 120 230 152 M550 202 Q640 141 800 180 Q870 273 790 410" fill="none" stroke="#d8e6dc" stroke-width="3" stroke-dasharray="1 12" stroke-linecap="round" opacity=".6"/></svg>'+pins+'</div>'+menuHead()+'<nav class="map-dock"><button data-action="map"><span>⚑</span>地图</button><button data-action="replay"><span>▤</span>漫画</button><button data-action="sample"><span>✧</span>练习</button></nav></section>';
  }else if(s.mode==='archive'){const labels={intro:'出发之前',outro:'伙伴与约定',bridge:'定位铃',mid:'服务站',return:'回头的理由'};html='<section class="modal-shade"><article class="level-brief"><h2 class="brief-heading">学院漫画册</h2><button class="icon-button close-modal" data-action="map" aria-label="关闭">×</button><div class="archive-list">'+s.titles.map((title,i)=>'<section><h3>'+escapeText(title)+'</h3>'+s.scenes.filter(key=>key.startsWith((i+1)+'_')).map(key=>'<button data-action="replay:'+key+'">'+labels[key.split('_')[1]]+'</button>').join('')+'</section>').join('')+'</div></article></section>'}
  else if(s.mode==='brief')html='<section class="modal-shade"><article class="level-brief"><h2 class="brief-heading">'+s.chapter+' · '+escapeText(s.titles[s.chapter-1])+'</h2><button class="icon-button close-modal" data-action="map" aria-label="关闭">×</button><div class="brief-columns"><img class="brief-road" src="ui/'+roadNames[s.chapter-1]+'" alt="本关道路场景"><div class="brief-copy"><p>'+escapeText(s.brief)+'</p><button class="wood-button" data-action="start:'+s.chapter+'">出发</button></div></div></article></section>';
- else if(s.mode==='comic')html='<section class="comic-page"><h2 class="comic-head">'+escapeText(s.titles[s.chapter-1])+'</h2><div class="comic-panels">'+renderPanels(s)+'</div><footer class="comic-footer"><button data-action="skip">跳过</button><button data-action="comic">'+(s.shown<s.panels.length?'展开全页':'继续')+'</button></footer></section>';
+ else if(s.mode==='comic')html='<section class="comic-page"><h2 class="comic-head">'+escapeText(s.titles[s.chapter-1])+'</h2><div class="comic-panels panels-'+s.panels.length+'">'+renderPanels(s)+'</div><footer class="comic-footer"><button data-action="skip">跳过</button><button data-action="comic">'+(s.shown<s.panels.length?'展开全页':'继续')+'</button></footer></section>';
  else if(['pause','failed','completed'].includes(s.mode))html='<section class="modal-shade"><article class="pause-card"><h2>'+(s.mode==='pause'?'稍作休息':s.mode==='failed'?'再试一次':'伙伴，一个也不少')+'</h2><p>'+(s.mode==='failed'?(s.phase==='failed'&&s.time===0?'通行窗口结束了。返程检查点重试，纸巾仍在。':'从最近的安全路段继续，生命恢复为三颗。'):s.mode==='completed'?'★'.repeat(s.stars[s.chapter-1])+' · '+s.coins+' 枚硬币':'休息时，世界也会等你。')+'</p><button class="wood-button" data-action="'+(s.mode==='pause'?'pause':'restart')+'">'+(s.mode==='pause'?'继续':s.mode==='failed'?'检查点重试':'再跑一次')+'</button><button data-action="map">学院地图</button><button data-action="settings">设置</button></article></section>';
  ui.innerHTML=html;
  ui.scrollTop=savedScroll;

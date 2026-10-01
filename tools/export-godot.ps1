@@ -11,7 +11,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Godot Web export failed' }
     $taskUi = Join-Path $taskRepo 'godot-demo/ui'
     New-Item -ItemType Directory -Path $taskUi -Force | Out-Null
-    foreach ($taskAsset in @('home.webp', 'world-map.webp', 'campus.webp', 'riverside.webp', 'night-market.png', 'comic-1.png', 'comic-2.png', 'comic-3.png')) {
+    foreach ($taskAsset in @('home.webp', 'world-map.webp', 'campus.webp', 'riverside.webp', 'night-market.png', 'comic-1.png', 'comic-2.png', 'comic-3.png','comic-1-intro-v2.png', 'comic-1-outro-v2.png', 'comic-2-intro-v2.png', 'comic-2-bridge-v2.png', 'comic-2-outro-v2.png', 'comic-3-intro-v2.png', 'comic-3-mid-v2.png', 'comic-3-return-v2.png', 'comic-3-outro-v2.png')) {
         Copy-Item -LiteralPath (Join-Path $taskRepo ('godot/assets/' + $taskAsset)) -Destination (Join-Path $taskUi $taskAsset) -Force
     }
     foreach ($taskLicense in @('FONT-LICENSE.txt', 'GODOT-LICENSE.txt', 'GODOT-COPYRIGHT.txt')) {

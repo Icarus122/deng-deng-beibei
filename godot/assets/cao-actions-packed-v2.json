@@ -1,0 +1,294 @@
+{
+  "source": "godot\\assets\\cao-actions-v2.png",
+  "pixelScale": 1,
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 400,
+      "originalOrigin": [
+        203,
+        301
+      ],
+      "inkMargins": [
+        142,
+        184,
+        144,
+        29
+      ]
+    },
+    {
+      "x": 384,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 400,
+      "originalOrigin": [
+        543,
+        291
+      ],
+      "inkMargins": [
+        130,
+        220,
+        140,
+        29
+      ]
+    },
+    {
+      "x": 768,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 400,
+      "originalOrigin": [
+        859,
+        300
+      ],
+      "inkMargins": [
+        120,
+        184,
+        88,
+        44
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 400,
+      "originalOrigin": [
+        1200,
+        325
+      ],
+      "inkMargins": [
+        119,
+        185,
+        116,
+        91
+      ]
+    },
+    {
+      "x": 0,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 832,
+      "originalOrigin": [
+        206,
+        579
+      ],
+      "inkMargins": [
+        95,
+        185,
+        95,
+        60
+      ]
+    },
+    {
+      "x": 384,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 832,
+      "originalOrigin": [
+        544,
+        571
+      ],
+      "inkMargins": [
+        114,
+        184,
+        118,
+        59
+      ]
+    },
+    {
+      "x": 768,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 832,
+      "originalOrigin": [
+        864,
+        555
+      ],
+      "inkMargins": [
+        122,
+        235,
+        118,
+        28
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 832,
+      "originalOrigin": [
+        1200,
+        552
+      ],
+      "inkMargins": [
+        103,
+        212,
+        86,
+        28
+      ]
+    },
+    {
+      "x": 0,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 1264,
+      "originalOrigin": [
+        209,
+        806
+      ],
+      "inkMargins": [
+        108,
+        201,
+        65,
+        32
+      ]
+    },
+    {
+      "x": 384,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 1264,
+      "originalOrigin": [
+        541,
+        801
+      ],
+      "inkMargins": [
+        89,
+        208,
+        72,
+        32
+      ]
+    },
+    {
+      "x": 768,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 1264,
+      "originalOrigin": [
+        873,
+        794
+      ],
+      "inkMargins": [
+        90,
+        251,
+        69,
+        28
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 1264,
+      "originalOrigin": [
+        1200,
+        793
+      ],
+      "inkMargins": [
+        104,
+        234,
+        105,
+        29
+      ]
+    },
+    {
+      "x": 0,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 1696,
+      "originalOrigin": [
+        207,
+        1060
+      ],
+      "inkMargins": [
+        105,
+        199,
+        64,
+        30
+      ]
+    },
+    {
+      "x": 384,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 1696,
+      "originalOrigin": [
+        543,
+        1059
+      ],
+      "inkMargins": [
+        118,
+        191,
+        94,
+        29
+      ]
+    },
+    {
+      "x": 768,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 1696,
+      "originalOrigin": [
+        875,
+        1061
+      ],
+      "inkMargins": [
+        126,
+        238,
+        94,
+        30
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 1696,
+      "originalOrigin": [
+        1200,
+        1054
+      ],
+      "inkMargins": [
+        103,
+        228,
+        76,
+        29
+      ]
+    }
+  ]
+}

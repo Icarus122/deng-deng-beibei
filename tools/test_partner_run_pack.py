@@ -59,6 +59,11 @@ class PartnerRunPackTest(unittest.TestCase):
     def test_cao_beibei_style_complete_frames(self):
         self.check_partner('cao', 'run-beibei-packed-v1', 'run-beibei-style-v1', 16)
 
+    def test_current_short_hair_original_frames(self):
+        for name in ('meng', 'cao'):
+            with self.subTest(character=name):
+                self.check_partner(name, 'run-short-packed-v1', 'run-short-v1', 40)
+
 
 if __name__ == '__main__':
     unittest.main()

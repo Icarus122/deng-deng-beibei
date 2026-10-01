@@ -41,6 +41,8 @@ const AIR_KEYS = Actions.KEYS
 var runner: CharacterBody2D
 
 func _init() -> void:
+	# The physics body smooths world motion; avoid interpolating between artwork scales.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	sprite_frames = SpriteFrames.new()
 	sprite_frames.remove_animation("default")
 	sprite_frames.add_animation("run")
@@ -89,7 +91,7 @@ func _process(_delta: float) -> void:
 	frame = index
 	# The feedback sheet was drawn at a smaller native art scale than the run sheet.
 	# One fixed scale per asset family; crouched/airborne poses are never stretched to fit.
-	scale = Vector2.ONE * (0.37 if key == "run" else 0.41)
+	scale = Vector2.ONE * (0.37 if key == "run" else 0.464)
 	flip_h = runner.facing < 0.0
 	var local_origin := origin - source.position + Vector2(PADDING, PADDING)
 	var frame_width := source.size.x + PADDING * 2.0

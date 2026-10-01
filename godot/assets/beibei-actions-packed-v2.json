@@ -1,0 +1,294 @@
+{
+  "source": "godot\\assets\\beibei-actions-v2.png",
+  "pixelScale": 1,
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 400,
+      "originalOrigin": [
+        171,
+        338
+      ],
+      "inkMargins": [
+        123,
+        110,
+        136,
+        29
+      ]
+    },
+    {
+      "x": 384,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 400,
+      "originalOrigin": [
+        470,
+        338
+      ],
+      "inkMargins": [
+        111,
+        175,
+        120,
+        29
+      ]
+    },
+    {
+      "x": 768,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 400,
+      "originalOrigin": [
+        750,
+        338
+      ],
+      "inkMargins": [
+        90,
+        115,
+        95,
+        31
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 0,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 400,
+      "originalOrigin": [
+        1060,
+        353
+      ],
+      "inkMargins": [
+        93,
+        112,
+        86,
+        90
+      ]
+    },
+    {
+      "x": 0,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 832,
+      "originalOrigin": [
+        171,
+        662
+      ],
+      "inkMargins": [
+        78,
+        110,
+        88,
+        63
+      ]
+    },
+    {
+      "x": 384,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 832,
+      "originalOrigin": [
+        480,
+        656
+      ],
+      "inkMargins": [
+        110,
+        109,
+        98,
+        65
+      ]
+    },
+    {
+      "x": 768,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 832,
+      "originalOrigin": [
+        751,
+        631
+      ],
+      "inkMargins": [
+        107,
+        183,
+        88,
+        30
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 432,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 832,
+      "originalOrigin": [
+        1060,
+        631
+      ],
+      "inkMargins": [
+        89,
+        132,
+        88,
+        30
+      ]
+    },
+    {
+      "x": 0,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 1264,
+      "originalOrigin": [
+        170,
+        930
+      ],
+      "inkMargins": [
+        88,
+        135,
+        53,
+        30
+      ]
+    },
+    {
+      "x": 384,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 1264,
+      "originalOrigin": [
+        469,
+        931
+      ],
+      "inkMargins": [
+        65,
+        150,
+        62,
+        29
+      ]
+    },
+    {
+      "x": 768,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 1264,
+      "originalOrigin": [
+        753,
+        932
+      ],
+      "inkMargins": [
+        77,
+        214,
+        39,
+        29
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 864,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 1264,
+      "originalOrigin": [
+        1058,
+        932
+      ],
+      "inkMargins": [
+        122,
+        182,
+        84,
+        29
+      ]
+    },
+    {
+      "x": 0,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 192,
+      "originY": 1696,
+      "originalOrigin": [
+        172,
+        1231
+      ],
+      "inkMargins": [
+        86,
+        129,
+        51,
+        32
+      ]
+    },
+    {
+      "x": 384,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 576,
+      "originY": 1696,
+      "originalOrigin": [
+        474,
+        1233
+      ],
+      "inkMargins": [
+        133,
+        123,
+        118,
+        30
+      ]
+    },
+    {
+      "x": 768,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 960,
+      "originY": 1696,
+      "originalOrigin": [
+        752,
+        1221
+      ],
+      "inkMargins": [
+        111,
+        197,
+        89,
+        28
+      ]
+    },
+    {
+      "x": 1152,
+      "y": 1296,
+      "w": 384,
+      "h": 432,
+      "originX": 1344,
+      "originY": 1696,
+      "originalOrigin": [
+        1058,
+        1213
+      ],
+      "inkMargins": [
+        77,
+        194,
+        52,
+        32
+      ]
+    }
+  ]
+}

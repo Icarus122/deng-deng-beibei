@@ -1,0 +1,271 @@
+{
+  "date": "2026-10-01",
+  "tool": "built-in image_gen.imagegen",
+  "scope": "short hair and full-body action proportions; original linked academy comic scenes",
+  "pixelPreparation": "Only original RGBA isolation, integer crops, transparent padding and packing. No painting/resampling by Python.",
+  "shortRun": [
+    {
+      "key": "mengShortRun",
+      "target": "D:/TIstudy-project/ddbbBa/godot/assets/meng-run-beibei-style-v2.png",
+      "ref": "D:/TIstudy-project/ddbbBa/godot/assets/meng-actions-v1.png",
+      "prompt": "Use case: precise-object-edit. Image 1 is the EDIT TARGET: 12 complete full-body running poses in 4 columns x 3 rows on genuine transparent RGBA. Image 2 is identity reference for the boy's SHORT HAIR only. Change ONLY the hair in ALL TWELVE heads of Image 1 to a compact masculine short dark brown-black tousled haircut, clean cropped nape ABOVE the collar, small jagged fringe, sides close to ears. No locks trailing backward, no long bob, no hair down neck or shoulders, no ponytail, no flowing hair. This is Meng Peijie, NOT Beibei with male clothes. Preserve same face, round dark spectacles every frame, head size, neck connection, white rolled-sleeve shirt, navy waistcoat, red tie, navy trousers, brown loafers, all 12 exact original whole-body poses and their original positions/pixel scale. Hair may NOT make head larger. Keep legs, arms, body contour, scale and coordinates unchanged, no remapping body motion. Crisp cel anime outlines. All hands and shoes entirely intact, at least 24px transparent outer margin. Keep original 4x3 layout, true alpha, no background, shadows, lettering, labels, grid, extra person, ghost, fragments, joint parts, blur. The top of the short hair should remain aligned to the original head position; clear ear/jaw/collar silhouette in each head."
+    },
+    {
+      "key": "caoShortRun",
+      "target": "D:/TIstudy-project/ddbbBa/godot/assets/cao-run-beibei-style-v1.png",
+      "ref": "D:/TIstudy-project/ddbbBa/godot/assets/cao-actions-v1.png",
+      "prompt": "Use case: precise-object-edit. Image 1 EDIT TARGET is Cao's twelve complete full-body running drawings. Image 2 is reference for his SHORT curly dark hair, NOT body pose or style. Change ONLY hairstyle in every Image 1 frame: compact short soft curls, clean short back and sides at ears and ABOVE collar, subtle volume on crown, NO trailing long bob, no strands flowing behind neck, no neck/shoulder-length hair. Preserve fair/light skin, no glasses, same friendly anime face and head size, broad sturdy build, green academy cardigan white trim, white shirt/navy tie, taupe full trousers and intact white sneakers. Preserve all 12 complete original poses, original positions, body scale, leg gestures, hands and shoes. Do not shrink or stretch any body or row, do not move faces. Four columns three rows, each character one connected complete body, true transparent alpha background and safe empty margins, no joint assembly, lettering, shadows, glows, background or spare fragment. Match the original compact head scale. Clear neck/collar silhouette, consistent short curls across all twelve."
+    }
+  ],
+  "actionInitialDrafts": [
+    {
+      "key": "mengActionsV2",
+      "reference": "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+      "prompt": "Use case: identity-preserve. Asset: complete non-running action atlas for an existing Godot game. Input image is the EXACT FACE, hairstyle, outfit, limb proportions, head-to-body ratio and DRAWING STYLE to preserve, not a loose mood reference. Keep this ONE same character across all sixteen new poses, around FIVE-head-tall anime proportions, normal small head NOT chibi or child proportions. compact cropped SHORT tousled dark brown-black hair, no backward hair tail or bob, nape ABOVE collar, round dark glasses every pose; white rolled-sleeve shirt/navy waistcoat/red tie/navy full trousers/brown loafers. Frame15 is seated embarrassed gently clutching stomach with both hands, discomfort not medical danger; eyes visible behind glasses. Exactly SIXTEEN whole-body poses FOUR columns FOUR rows, row-major: 1 relaxed standing feet planted; 2 small knees-bent jump preparation; 3 rising forward jump with leading knee raised and rear leg trailing, both feet off ground; 4 apex of forward jump naturally tucked; 5 descending forward jump with one foot reaching toward ground; 6 second jump compact upward thrust with arms; 7 grounded landing bearing knees, torso balanced; 8 braking turn with one heel forward; 9 hurt recoil startled, arms balance; 10 slip stagger complete legs separate, no ground effect; 11 fallen seated one hand supports body; 12 getting up on one knee; 13 kicking forward while other foot supports; 14 happy grounded celebration; 15 seated stomach discomfort; 16 concerned kneeling to help a friend. Right-facing threequarter side view consistent with reference. Use ONE fixed art scale/head size/thigh and shin lengths across all sixteen. Straight standing head-to-sole height equals the natural reconstructed upright height of reference; poses can bend limbs but may NOT have shortened bones, enlarged head or widened torso to fill cells. Clear seamless head neck shirt collar attachment. Every pose ONE completely connected drawn body with complete arms/hands/legs/both shoes. Generous empty transparent gutters at least24 pixels in every cell, no body touching any canvas edge. Every complete drawing centered in its invisible cell, feet near a common invisible baseline for grounded poses; airborne knees and feet genuinely elevated without torso becoming shorter. Complete face and clothing details readable at gameplay scale, professional crisp cel-shaded colored anime contours, not sketch not photorealistic. TRUE transparent RGBA background, no painted grid, backdrop, floor, shadows, glow, text, labels, motion blur, trailing fragments, detached neck or joint caps. SIXTEEN independent original action drawings. Do not include any running frames; do not reuse the same jumping pose for every state."
+    },
+    {
+      "key": "caoActionsV2",
+      "reference": "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png",
+      "prompt": "Use case: identity-preserve. Asset: complete non-running action atlas for an existing Godot game. Input image is the EXACT FACE, hairstyle, outfit, limb proportions, head-to-body ratio and DRAWING STYLE to preserve, not a loose mood reference. Keep this ONE same character across all sixteen new poses, around FIVE-head-tall anime proportions, normal small head NOT chibi or child proportions. compact SHORT dark curls close to ears, clean cropped nape, NO glasses, FAIR LIGHT skin, broad sturdy shoulders; forest green white-trim academy cardigan/white shirt/navy tie/taupe full trousers/intact white sneakers. Frame15 is seated quietly worried with hand resting at chest, NOT missing lower legs. Exactly SIXTEEN whole-body poses FOUR columns FOUR rows, row-major: 1 relaxed standing feet planted; 2 small knees-bent jump preparation; 3 rising forward jump with leading knee raised and rear leg trailing, both feet off ground; 4 apex of forward jump naturally tucked; 5 descending forward jump with one foot reaching toward ground; 6 second jump compact upward thrust with arms; 7 grounded landing bearing knees, torso balanced; 8 braking turn with one heel forward; 9 hurt recoil startled, arms balance; 10 slip stagger complete legs separate, no ground effect; 11 fallen seated one hand supports body; 12 getting up on one knee; 13 kicking forward while other foot supports; 14 happy grounded celebration; 15 seated concern; 16 concerned kneeling to help a friend. Right-facing threequarter side view consistent with reference. Use ONE fixed art scale/head size/thigh and shin lengths across all sixteen. Straight standing head-to-sole height equals the natural reconstructed upright height of reference; poses can bend limbs but may NOT have shortened bones, enlarged head or widened torso to fill cells. Clear seamless head neck shirt collar attachment. Every pose ONE completely connected drawn body with complete arms/hands/legs/both shoes. Generous empty transparent gutters at least24 pixels in every cell, no body touching any canvas edge. Every complete drawing centered in its invisible cell, feet near a common invisible baseline for grounded poses; airborne knees and feet genuinely elevated without torso becoming shorter. Complete face and clothing details readable at gameplay scale, professional crisp cel-shaded colored anime contours, not sketch not photorealistic. TRUE transparent RGBA background, no painted grid, backdrop, floor, shadows, glow, text, labels, motion blur, trailing fragments, detached neck or joint caps. SIXTEEN independent original action drawings. Do not include any running frames; do not reuse the same jumping pose for every state."
+    },
+    {
+      "key": "beibeiActionsV2",
+      "reference": "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+      "prompt": "Use case: identity-preserve. Asset: complete non-running action atlas for an existing Godot game. Input image is the EXACT FACE, hairstyle, outfit, limb proportions, head-to-body ratio and DRAWING STYLE to preserve, not a loose mood reference. Keep this ONE same character across all sixteen new poses, around FIVE-head-tall anime proportions, normal small head NOT chibi or child proportions. chestnut bob golden star hairclip, navy white-trim JK blazer/white blouse/red burgundy bow/navy-green plaid skirt/dark knee socks/BROWN loafers. Frame15 is seated crying wiping eyes, complete feet visible. Exactly SIXTEEN whole-body poses FOUR columns FOUR rows, row-major: 1 relaxed standing feet planted; 2 small knees-bent jump preparation; 3 rising forward jump with leading knee raised and rear leg trailing, both feet off ground; 4 apex of forward jump naturally tucked; 5 descending forward jump with one foot reaching toward ground; 6 second jump compact upward thrust with arms; 7 grounded landing bearing knees, torso balanced; 8 braking turn with one heel forward; 9 hurt recoil startled, arms balance; 10 slip stagger complete legs separate, no ground effect; 11 fallen seated one hand supports body; 12 getting up on one knee; 13 kicking forward while other foot supports; 14 happy grounded celebration; 15 seated crying; 16 concerned kneeling to help a friend. Right-facing threequarter side view consistent with reference. Use ONE fixed art scale/head size/thigh and shin lengths across all sixteen. Straight standing head-to-sole height equals the natural reconstructed upright height of reference; poses can bend limbs but may NOT have shortened bones, enlarged head or widened torso to fill cells. Clear seamless head neck shirt collar attachment. Every pose ONE completely connected drawn body with complete arms/hands/legs/both shoes. Generous empty transparent gutters at least24 pixels in every cell, no body touching any canvas edge. Every complete drawing centered in its invisible cell, feet near a common invisible baseline for grounded poses; airborne knees and feet genuinely elevated without torso becoming shorter. Complete face and clothing details readable at gameplay scale, professional crisp cel-shaded colored anime contours, not sketch not photorealistic. TRUE transparent RGBA background, no painted grid, backdrop, floor, shadows, glow, text, labels, motion blur, trailing fragments, detached neck or joint caps. SIXTEEN independent original action drawings. Do not include any running frames; do not reuse the same jumping pose for every state."
+    }
+  ],
+  "actionMarginCorrections": [
+    {
+      "key": "mengActionsFitV2",
+      "reference": "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-ce6a513e-ca54-4f66-8f63-a081acbea721.png",
+      "prompt": "Use case: precise-object-edit. Edit target is the sixteen complete action poses already drawn here. Preserve EXACT character face, hairstyle, clothes, all sixteen poses and their four-column four-row temporal order. Fix COMPOSITION ONLY: separate every complete person into generous EMPTY true-alpha gutters, reduce all figures uniformly to fit at no more than 68% of each cell height, keep a consistent native head/limb scale across all cells, center each complete drawing in its invisible cell. At least30px genuine empty transparent space from ALL ink to each cell edge and all four canvas edges. Standing poses must NOT touch canvas top/bottom, last-row shoes fully drawn inside image. Do NOT shorten thighs/shins, enlarge heads, squash bodies or change poses just to fit. Reconstruct only previously clipped shoe tips if needed. Every pose one seamless connected complete body with head, collar, all hands and both entire shoes. Keep flight legs elevated relative to virtual floor rather than forcing all soles to align. Same crisp colored anime linework, true transparent background, no shadows, text, grid, effects, detached pieces or neighboring pose fragments. SIXTEEN fully separate figures, fixed native body proportions. Four columns four rows. Large safe whitespace is deliberate; don't fill it with bigger drawings."
+    },
+    {
+      "key": "caoActionsFitV2",
+      "reference": "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-0c1663be-6ff0-4873-9f8c-1001ea1a1eec.png",
+      "prompt": "Use case: precise-object-edit. Edit target is the sixteen complete action poses already drawn here. Preserve EXACT character face, hairstyle, clothes, all sixteen poses and their four-column four-row temporal order. Fix COMPOSITION ONLY: separate every complete person into generous EMPTY true-alpha gutters, reduce all figures uniformly to fit at no more than 68% of each cell height, keep a consistent native head/limb scale across all cells, center each complete drawing in its invisible cell. At least30px genuine empty transparent space from ALL ink to each cell edge and all four canvas edges. Standing poses must NOT touch canvas top/bottom, last-row shoes fully drawn inside image. Do NOT shorten thighs/shins, enlarge heads, squash bodies or change poses just to fit. Reconstruct only previously clipped shoe tips if needed. Every pose one seamless connected complete body with head, collar, all hands and both entire shoes. Keep flight legs elevated relative to virtual floor rather than forcing all soles to align. Same crisp colored anime linework, true transparent background, no shadows, text, grid, effects, detached pieces or neighboring pose fragments. SIXTEEN fully separate figures, fixed native body proportions. Four columns four rows. Large safe whitespace is deliberate; don't fill it with bigger drawings."
+    },
+    {
+      "key": "beibeiActionsFitV2",
+      "reference": "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-d611ab5a-2b52-4455-853d-68d46be1f79c.png",
+      "prompt": "Use case: precise-object-edit. Edit target is the sixteen complete action poses already drawn here. Preserve EXACT character face, hairstyle, clothes, all sixteen poses and their four-column four-row temporal order. Fix COMPOSITION ONLY: separate every complete person into generous EMPTY true-alpha gutters, reduce all figures uniformly to fit at no more than 68% of each cell height, keep a consistent native head/limb scale across all cells, center each complete drawing in its invisible cell. At least30px genuine empty transparent space from ALL ink to each cell edge and all four canvas edges. Standing poses must NOT touch canvas top/bottom, last-row shoes fully drawn inside image. Do NOT shorten thighs/shins, enlarge heads, squash bodies or change poses just to fit. Reconstruct only previously clipped shoe tips if needed. Every pose one seamless connected complete body with head, collar, all hands and both entire shoes. Keep flight legs elevated relative to virtual floor rather than forcing all soles to align. Same crisp colored anime linework, true transparent background, no shadows, text, grid, effects, detached pieces or neighboring pose fragments. SIXTEEN fully separate figures, fixed native body proportions. Four columns four rows. Large safe whitespace is deliberate; don't fill it with bigger drawings."
+    }
+  ],
+  "comicJobs": [
+    {
+      "key": "1_intro",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png"
+      ],
+      "prompt": "Use case: illustration-story. Production artwork for a narrative game comic. Create FOUR distinct scenes as a 2x2 SOURCE ART sheet, high-resolution wide 1536x1024, four equal complete 768x512 rectangular illustrations with a THIN black divider only. The source 2x2 sheet will be cropped and arranged as irregular wide/narrow comic panels by the game; do not draw a UI or captions. Image1 is Beibei identity and image2 Meng identity only. Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos. Four scenes top-left then top-right then bottom-left then bottom-right: 1: wide ginkgo magic academy plaza sunset, clocktower and star lantern preparations, Beibei happily points to group photo invitation, Meng beside her smirking. Warm inviting wonder, lower-half characters. | 2: medium Meng flicking the photo invitation playfully, short dark hair round glasses, one eyebrow up witty smirk; Beibei raises eyebrow amused skeptical rather than shouting. Faces lower half. | 3: dynamic long shot both equal-height students running right along low campus stairs; Meng glances BACK to ensure Beibei follows, playful accountability; Beibei determined but smiling, complete limbs. | 4: close Beibei hand reaches for invitation and Meng just ahead holding it, distant clocktower welcoming amber glow, Beibei competitive grin, strong motion/anticipation. No completion yet. Every scene unique camera and body acting, medium/wide shots rather than four face portraits. Keep lower-half faces clean unobstructed for dialogue placement above. Rich narrative staging with restrained background clutter. Four panels only."
+    },
+    {
+      "key": "1_outro",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Use case: illustration-story. Production ORIGINAL fantasy-school comic art, high-resolution 1536x1024 WIDE. FOUR independent illustrations in a 2x2 equal source-sheet with thin black gutters. The final game arranges them as irregular comic panels; no drawn UI or text. Input1 Beibei identity, input2 SHORT-haired glasses Meng, input3 SHORT curly fair taller Cao. Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos. CRITICAL COMPOSITION in EVERY quadrant: UPPER 35% of its rectangle is clean sky or wall ONLY for speech bubbles; ALL character HEADS, FACES, hands and key objects lie BELOW that blank top area. Do not draw gigantic close-up faces at the top edge; use medium or wide framing with heads around 45-65% down the cell. Lower65% holds clear events and varied expressions. NO bags on Beibei or Meng. Chapter scene 1_outro, panels row-major: 1: footbridge Beibei catches corner of invitation from surprised Meng, winded victorious smile but teasing, Meng short hair glasses half sheepish grin. Both faces lower half. | 2: two friends lean on bridge railing catching breath; Meng offers invitation back sincerely, Beibei relaxed warmly smiles, a star lantern near their hands suddenly pulls away. Show small loose latch physical clue. | 3: star lantern slips loose flying out above riverside, friends reach toward it surprised, festival glow riverside; no menace. Clear magical lantern leaving open clasp, not random explosion. | 4: A quiet evocative wide establishing shot of the SAME location, no people, no text, for transition artwork. Use bolder comic brush linework and cel shadows than glossy anime illustration, avoid photoreal painted backgrounds and static identical faces. No words, no balloons, no grid labels, no watermark. Correct full limbs in wide shots."
+    },
+    {
+      "key": "2_intro",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Use case: illustration-story. Production ORIGINAL fantasy-school comic art, high-resolution 1536x1024 WIDE. FOUR independent illustrations in a 2x2 equal source-sheet with thin black gutters. The final game arranges them as irregular comic panels; no drawn UI or text. Input1 Beibei identity, input2 SHORT-haired glasses Meng, input3 SHORT curly fair taller Cao. Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos. CRITICAL COMPOSITION in EVERY quadrant: UPPER 35% of its rectangle is clean sky or wall ONLY for speech bubbles; ALL character HEADS, FACES, hands and key objects lie BELOW that blank top area. Do not draw gigantic close-up faces at the top edge; use medium or wide framing with heads around 45-65% down the cell. Lower65% holds clear events and varied expressions. NO bags on Beibei or Meng. Chapter scene 2_intro, panels row-major: 1: riverside cargo street blue water and awnings, runaway bright star lantern ahead, Meng short hair glasses inspecting locator bell, Beibei watches with concern, faces at lower half. | 2: Beibei points to clear folded pedestrian bridge and orange basketball near side street bell switch, two routes at wharf, thoughtful determined eye; Meng follows her point. | 3: Meng shows witty nervous salute holding tiny bell, Beibei amused with raised eyebrow skeptical, small light magic reflections, NOT same portraits as previous. | 4: wide two friends depart into different height routes toward blue roof clocktower workshop; clear mutually supporting action both advancing right, lantern far ahead. Use bolder comic brush linework and cel shadows than glossy anime illustration, avoid photoreal painted backgrounds and static identical faces. No words, no balloons, no grid labels, no watermark. Correct full limbs in wide shots."
+    },
+    {
+      "key": "2_bridge",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Use case: illustration-story. Production ORIGINAL fantasy-school comic art, high-resolution 1536x1024 WIDE. FOUR independent illustrations in a 2x2 equal source-sheet with thin black gutters. The final game arranges them as irregular comic panels; no drawn UI or text. Input1 Beibei identity, input2 SHORT-haired glasses Meng, input3 SHORT curly fair taller Cao. Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos. CRITICAL COMPOSITION in EVERY quadrant: UPPER 35% of its rectangle is clean sky or wall ONLY for speech bubbles; ALL character HEADS, FACES, hands and key objects lie BELOW that blank top area. Do not draw gigantic close-up faces at the top edge; use medium or wide framing with heads around 45-65% down the cell. Lower65% holds clear events and varied expressions. NO bags on Beibei or Meng. Chapter scene 2_bridge, panels row-major: 1: Beibei sharply kicks an orange basketball toward obvious bell-shaped bridge switch, full body clean dynamic, the ball mid-flight unmistakable, warm magical old wharf. | 2: folding bridge unfolds across river, Meng on other side gripping railing relieved looking back to Beibei, meaningful open gap and safe exit, not teleportation. | 3: A quiet evocative wide establishing shot of the SAME location, no people, no text, for transition artwork. | 4: A quiet evocative wide establishing shot of the SAME location, no people, no text, for transition artwork. Use bolder comic brush linework and cel shadows than glossy anime illustration, avoid photoreal painted backgrounds and static identical faces. No words, no balloons, no grid labels, no watermark. Correct full limbs in wide shots."
+    },
+    {
+      "key": "2_outro",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos.\nMake one landscape 1536x1024 sheet with four separated illustrations in a 2x2 grid. These quadrants will be extracted separately then displayed in an irregular comic layout. Keep faces and important props below the upper 30% in EVERY quadrant; sky or wall above is reserved for readable HTML dialogue. No text. Scene 2_outro:\n1. workshop by clocktower two friends close captured star lantern's latch on bench; Meng sweaty relieved and Beibei steady hands satisfied, natural tools not combat.\n2. Cao appears bringing practical shoulder bag short compact curls light skin sturdy green cardigan, slightly taller; his dry amused glance at messy friends. All three distinct expressions.\n3. three friends walking toward warm night market with fixed lantern, Cao gestures ahead calm, Meng and Beibei smile at each other; tiny ordinary old repair star mark on background wall, no ominous villain.\n4. Quiet establishing view of the same location with no people, no lettering; not a repeated character portrait."
+    },
+    {
+      "key": "3_intro",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos.\nMake one landscape 1536x1024 sheet with four separated illustrations in a 2x2 grid. These quadrants will be extracted separately then displayed in an irregular comic layout. Keep faces and important props below the upper 30% in EVERY quadrant; sky or wall above is reserved for readable HTML dialogue. No text. Scene 3_intro:\n1. all three enter star-lantern night market, broad beautiful street stalls, Beibei delighted looking at lights, compact short-haired Meng grins eating spicy snack, taller fair Cao watches calmly. Faces below top35%.\n2. Meng with second bag of spicy snacks secretly lifting another skewer, Beibei mock unimpressed, Cao arched eyebrow dry skeptical; friendly comic timing.\n3. Cao shoulders practical bag with tissue packet visibly tucked inside, heads toward street entrance to return a vendor item; Meng extends hand proposing a silly race, Beibei curious.\n4. both boys run right ahead down lively market lane, Beibei in foreground throws hands up laughing exasperated preparing pursuit; parade barrier far ahead telegraphed not immediate danger."
+    },
+    {
+      "key": "3_mid",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos.\nMake one landscape 1536x1024 sheet with four separated illustrations in a 2x2 grid. These quadrants will be extracted separately then displayed in an irregular comic layout. Keep faces and important props below the upper 30% in EVERY quadrant; sky or wall above is reserved for readable HTML dialogue. No text. Scene 3_mid:\n1. Meng slows at public service station bench hand gently on stomach, glasses intact, face sheepish mildly uncomfortable, short hair. No vomiting, humiliation or medical danger.\n2. Beibei crouches kindly at his level genuinely concerned serious, Meng sits and points toward distant Cao carrying bag, clear physical interaction, expressive care.\n3. Beibei determines her route looking at moving parade preparation carts, Meng reassured nods from bench; distant Cao cannot hear because festival musicians silhouettes background.\n4. Quiet establishing view of the same location with no people, no lettering; not a repeated character portrait."
+    },
+    {
+      "key": "3_return",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos.\nLandscape1536x1024four separate scenes2x2. Reserve empty upper30%sky/wall, people SMALLER positioned LOWER with face tops at40%height, hands/props lower. This space essential for speech overlays. No writing/bubbles. All scenes NIGHT warm lanterns, Cao short compact curls visibly8% taller, Beibei and Meng sameheight. 1: Beibei finally catches Cao at street entrance, breathless worried gestures back; Cao turns immediately alert helping rather than clueless; same short hair consistent.\n2: Cao passes tissue packet to Beibei with firm clear hands, checks parade barrier/clock nearby, carts now point opposite directions; show route change physically.\n3: dynamic Beibei runs LEFT holding tissue packet, Cao follows behind on her RIGHT looking back for carts, sturdy reliable protecting friend not giant; moonlit warm-lantern night street.\n4: Quiet night market star lantern location landscape, no people."
+    },
+    {
+      "key": "3_outro",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/beibei-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/meng-run-reference.png",
+        "D:/TIstudy-project/ddbbBa/artifacts/short-action-references/cao-run-reference.png"
+      ],
+      "prompt": "Original hand-inked colored fantasy academy COMIC illustration, strong clean brush contours, confident cel shadows, controlled textured highlights, lively expressive acting and graphic staging, warm pastel amber/teal/violet contrasts; NOT a glossy anime wallpaper, NOT photorealistic, NOT generic static portrait cards. Beibei chestnut bob gold star clip navy white-trim JK blazer white blouse burgundy bow plaid skirt knee socks brown loafers; Meng SHORT compact dark tousled hair clear cropped nape round dark glasses navy waistcoat white rolled sleeves red tie navy trousers brown shoes; Cao SHORT compact dark curls clean nape NO glasses fair light complexion broad shoulders forest-green white-trim cardigan navy tie taupe trousers white sneakers. Beibei and Meng170cm same height, Cao183cm visibly about8%taller and broader, not giant. Correct complete anatomy, consistent faces and costume across panels. Characters and essential hands/props occupy LOWER two-thirds of each scene; upper30% sky/wall negative space for HTML speech bubbles. NO text, lettering, labels, logos, speech balloons, painted captions, watermark. Do not copy any published fictional characters or logos.\nLandscape1536x1024four separate scenes2x2. Reserve empty upper30%sky/wall, people SMALLER positioned LOWER with face tops at40%height, hands/props lower. This space essential for speech overlays. No writing/bubbles. All scenes NIGHT warm lanterns, Cao short compact curls visibly8% taller, Beibei and Meng sameheight. 1: service station reunion Meng receives tissue packet embarrassed grateful, Beibei relieved, Cao catches breath calmly beside them; no ridicule.\n2: Cao discreetly puts away remaining spicy snack bag with flat dry humor, friends relax laughing, Meng sheepish agreeing genuinely; friendly grounded emotion.\n3: warm final group selfie photo all THREE under star lanterns, Beibei in middle cheerful, Meng short hair glasses playful peace sign, fair Cao green cardigan taller by8%, soft joyful closure no dramatic mystery.\n4: Quiet night market star lantern location landscape, no people."
+    },
+    {
+      "key": "3_return_fixed",
+      "reference": [
+        "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-b1b74c3f-8154-4f56-9595-296706904299.png"
+      ],
+      "prompt": "Edit this four-panel comic illustration preserving the same style, clothes, faces, night street and 2x2 layout. Story correction: Meng (dark glasses, white shirt/navy waistcoat) is NOT PRESENT here; he stays at the service station. Remove him completely from top-right and bottom-left panels, replace with matching street scenery. Top-left preserve Beibei catching Cao. Top-right ONLY Cao and Beibei: Cao hands a tissue packet from his bag into Beibei's hand, Beibei holds packet at waist, never against her mouth/nose; Cao alerts her to clock/street closure. Bottom-left ONLY Beibei running LEFT holding packet, Cao behind her on right follows left; do not add any third student. Bottom-right scenery unchanged. Keep Cao compact SHORT curls and fair skin. No text. Preserve all other elements."
+    },
+    {
+      "key": "1_intro_fixed",
+      "reference": [
+        "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-9b3abf89-7e01-4a71-82e1-3461175ba80b.png"
+      ],
+      "prompt": "Composition-only edit of this four-panel fantasy-school comic. Preserve all four story actions, exact two characters, costumes, complete anatomy, clean ink/cel style and sunset academy. Reserve room for speech bubbles: scale figures uniformly about80% and position LOWER in each quadrant, faces below35%of each quadrant height; fill opened upper space with matching sky/academy architecture. Remove all bag shoulder straps and backpacks from Meng and Beibei; their original run costume has no backpack. Meng keeps SHORT dark hair round glasses, NO long nape. Top-left invitation/group photo plans, top-right Meng teasing with invitation Beibei skeptical, bottom-left both running steps, bottom-right Beibei reaching for invitation and Meng ahead. No text/balloons. Do not squash or warp figures. 1536x1024source2x2."
+    },
+    {
+      "key": "3_mid_fixed",
+      "reference": [
+        "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-0e675985-b39f-4c93-91f8-f1192200b9ed.png"
+      ],
+      "prompt": "Edit lighting/time continuity only: all four quadrants are NIGHT at academy star-lantern night market, dark blue evening sky, warm amber lights and hanging star lanterns, service station near street, same buildings and characters and story actions. No daytime sky/sunlight. Meng short hair glasses stomach discomfort, Beibei cares, Cao walking away background in second quadrant. Keep poses, proportions, faces and clothes as they are, no new objects or extra people or text. Remove bag straps from Beibei if present. Preserve 2x2 1536x1024composition."
+    },
+    {
+      "key": "2_intro_fixed",
+      "reference": [
+        "C:/Users/cjt bl/.codex/generated_images/01a0a321-4626-7791-b385-8850c82737ca/exec-ce354ee4-73a1-4384-b05b-010e9546d3bd.png"
+      ],
+      "prompt": "Story continuity targeted edit of this2x2comic sheet: fourth bottom-right illustration should contain ONLY Beibei(chestnut bob navy school blazer plaid skirt) and Meng(short dark hair round glasses navy waistcoat white shirt). Remove taller green-cardigan Cao completely from bottom-right and fill with matching stone steps/riverside scenery. Cao does not arrive until the end of this chapter. Keep the two remaining friends departing up steps toward clocktower, forward moving poses and complete limbs. The other THREE quadrants must remain unchanged; preserve colors, artwork, faces, costumes, bell, ball, river. No added text."
+    },
+    {
+      "key": "2_outro_layout",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/godot/assets/comic-2-outro-v2.png"
+      ],
+      "prompt": "Composition-only edit of this four-panel academy comic. Keep SAME story actions, exact faces, fair Cao, compact SHORT hair, costumes and all lantern/repair props. Make all figures uniformly about70% of their current size, move each group toward LOWER half of its quadrant, expand matching original scenery above. In EVERY quadrant, the entire upper35% MUST contain only sky/architecture and absolutely NO head, face, hand or lantern. This is required to fit speech balloons without covering characters. Top-left two friends repair star lantern, top-right Cao arriving to two seated friends, bottom-left three leaving for night market, bottom-right scenery. Preserve evening light, expressive acting, proportions and 2x2source1536x1024. No text or balloons. Do NOT crop new heads or props."
+    },
+    {
+      "key": "3_mid_layout",
+      "reference": [
+        "D:/TIstudy-project/ddbbBa/godot/assets/comic-3-mid-v2.png"
+      ],
+      "prompt": "Composition-only edit of this NIGHT academy comic. Keep all story actions, short-haired glasses Meng stomach discomfort then sitting at service bench, caring Beibei and Cao receding in background second panel, warm star lantern night lights. Uniformly scale all groups down about75% and move LOWER in each quadrant, extending original night scenery above. In EACH quadrant the upper35% MUST be empty sky/wall free of ALL characters, heads, faces, hands. Especially bottom-left Beibei's FACE must be BELOW40%of scene height, so an upper dialogue bubble cannot hide her expression. Top-left Meng hand on stomach, top-right Beibei crouching comforting Meng, bottom-left Beibei departs determined while Meng nods, bottom-right scenery. No daytime sky, no text or balloons. Keep exact existing faces/short hair/proportions/clothes; no added people."
+    }
+  ],
+  "selectedComicOutputs": {
+    "1_intro": "exec-6b8e4073-6a2d-4ad6-8512-8ef28d200a44.png",
+    "1_outro": "exec-a649a421-1a04-4b0f-b845-76ee7f252829.png",
+    "2_intro": "exec-ec9533a9-7908-4f71-8b17-09e8f3217f0d.png",
+    "2_bridge": "exec-fce13a78-9241-4e1e-b2a0-9c76a001b601.png",
+    "2_outro": "exec-4111e909-03fa-4f40-b60f-23846a805055.png",
+    "3_intro": "exec-518ef6b1-1cf5-489d-b9a3-27344b0a66c6.png",
+    "3_mid": "exec-49d7ab9b-2400-465e-9e09-52fcb64f70eb.png",
+    "3_return": "exec-ea36d7ea-5bb7-4073-a853-441c2a883dd1.png",
+    "3_outro": "exec-dd378efd-5ead-445c-bcb5-f54045aa4f31.png"
+  },
+  "packing": [
+    [
+      "meng-run-short-v1",
+      "meng-run-short-packed-v1",
+      [
+        448,
+        432
+      ],
+      [
+        224,
+        400
+      ],
+      "210,389;573,389;936,392;1300,393;206,752;575,751;940,753;1307,751;198,1068;568,1102;943,1068;1315,1066"
+    ],
+    [
+      "cao-run-short-v1",
+      "cao-run-short-packed-v1",
+      [
+        448,
+        432
+      ],
+      [
+        224,
+        400
+      ],
+      "198,380;570,380;952,386;1310,386;195,733;578,733;948,734;1318,732;184,1064;571,1084;945,1063;1310,1063"
+    ],
+    [
+      "meng-actions-v2",
+      "meng-actions-packed-v2",
+      [
+        384,
+        432
+      ],
+      [
+        192,
+        400
+      ],
+      "185,317;515,316;838,318;1175,328;190,616;535,613;843,604;1175,605;187,868;510,869;825,868;1173,869;188,1121;511,1122;844,1118;1175,1119"
+    ],
+    [
+      "cao-actions-v2",
+      "cao-actions-packed-v2",
+      [
+        384,
+        432
+      ],
+      [
+        192,
+        400
+      ],
+      "203,301;543,291;859,300;1200,325;206,579;544,571;864,555;1200,552;209,806;541,801;873,794;1200,793;207,1060;543,1059;875,1061;1200,1054"
+    ],
+    [
+      "beibei-actions-v2",
+      "beibei-actions-packed-v2",
+      [
+        384,
+        432
+      ],
+      [
+        192,
+        400
+      ],
+      "171,338;470,338;750,338;1060,353;171,662;480,656;751,631;1060,631;170,930;469,931;753,932;1058,932;172,1231;474,1233;752,1221;1058,1213"
+    ]
+  ],
+  "qualityNotes": [
+    "First action draft rejected for crowded/clipped framing; fitted drafts preserve full bodies.",
+    "Initial comic1_intro fixed for upper dialogue space and removal of invented bags.",
+    "Initial comic3_return rejected: Meng wrongly followed despite waiting at station.",
+    "Initial comic3_mid fixed to night lighting.",
+    "Initial comic2_intro fixed to remove Cao before his chapter2_outro entrance.",
+    "Original generation source files are retained at default generated_images; selected originals are copied to versioned godot/assets filenames."
+  ],
+  "selectedCharacterOutputs": {
+    "mengRun": "exec-06361ce4-1296-4e2f-939f-0107570ced7a.png",
+    "caoRun": "exec-939ba5a3-7af8-4511-b6c5-2c4a8ba74ef2.png",
+    "mengActions": "exec-b2218e76-5b5c-4116-874f-3ea66ef308bb.png",
+    "caoActions": "exec-3c672cbf-5ff7-45a0-b7a1-360d0dfc0d8e.png",
+    "beibeiActions": "exec-edde5ab9-644a-4582-b5cc-a43bf58039c0.png"
+  }
+}

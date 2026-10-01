@@ -453,6 +453,7 @@ func ui_state() -> Dictionary:
 		"sound": sound_enabled, "fps": Engine.max_fps, "save_failed": save_failed}
 	if mode == "comic":
 		payload["panels"] = Story.SCENES[comic_key]
+		payload["comic_art"] = Story.ART[comic_key]
 		payload["shown"] = reveal.visible_count
 		payload["comic_key"] = comic_key
 	if is_instance_valid(runner):
@@ -507,7 +508,7 @@ func _refresh_native(payload: Dictionary) -> void:
 	elif mode == "comic":
 		native_status.text = ""
 		for i in range(reveal.visible_count):
-			native_status.text += Story.SCENES[comic_key][i][0] + "\n"
+			native_status.text += Story.panel_text(Story.SCENES[comic_key][i]) + "\n"
 		commands = [["展开 / 继续", "comic"], ["跳过", "skip"]]
 	elif mode == "play":
 		native_status.text = "%s · 生命 %d/3 · 硬币 %d" % [Story.TITLES[selected_chapter - 1], state.hearts, state.coins]
